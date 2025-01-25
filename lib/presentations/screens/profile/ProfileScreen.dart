@@ -1,18 +1,28 @@
-import 'package:finances/core/data/providers/auth_provider.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
-import 'package:finances/routes/app_routes.dart'; // Importa las rutas
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:finances/core/data/providers/auth_provider.dart';
+import 'package:finances/routes/app_routes.dart';
 
-class ProfileScreen extends StatefulWidget {
+class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
   _ProfileScreenState createState() => _ProfileScreenState();
 }
 
-class _ProfileScreenState extends State<ProfileScreen> {
+class _ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
-  String _name = '';
-  final AuthStorage _authService = AuthStorage(); // Instancia de AuthService
+  final TextEditingController _nameController = TextEditingController();
+
+  @override
+  void initState() {
+    super.initState();
+    final user = FirebaseAuth.instance.currentUser;
+    if (user != null) {
+      _nameController.text = user.displayName ?? '';
+    }
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,7 +32,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
         leading: IconButton(
           icon: const Icon(Icons.arrow_back),
           onPressed: () {
-            // Redirigir a la pantalla principal (Home)
             Navigator.pushReplacementNamed(context, AppRoutes.home);
           },
         ),
@@ -34,17 +43,20 @@ class _ProfileScreenState extends State<ProfileScreen> {
           child: Column(
             children: [
               TextFormField(
+                controller: _nameController,
                 decoration: const InputDecoration(labelText: 'Nombre'),
                 onSaved: (value) {
-                  _name = value ?? '';
+                  _nameController.text = value ?? '';
                 },
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
                   if (_formKey.currentState?.validate() ?? false) {
                     _formKey.currentState?.save();
-                    // Aquí puedes guardar la información del perfil
+                    await ref
+                        .read(authProvider.notifier)
+                        .updateDisplayName(_nameController.text);
                     Navigator.pop(context);
                   }
                 },
@@ -52,22 +64,16 @@ class _ProfileScreenState extends State<ProfileScreen> {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () async {
-                  // Eliminar el token antes de redirigir
-                  await _authService.deleteToken();
-
-                  // Redirigir a la pantalla de inicio de sesión
+                onPressed: () {
                   Navigator.pushNamedAndRemoveUntil(
                     context,
-                    AppRoutes.loginScreen, // Usa la nueva ruta directa
-                    (Route<dynamic> route) =>
-                        false, // Elimina todas las rutas anteriores
+                    AppRoutes.loginScreen,
+                    (Route<dynamic> route) => false,
                   );
                 },
                 child: const Text('Salir'),
                 style: ElevatedButton.styleFrom(
-                  backgroundColor:
-                      Colors.red, // Cambia el color del botón a rojo
+                  backgroundColor: Colors.red,
                 ),
               ),
             ],

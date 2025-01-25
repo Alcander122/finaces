@@ -106,7 +106,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
               const SizedBox(height: 20),
               ElevatedButton(
                 onPressed: () =>
-                    {Navigator.pushNamed(context, AppRoutes.login)},
+                    {Navigator.pushNamed(context, AppRoutes.loginScreen)},
                 child: const Text('Volver al Login'),
               ),
             ],

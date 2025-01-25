@@ -10,7 +10,7 @@ class MyApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
-    print("Estado de autenticación: $authState");
+    // print("Estado de autenticación: $authState");
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
