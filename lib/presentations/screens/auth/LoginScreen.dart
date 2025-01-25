@@ -1,6 +1,5 @@
 import 'package:finances/core/data/providers/auth_provider.dart';
-import 'package:finances/presentations/screens/SecondScreen.dart';
-import 'package:finances/presentations/screens/auth/register.screen.dart';
+import 'package:finances/routes/app_routes.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:flutter/material.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -71,11 +70,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
 
                       final currentUser = FirebaseAuth.instance.currentUser;
                       if (currentUser != null && mounted) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                              builder: (context) => const SecondScreen()),
-                        );
+                        Navigator.pushReplacementNamed(context, AppRoutes.home);
                       }
                     } catch (e) {
                       debugPrint(
@@ -130,10 +125,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                 height: 50,
                 child: ElevatedButton(
                   onPressed: () {
-                    Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                            builder: (context) => const RegisterScreen()));
+                    Navigator.pushNamed(context, AppRoutes.register);
                   },
                   child: const Text('Ir a registro'),
                 ),
