@@ -1,9 +1,23 @@
-import 'package:finances/presentations/widgets/menu_option.dart';
-import 'package:finances/presentations/widgets/statistic_card.dart';
-import 'package:firebase_auth/firebase_auth.dart';
+import 'package:finances/core/data/services/ingresos_service.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:finances/presentations/widgets/statistic_card.dart';
+import 'package:finances/presentations/widgets/menu_option.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
+import '../ingresos/ingresos_screen.dart';
+
+// Proveedores
+final totalIngresosProvider = StreamProvider.autoDispose<double>((ref) {
+  final user = ref.watch(authProvider);
+  if (user == null) return Stream.value(0.0);
+  return IngresosService().streamTotalIngresos(user.uid);
+});
+
+final totalGastosProvider = StreamProvider.autoDispose<double>((ref) {
+  final user = ref.watch(authProvider);
+  if (user == null) return Stream.value(0.0);
+  return IngresosService().streamTotalGastos(user.uid);
+});
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -11,6 +25,18 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider);
+    final totalIngresosAsync = ref.watch(totalIngresosProvider);
+    final totalGastosAsync = ref.watch(totalGastosProvider);
+
+    final totalIngresos = totalIngresosAsync.maybeWhen(
+      data: (value) => value,
+      orElse: () => 0.0,
+    );
+
+    final totalGastos = totalGastosAsync.maybeWhen(
+      data: (value) => value,
+      orElse: () => 0.0,
+    );
 
     return Scaffold(
       appBar: AppBar(
@@ -28,96 +54,106 @@ class HomeScreen extends ConsumerWidget {
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
-          children: <Widget>[
+          children: [
             Text(
               'Bienvenido, ${user?.displayName ?? 'Usuario'}',
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
-            const Text(
-              '\$1,000,000',
-              style: TextStyle(
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green),
+            Text(
+              '\$${(totalIngresos - totalGastos).toStringAsFixed(2)}',
+              style: const TextStyle(
+                fontSize: 32,
+                fontWeight: FontWeight.bold,
+                color: Colors.green,
+              ),
             ),
             const SizedBox(height: 20),
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: const <Widget>[
+              children: [
                 StatisticCard(
-                    title: 'Ingresos',
-                    amount: '\$2,500,000',
-                    color: Colors.blue),
+                  title: 'Ingresos',
+                  amount: totalIngresos,
+                  color: Colors.blue,
+                ),
                 StatisticCard(
-                    title: 'Gastos', amount: '\$1,500,000', color: Colors.red),
+                  title: 'Gastos',
+                  amount: totalGastos,
+                  color: Colors.red,
+                ),
               ],
             ),
             const SizedBox(height: 20),
-            const Text(
-              'Opciones',
-              style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-            ),
-            const SizedBox(height: 10),
-            MenuOption(
-              icon: Icons.add_circle,
-              title: 'Ingresos',
-              color: Colors.green,
-              onTap: () {
-                // Navegar a la pantalla de Ingresos
-              },
-            ),
-            MenuOption(
-              icon: Icons.remove_circle,
-              title: 'Egresos',
-              color: Colors.red,
-              onTap: () {
-                // Navegar a la pantalla de Egresos
-              },
-            ),
-            MenuOption(
-              icon: Icons.savings,
-              title: 'Ahorros',
-              color: Colors.blue,
-              onTap: () {
-                // Navegar a la pantalla de Ahorros
-              },
-            ),
-            MenuOption(
-              icon: Icons.trending_up,
-              title: 'Plan de Inversión',
-              color: Colors.purple,
-              onTap: () {
-                // Navegar a la pantalla de Plan de Inversión
-              },
-            ),
-            MenuOption(
-              icon: Icons.schedule,
-              title: 'Pagos Programados',
-              color: Colors.orange,
-              onTap: () {
-                // Navegar a la pantalla de Pagos Programados
-              },
-            ),
-            MenuOption(
-              icon: Icons.pending_actions,
-              title: 'Pagos Pendientes',
-              color: Colors.teal,
-              onTap: () {
-                // Navegar a la pantalla de Pagos Pendientes
-              },
-            ),
-            MenuOption(
-              icon: Icons.account_balance,
-              title: 'Neo Bank',
-              color: Colors.brown,
-              onTap: () {
-                // Navegar a la pantalla de Neo Bank
-              },
-            ),
+            ..._buildMenuOptions(context),
           ],
         ),
       ),
     );
+  }
+
+  List<Widget> _buildMenuOptions(BuildContext context) {
+    return [
+      const SizedBox(height: 10),
+      MenuOption(
+        icon: Icons.add_circle,
+        title: 'Ingresos',
+        color: Colors.green,
+        onTap: () {
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => IngresosScreen()),
+          );
+        },
+      ),
+      MenuOption(
+        icon: Icons.remove_circle,
+        title: 'Egresos',
+        color: Colors.red,
+        onTap: () {
+          // Navegar a la pantalla de Egresos
+        },
+      ),
+      MenuOption(
+        icon: Icons.savings,
+        title: 'Ahorros',
+        color: Colors.blue,
+        onTap: () {
+          // Navegar a la pantalla de Ahorros
+        },
+      ),
+      MenuOption(
+        icon: Icons.trending_up,
+        title: 'Plan de Inversión',
+        color: Colors.purple,
+        onTap: () {
+          // Navegar a la pantalla de Plan de Inversión
+        },
+      ),
+      MenuOption(
+        icon: Icons.schedule,
+        title: 'Pagos Programados',
+        color: Colors.orange,
+        onTap: () {
+          // Navegar a la pantalla de Pagos Programados
+        },
+      ),
+      MenuOption(
+        icon: Icons.pending_actions,
+        title: 'Pagos Pendientes',
+        color: Colors.teal,
+        onTap: () {
+          // Navegar a la pantalla de Pagos Pendientes
+        },
+      ),
+      MenuOption(
+        icon: Icons.account_balance,
+        title: 'Neo Bank',
+        color: Colors.brown,
+        onTap: () {
+          // Navegar a la pantalla de Neo Bank
+        },
+      ),
+    ];
   }
 }
