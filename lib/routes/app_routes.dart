@@ -4,7 +4,6 @@ import 'package:finances/presentations/screens/auth/register.screen.dart';
 import 'package:finances/presentations/screens/ingresos/ingresos_screen.dart';
 import 'package:finances/presentations/screens/profile/ProfileScreen.dart';
 import 'package:flutter/material.dart';
-import 'package:finances/presentations/screens/SecondScreen.dart';
 import 'package:finances/presentations/screens/home/home_screen.dart';
 
 class AppRoutes {

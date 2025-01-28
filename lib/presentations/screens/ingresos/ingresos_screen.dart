@@ -88,17 +88,18 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
     });
   }
 
-  void _eliminarIngreso(String ingresoId) async {
+  Future<void> _eliminarIngreso(String ingresoId) async {
     final user = ref.read(authProvider);
     if (user == null) return;
     await _ingresosService.eliminarIngreso(user.uid, ingresoId);
+    setState(() {}); // Actualizar la vista
   }
 
   void _limpiarFormulario() {
     setState(() {
       _editando = false;
       _ingresoEditadoId = null;
-      _fechaController.text = '';
+      _actualizarFechaActual();
       _conceptoController.clear();
       _valorController.clear();
       _notaController.clear();
@@ -161,7 +162,9 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
                               onPressed: () => _editarIngreso(ingreso)),
                           IconButton(
                               icon: Icon(Icons.delete),
-                              onPressed: () => _eliminarIngreso(ingreso['id'])),
+                              onPressed: () async {
+                                await _eliminarIngreso(ingreso['id']);
+                              }),
                         ],
                       ),
                     );
