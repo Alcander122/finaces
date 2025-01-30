@@ -1,4 +1,5 @@
 import 'package:finances/core/data/services/user_service.dart';
+import 'package:finances/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'LoginScreen.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -104,10 +105,8 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   child: const Text('Registrar')),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (context) => const LoginScreen())),
+                onPressed: () =>
+                    {Navigator.pushNamed(context, AppRoutes.loginScreen)},
                 child: const Text('Volver al Login'),
               ),
             ],

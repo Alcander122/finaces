@@ -1,6 +1,7 @@
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/user_service.dart';
 
 class AuthStorage {
@@ -10,7 +11,6 @@ class AuthStorage {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_tokenKey, token);
-      print("✅ Token guardado exitosamente");
     } catch (e) {
       print("❌ Error al guardar el token: $e");
     }
@@ -20,7 +20,6 @@ class AuthStorage {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_tokenKey);
-      print("✅ Token eliminado");
     } catch (e) {
       print("❌ Error al eliminar el token: $e");
     }
@@ -45,6 +44,7 @@ class AuthNotifier extends StateNotifier<User?> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final UserService _userService = UserService();
   final AuthStorage _storage = AuthStorage();
+  final FirebaseFirestore _firestore = FirebaseFirestore.instance; // Firestore
 
   AuthNotifier() : super(null) {
     _initAuthListener();
@@ -126,5 +126,31 @@ class AuthNotifier extends StateNotifier<User?> {
     }
     print("❌ $errorMessage");
     throw errorMessage;
+  }
+
+  // Método para actualizar el nombre del usuario en Firebase Auth y Firestore
+  Future<void> updateDisplayName(String displayName) async {
+    if (state != null) {
+      // Actualizar el displayName en Firebase Authentication
+      await state!.updateDisplayName(displayName);
+      await state!.reload(); // Recargar el usuario para sincronizar
+      state = FirebaseAuth.instance.currentUser; // Actualizar el estado
+
+      // Actualizar en Firestore
+      await updateUserInFirestore(state!.uid, displayName);
+    }
+  }
+
+  // Método para actualizar el usuario en Firestore
+  Future<void> updateUserInFirestore(String userId, String displayName) async {
+    try {
+      await _firestore.collection('users').doc(userId).update({
+        'displayName': displayName,
+      });
+      print("✅ Nombre de usuario actualizado en Firestore");
+    } catch (e) {
+      print("❌ Error al actualizar Firestore: $e");
+      throw e;
+    }
   }
 }
