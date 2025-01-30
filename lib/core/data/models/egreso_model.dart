@@ -25,12 +25,12 @@ class Egreso {
     required this.estado,
   });
 
-  // Convertir a Map para Firebase
+  // Convertir objeto Egreso a Map para Firestore
   Map<String, dynamic> toMap() {
     return {
       'id': id,
       'quincena': quincena,
-      'fecha': fecha.toIso8601String(),
+      'fecha': fecha.toIso8601String(), // Convertir DateTime a String
       'mes': mes,
       'dia': dia,
       'anio': anio,
@@ -42,24 +42,24 @@ class Egreso {
     };
   }
 
-  // Convertir desde Map (Firebase)
-  factory Egreso.fromMap(Map<String, dynamic> map) {
+  // Crear una instancia de Egreso a partir de un Map (Firestore)
+  static Egreso fromMap(Map<String, dynamic> map) {
     return Egreso(
-      id: map['id'],
-      quincena: map['quincena'],
-      fecha: DateTime.parse(map['fecha']),
-      mes: map['mes'],
-      dia: map['dia'],
-      anio: map['anio'],
-      categoria: map['categoria'],
-      concepto: map['concepto'],
-      valor: map['valor'],
-      descripcion: map['descripcion'],
-      estado: map['estado'],
+      id: map['id'] ?? '', // Valor predeterminado si no existe
+      quincena: map['quincena'] ?? '',
+      fecha: DateTime.parse(map['fecha']), // Convertir String a DateTime
+      mes: map['mes'] ?? '',
+      dia: map['dia'] is int ? map['dia'] : 0,
+      anio: map['anio'] is int ? map['anio'] : 0,
+      categoria: map['categoria'] ?? '',
+      concepto: map['concepto'] ?? '',
+      valor: map['valor'] is int ? map['valor'] : 0,
+      descripcion: map['descripcion'] ?? '',
+      estado: map['estado'] ?? '',
     );
   }
 
-  // Método copyWith
+  // Método copyWith para copiar un objeto con algunos campos modificados
   Egreso copyWith({
     String? id,
     String? quincena,

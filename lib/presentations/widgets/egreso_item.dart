@@ -36,7 +36,13 @@ class EgresoItem extends ConsumerWidget {
             onPressed: () async {
               final user = FirebaseAuth.instance.currentUser;
               if (user != null) {
-                await egresoService.eliminarEgreso(egreso.id, user.uid);
+                print('UID del usuario: ${user.uid}');
+                print('ID del egreso: ${egreso.id}');
+                await egresoService.eliminarEgreso(user.uid, egreso.id);
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Usuario no autenticado')),
+                );
               }
             },
           ),

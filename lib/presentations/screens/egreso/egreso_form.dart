@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/models/egreso_model.dart';
 import 'package:finances/core/data/services/egreso_service.dart';
 import 'package:intl/intl.dart'; // Importar paquete para formatear fechas
+import 'dart:math'; // Para generar el ID aleatorio
 
 class EgresoForm extends ConsumerStatefulWidget {
   final Egreso? egreso;
@@ -126,7 +127,8 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final egreso = Egreso(
-          id: widget.egreso?.id ?? DateTime.now().toString(),
+          id: widget.egreso?.id ??
+              _generarIdAleatorio(), // Generar ID aleatorio
           quincena: _quincena!,
           fecha: _fechaActual, // Guardar la fecha actual
           mes: _mes!,
@@ -154,6 +156,15 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
         );
       }
     }
+  }
+
+  // Generar un ID aleatorio
+  String _generarIdAleatorio() {
+    const caracteres =
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final random = Random();
+    return List.generate(
+        20, (index) => caracteres[random.nextInt(caracteres.length)]).join();
   }
 
   @override

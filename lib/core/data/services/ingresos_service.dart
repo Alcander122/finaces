@@ -1,4 +1,5 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:finances/core/data/models/egreso_model.dart';
 
 class IngresosService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -7,11 +8,22 @@ class IngresosService {
   Future<String> guardarIngreso(
       String userId, Map<String, dynamic> ingreso) async {
     try {
+      // Crea el documento y genera automáticamente un ID.
       final docRef = await _firestore
           .collection('users')
           .doc(userId)
+          .collection('egreso')
+          .add(ingreso); // Firestore genera el ID automáticamente
+
+      // Actualiza el ingreso con el ID generado.
+      await _firestore
+          .collection('users')
+          .doc(userId)
           .collection('ingresos')
-          .add(ingreso);
+          .doc(docRef.id)
+          .update(
+              {'id': docRef.id}); // Aquí actualizas el ID dentro de los datos
+
       print("✅ Ingreso guardado exitosamente: ID ${docRef.id}");
       return docRef.id;
     } catch (e) {

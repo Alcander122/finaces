@@ -1,16 +1,27 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finances/core/data/models/egreso_model.dart';
+import 'dart:math';
 
 class EgresoService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
+  // 🔹 Generar un ID aleatorio
+  String _generarIdAleatorio() {
+    const caracteres =
+        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    final random = Random();
+    return List.generate(
+        20, (index) => caracteres[random.nextInt(caracteres.length)]).join();
+  }
+
   // 🔹 Agregar un nuevo egreso
   Future<void> addEgreso(String uid, Egreso egreso) async {
+    final id = _generarIdAleatorio(); // Generar un ID aleatorio
     await _firestore
         .collection('users')
         .doc(uid)
         .collection('egreso')
-        .doc(egreso.id) // ID único
+        .doc(id) // Usar el ID generado
         .set(egreso.toMap());
   }
 
@@ -34,7 +45,7 @@ class EgresoService {
         .delete();
   }
 
-  // 🔹 Obtener egresos ordenados por año y mes (requiere índice compuesto)
+  // 🔹 Obtener egresos ordenados por año y mes
   Stream<List<Egreso>> obtenerEgresos(String uid) {
     return _firestore
         .collection('users')
