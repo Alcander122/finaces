@@ -55,9 +55,7 @@ class AuthNotifier extends StateNotifier<User?> {
       try {
         if (user != null) {
           String? token = await user.getIdToken();
-          if (token != null) {
-            await _storage.saveToken(token);
-          }
+          await _storage.saveToken(token!);
         } else {
           await _storage.deleteToken();
         }
