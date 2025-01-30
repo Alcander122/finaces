@@ -84,21 +84,4 @@ class IngresosService {
       return totalIngresos;
     });
   }
-
-  // Obtener el total de gastos en tiempo real (Stream)
-  Stream<double> streamTotalGastos(String userId) {
-    return _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('gastos')
-        .snapshots()
-        .map((snapshot) {
-      double totalGastos = 0.0;
-      for (var doc in snapshot.docs) {
-        final valor = doc.data()['valor'];
-        totalGastos += valor is num ? valor.toDouble() : 0.0;
-      }
-      return totalGastos;
-    });
-  }
 }

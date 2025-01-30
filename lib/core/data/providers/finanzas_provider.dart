@@ -8,10 +8,3 @@ final totalIngresosProvider = StreamProvider.autoDispose<double>((ref) {
   if (user == null) return Stream.value(0.0);
   return IngresosService().streamTotalIngresos(user.uid);
 });
-
-// Proveedor para escuchar gastos en tiempo real
-final totalGastosProvider = StreamProvider.autoDispose<double>((ref) {
-  final user = ref.watch(authProvider);
-  if (user == null) return Stream.value(0.0);
-  return IngresosService().streamTotalGastos(user.uid);
-});

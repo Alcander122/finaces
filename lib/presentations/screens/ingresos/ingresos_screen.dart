@@ -45,7 +45,7 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
     });
   }
 
-  Future<void> _guardarIngreso() async {
+  Future<void> _guardarIngreso(BuildContext context) async {
     if (_formKey.currentState!.validate()) {
       final user = ref.read(authProvider);
       if (user == null) return;
@@ -65,10 +65,18 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
       if (_editando && _ingresoEditadoId != null) {
         await _ingresosService.actualizarIngreso(
             user.uid, _ingresoEditadoId!, ingreso);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ingreso actualizado correctamente')),
+        );
       } else {
         await _ingresosService.guardarIngreso(user.uid, ingreso);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Ingreso guardado correctamente')),
+        );
       }
+
       _limpiarFormulario();
+      Navigator.pop(context);
     }
   }
 
@@ -92,7 +100,7 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
     final user = ref.read(authProvider);
     if (user == null) return;
     await _ingresosService.eliminarIngreso(user.uid, ingresoId);
-    setState(() {}); // Actualizar la vista
+    setState(() {});
   }
 
   void _limpiarFormulario() {
@@ -103,14 +111,35 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
       _conceptoController.clear();
       _valorController.clear();
       _notaController.clear();
-
-      // Limpiar los campos seleccionables
       _mes = null;
       _quincena = null;
       _categoria = null;
       _anio = null;
       _dia = null;
     });
+  }
+
+  void _mostrarDialogo(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(_editando ? 'Editar Ingreso' : 'Nuevo Ingreso'),
+        content: _buildFormulario(),
+        actions: [
+          TextButton(
+            onPressed: () {
+              _limpiarFormulario();
+              Navigator.pop(context);
+            },
+            child: Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => _guardarIngreso(context),
+            child: Text('Guardar'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -123,21 +152,11 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
       body: Column(
         children: [
           ElevatedButton(
-            onPressed: () => showDialog(
-              context: context,
-              builder: (context) => AlertDialog(
-                title: Text(_editando ? 'Editar Ingreso' : 'Nuevo Ingreso'),
-                content: _buildFormulario(),
-                actions: [
-                  TextButton(
-                      onPressed: () => Navigator.pop(context),
-                      child: Text('Cancelar')),
-                  ElevatedButton(
-                      onPressed: _guardarIngreso, child: Text('Guardar')),
-                ],
-              ),
-            ),
-            child: Text(_editando ? 'Editar Ingreso' : 'Agregar Ingreso'),
+            onPressed: () {
+              _limpiarFormulario();
+              _mostrarDialogo(context);
+            },
+            child: Text('Agregar Ingreso'),
           ),
           Expanded(
             child: StreamBuilder<List<Map<String, dynamic>>>(
@@ -158,13 +177,18 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           IconButton(
-                              icon: Icon(Icons.edit),
-                              onPressed: () => _editarIngreso(ingreso)),
+                            icon: Icon(Icons.edit),
+                            onPressed: () {
+                              _editarIngreso(ingreso);
+                              _mostrarDialogo(context);
+                            },
+                          ),
                           IconButton(
-                              icon: Icon(Icons.delete),
-                              onPressed: () async {
-                                await _eliminarIngreso(ingreso['id']);
-                              }),
+                            icon: Icon(Icons.delete),
+                            onPressed: () async {
+                              await _eliminarIngreso(ingreso['id']);
+                            },
+                          ),
                         ],
                       ),
                     );
@@ -180,18 +204,18 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
 
   Widget _buildFormulario() {
     return SingleChildScrollView(
-      // Solución al problema del desbordamiento
       child: Form(
         key: _formKey,
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextFormField(
-                controller: _fechaController,
-                decoration: InputDecoration(labelText: 'Fecha')),
+              controller: _fechaController,
+              decoration: InputDecoration(labelText: 'Fecha'),
+            ),
             DropdownButtonFormField<String>(
               value: _mes,
-              hint: Text('Selecciona un mes'), // Sugerencia
+              hint: Text('Selecciona un mes'),
               items: [
                 'Enero',
                 'Febrero',
@@ -213,7 +237,7 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
             ),
             DropdownButtonFormField<int>(
               value: _dia,
-              hint: Text('Selecciona un día'), // Sugerencia
+              hint: Text('Selecciona un día'),
               items: List.generate(31, (index) => index + 1)
                   .map((dia) =>
                       DropdownMenuItem(value: dia, child: Text(dia.toString())))
@@ -223,7 +247,7 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
             ),
             DropdownButtonFormField<int>(
               value: _anio,
-              hint: Text('Selecciona un año'), // Sugerencia
+              hint: Text('Selecciona un año'),
               items: List.generate(3, (index) => DateTime.now().year + index)
                   .map((anio) => DropdownMenuItem(
                       value: anio, child: Text(anio.toString())))
@@ -233,7 +257,7 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
             ),
             DropdownButtonFormField<String>(
               value: _quincena,
-              hint: Text('Selecciona una quincena'), // Sugerencia
+              hint: Text('Selecciona una quincena'),
               items: ['Primera', 'Segunda']
                   .map((q) => DropdownMenuItem(value: q, child: Text(q)))
                   .toList(),
@@ -242,7 +266,7 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
             ),
             DropdownButtonFormField<String>(
               value: _categoria,
-              hint: Text('Selecciona una categoría'), // Sugerencia
+              hint: Text('Selecciona una categoría'),
               items: categorias
                   .map((categoria) => DropdownMenuItem(
                       value: categoria, child: Text(categoria)))
@@ -251,15 +275,18 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
               decoration: InputDecoration(labelText: 'Categoría'),
             ),
             TextFormField(
-                controller: _conceptoController,
-                decoration: InputDecoration(labelText: 'Concepto')),
+              controller: _conceptoController,
+              decoration: InputDecoration(labelText: 'Concepto'),
+            ),
             TextFormField(
-                controller: _valorController,
-                decoration: InputDecoration(labelText: 'Valor'),
-                keyboardType: TextInputType.number),
+              controller: _valorController,
+              decoration: InputDecoration(labelText: 'Valor'),
+              keyboardType: TextInputType.number,
+            ),
             TextFormField(
-                controller: _notaController,
-                decoration: InputDecoration(labelText: 'Nota')),
+              controller: _notaController,
+              decoration: InputDecoration(labelText: 'Nota'),
+            ),
           ],
         ),
       ),

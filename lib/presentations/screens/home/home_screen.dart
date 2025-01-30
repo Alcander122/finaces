@@ -1,4 +1,6 @@
+import 'package:finances/core/data/services/egreso_service.dart';
 import 'package:finances/core/data/services/ingresos_service.dart';
+import 'package:finances/presentations/screens/egreso/egresos_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/presentations/widgets/statistic_card.dart';
@@ -16,7 +18,7 @@ final totalIngresosProvider = StreamProvider.autoDispose<double>((ref) {
 final totalGastosProvider = StreamProvider.autoDispose<double>((ref) {
   final user = ref.watch(authProvider);
   if (user == null) return Stream.value(0.0);
-  return IngresosService().streamTotalGastos(user.uid);
+  return EgresoService().streamTotalGastos(user.uid);
 });
 
 class HomeScreen extends ConsumerWidget {
@@ -111,7 +113,10 @@ class HomeScreen extends ConsumerWidget {
         title: 'Egresos',
         color: Colors.red,
         onTap: () {
-          // Navegar a la pantalla de Egresos
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => EgresosScreen()),
+          );
         },
       ),
       MenuOption(
