@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:finances/core/data/models/egreso_model.dart';
 
 class IngresosService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
