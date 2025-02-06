@@ -83,4 +83,47 @@ class EgresoService {
       return totalGastos;
     });
   }
+
+  // Obtener el total de ingresos del mes actual en tiempo real (Stream)
+  Stream<double> streamTotalIngresosMesActual(String userId) {
+    final now = DateTime.now();
+    final mesActual =
+        _obtenerNombreMes(now.month); // Convertir a nombre del mes
+    final anioActual = now.year;
+
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('egreso')
+        .where('mes', isEqualTo: mesActual)
+        .where('anio', isEqualTo: anioActual)
+        .where('estado', isEqualTo: 'Pendiente')
+        .snapshots()
+        .map((snapshot) {
+      double totalIngresos = 0.0;
+      for (var doc in snapshot.docs) {
+        final valor = doc.data()['valor'];
+        totalIngresos += valor is num ? valor.toDouble() : 0.0;
+      }
+      return totalIngresos;
+    });
+  }
+
+  // Función auxiliar para convertir número de mes a nombre
+  String _obtenerNombreMes(int numeroMes) {
+    return [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre'
+    ][numeroMes - 1];
+  }
 }

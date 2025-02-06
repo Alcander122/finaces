@@ -7,21 +7,18 @@ class IngresosService {
   Future<String> guardarIngreso(
       String userId, Map<String, dynamic> ingreso) async {
     try {
-      // Crea el documento y genera automáticamente un ID.
       final docRef = await _firestore
           .collection('users')
           .doc(userId)
           .collection('ingresos')
-          .add(ingreso); // Firestore genera el ID automáticamente
+          .add(ingreso);
 
-      // Actualiza el ingreso con el ID generado.
       await _firestore
           .collection('users')
           .doc(userId)
           .collection('ingresos')
           .doc(docRef.id)
-          .update(
-              {'id': docRef.id}); // Aquí actualizas el ID dentro de los datos
+          .update({'id': docRef.id});
 
       print("✅ Ingreso guardado exitosamente: ID ${docRef.id}");
       return docRef.id;
@@ -94,5 +91,47 @@ class IngresosService {
       }
       return totalIngresos;
     });
+  }
+
+  // Obtener el total de ingresos del mes actual en tiempo real (Stream)
+  Stream<double> streamTotalIngresosMesActual(String userId) {
+    final now = DateTime.now();
+    final mesActual =
+        _obtenerNombreMes(now.month); // Convertir a nombre del mes
+    final anioActual = now.year;
+
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('ingresos')
+        .where('mes', isEqualTo: mesActual)
+        .where('anio', isEqualTo: anioActual)
+        .snapshots()
+        .map((snapshot) {
+      double totalIngresos = 0.0;
+      for (var doc in snapshot.docs) {
+        final valor = doc.data()['valor'];
+        totalIngresos += valor is num ? valor.toDouble() : 0.0;
+      }
+      return totalIngresos;
+    });
+  }
+
+  // Función auxiliar para convertir número de mes a nombre
+  String _obtenerNombreMes(int numeroMes) {
+    return [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre'
+    ][numeroMes - 1];
   }
 }

@@ -1,3 +1,5 @@
+import 'package:finances/core/data/providers/egreso_provider.dart';
+import 'package:finances/core/data/providers/finanzas_provider.dart';
 import 'package:finances/core/data/services/egreso_service.dart';
 import 'package:finances/core/data/services/ingresos_service.dart';
 import 'package:finances/presentations/screens/egreso/egresos_screen.dart';
@@ -8,30 +10,20 @@ import 'package:finances/presentations/widgets/menu_option.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import '../ingresos/ingresos_screen.dart';
 
-// Proveedores
-final totalIngresosProvider = StreamProvider.autoDispose<double>((ref) {
-  final user = ref.watch(authProvider);
-  if (user == null) return Stream.value(0.0);
-  return IngresosService().streamTotalIngresos(user.uid);
-});
-
-final totalGastosProvider = StreamProvider.autoDispose<double>((ref) {
-  final user = ref.watch(authProvider);
-  if (user == null) return Stream.value(0.0);
-  return EgresoService().streamTotalGastos(user.uid);
-});
-
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = ref.watch(authProvider);
-    final totalIngresosAsync = ref.watch(totalIngresosProvider);
-    final totalGastosAsync = ref.watch(totalGastosProvider);
+    final totalIngresosMesAsync = ref.watch(totalIngresosMesActualProvider);
+    final totalGastosAsync = ref.watch(totalEgresoMesActualProvider);
 
-    final totalIngresos = totalIngresosAsync.maybeWhen(
-      data: (value) => value,
+    final totalIngresos = totalIngresosMesAsync.maybeWhen(
+      data: (value) {
+        print("🔹 Total ingresos en la vista: $value");
+        return value;
+      },
       orElse: () => 0.0,
     );
 

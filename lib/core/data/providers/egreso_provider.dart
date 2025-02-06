@@ -26,3 +26,14 @@ final totalGastosProvider = StreamProvider.autoDispose<double>((ref) {
     return Stream.value(0.0);
   }
 });
+
+// Proveedor para escuchar solo el total de ingresos del mes actual
+final totalEgresoMesActualProvider = StreamProvider.autoDispose<double>((ref) {
+  final user = FirebaseAuth.instance.currentUser;
+  if (user != null) {
+    final service = ref.watch(egresoServiceProvider);
+    return service.streamTotalIngresosMesActual(user.uid);
+  } else {
+    return Stream.value(0.0);
+  }
+});
