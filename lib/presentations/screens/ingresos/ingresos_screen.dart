@@ -39,6 +39,10 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
   void initState() {
     super.initState();
     _anio = DateTime.now().year;
+    _mes = 'Enero'; // Valor inicial predeterminado
+    _quincena = 'Primera'; // Valor inicial predeterminado
+    _categoria = 'Salario'; // Valor inicial predeterminado
+    _dia = 1; // Día inicial predeterminado
     _cargarIngresos();
   }
 
@@ -47,8 +51,6 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
     if (user == null) return;
 
     _ingresos = await _ingresosService.obtenerIngresos(user.uid);
-
-    // Ordenar por año y mes
     _ingresos.sort((a, b) {
       final anioA = a['anio'] ?? 0;
       final anioB = b['anio'] ?? 0;
@@ -221,51 +223,45 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
     );
   }
 
-  void _mostrarSelectorColumnas(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) {
-        return AlertDialog(
-          title: Text('Seleccionar Columnas'),
-          content: SizedBox(
-            width: double.maxFinite,
-            child: SingleChildScrollView(
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: _camposVisibles.map((campo) {
-                  return CheckboxListTile(
-                    title: Text(campo),
-                    value: _camposVisibles.contains(campo),
-                    onChanged: (value) {
-                      setState(() {
-                        if (value == true) {
-                          _camposVisibles.add(campo);
-                        } else {
-                          _camposVisibles.remove(campo);
-                        }
-                      });
-                    },
-                  );
-                }).toList(),
-              ),
-            ),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: Text('Cerrar'),
-            ),
-          ],
-        );
-      },
-    );
-  }
-
   Future<void> _eliminarIngreso(String id) async {
     final user = ref.read(authProvider);
     if (user == null) return;
     await _ingresosService.eliminarIngreso(user.uid, id);
     _cargarIngresos();
+  }
+
+  void _mostrarDialogoSeleccionColumnas(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Seleccionar Columnas'),
+        content: SingleChildScrollView(
+          child: Column(
+            children: _camposVisibles
+                .map((campo) => CheckboxListTile(
+                      title: Text(campo),
+                      value: _camposVisibles.contains(campo),
+                      onChanged: (value) {
+                        setState(() {
+                          if (value!) {
+                            _camposVisibles.add(campo);
+                          } else {
+                            _camposVisibles.remove(campo);
+                          }
+                        });
+                      },
+                    ))
+                .toList(),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
   }
 
   @override
@@ -276,8 +272,8 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
         title: Text('Ingresos'),
         actions: [
           IconButton(
-            icon: Icon(Icons.filter_list),
-            onPressed: () => _mostrarSelectorColumnas(context),
+            icon: Icon(Icons.view_list),
+            onPressed: () => _mostrarDialogoSeleccionColumnas(context),
           ),
         ],
       ),

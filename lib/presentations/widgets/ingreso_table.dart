@@ -1,20 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:finances/core/data/services/ingresos_service.dart';
-import 'package:finances/core/data/models/user_model.dart';
-
-class User {
-  final String uid;
-  User({required this.uid});
-}
 
 class IngresoTable extends StatelessWidget {
   final List<Map<String, dynamic>> ingresos;
   final void Function(Map<String, dynamic>) onEdit;
   final void Function(String) onDelete;
   final List<String> camposVisibles;
-  final String userID; // Se asegura consistencia con el uso de userID
-
-  final _ingresosService = IngresosService();
+  final String userID;
 
   IngresoTable({
     required this.ingresos,
@@ -26,30 +17,70 @@ class IngresoTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return FutureBuilder<List<Map<String, dynamic>>>(
-      future: _ingresosService.obtenerIngresos(userID), // Uso de userID aquí
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return CircularProgressIndicator();
-        } else if (snapshot.hasError) {
-          return Text('Error al cargar ingresos');
-        } else if (snapshot.hasData) {
-          return DataTable(
-            columns: camposVisibles
-                .map((campo) => DataColumn(label: Text(campo)))
-                .toList(),
-            rows: snapshot.data!.map((ingreso) {
-              return DataRow(
-                cells: camposVisibles.map((campo) {
-                  return DataCell(Text(ingreso[campo]?.toString() ?? ''));
-                }).toList(),
-              );
-            }).toList(),
+    if (ingresos.isEmpty) {
+      return Center(
+        child: Text('No hay ingresos disponibles'),
+      );
+    }
+
+    return SingleChildScrollView(
+      child: DataTable(
+        columns: [
+          ...camposVisibles.map(
+            (campo) => DataColumn(label: Text(campo)),
+          ),
+          const DataColumn(label: Text('Acciones')),
+        ],
+        rows: ingresos.map((ingreso) {
+          return DataRow(
+            cells: [
+              ...camposVisibles.map(
+                (campo) => DataCell(
+                  Text(ingreso[campo]?.toString() ?? ''),
+                ),
+              ),
+              DataCell(
+                Row(
+                  children: [
+                    IconButton(
+                      icon: Icon(Icons.edit, color: Colors.blue),
+                      onPressed: () => onEdit(ingreso),
+                    ),
+                    IconButton(
+                      icon: Icon(Icons.delete, color: Colors.red),
+                      onPressed: () =>
+                          _confirmarEliminar(context, ingreso['id']),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           );
-        } else {
-          return Text('No hay ingresos disponibles');
-        }
-      },
+        }).toList(),
+      ),
+    );
+  }
+
+  void _confirmarEliminar(BuildContext context, String id) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text('Eliminar ingreso'),
+        content: Text('¿Estás seguro de que deseas eliminar este ingreso?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () {
+              Navigator.pop(context);
+              onDelete(id);
+            },
+            child: Text('Eliminar'),
+          ),
+        ],
+      ),
     );
   }
 }
