@@ -199,9 +199,14 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
           DropdownButtonFormField<String>(
             value: _categoria,
             hint: Text('Selecciona una categoría'),
-            items: ['Salario', 'Bonificación', 'Ahorro', 'Otros']
-                .map((c) => DropdownMenuItem(value: c, child: Text(c)))
-                .toList(),
+            items: [
+              'Salario',
+              'Bonificacion',
+              'Ahorro',
+              'Vacaciones',
+              'Tranferencia',
+              'Otros'
+            ].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
             onChanged: (value) => setState(() => _categoria = value),
             decoration: InputDecoration(labelText: 'Categoría'),
           ),

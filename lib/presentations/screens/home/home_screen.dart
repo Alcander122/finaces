@@ -129,7 +129,7 @@ class HomeScreen extends ConsumerWidget {
       ),
       MenuOption(
         icon: Icons.trending_up,
-        title: 'Plan de Inversión',
+        title: 'Portafolio de  Inversión',
         color: Colors.purple,
         onTap: () {
           // Navegar a la pantalla de Plan de Inversión
