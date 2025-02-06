@@ -1,5 +1,4 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:finances/core/data/models/egreso_model.dart';
 
 class IngresosService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -12,7 +11,7 @@ class IngresosService {
       final docRef = await _firestore
           .collection('users')
           .doc(userId)
-          .collection('egreso')
+          .collection('ingresos')
           .add(ingreso); // Firestore genera el ID automáticamente
 
       // Actualiza el ingreso con el ID generado.
