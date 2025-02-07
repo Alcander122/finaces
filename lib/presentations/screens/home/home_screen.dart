@@ -1,8 +1,7 @@
 import 'package:finances/core/data/providers/egreso_provider.dart';
 import 'package:finances/core/data/providers/finanzas_provider.dart';
-import 'package:finances/core/data/services/egreso_service.dart';
-import 'package:finances/core/data/services/ingresos_service.dart';
 import 'package:finances/presentations/screens/egreso/egresos_screen.dart';
+import 'package:finances/presentations/screens/portafolio/portafolio_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/presentations/widgets/statistic_card.dart';
@@ -124,7 +123,10 @@ class HomeScreen extends ConsumerWidget {
         title: 'Portafolio de  Inversión',
         color: Colors.purple,
         onTap: () {
-          // Navegar a la pantalla de Plan de Inversión
+          Navigator.push(
+            context,
+            MaterialPageRoute(builder: (context) => PortafolioScreen()),
+          );
         },
       ),
       MenuOption(

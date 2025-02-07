@@ -44,6 +44,8 @@ dev_dependencies:
   shared_preferences: ^2.0.6
   cloud_firestore: ^5.6.2
   intl: ^0.18.0
+  fl_chart: ^0.68.0  
+  uuid: ^3.0.4
   #pigeon: ^22.7.3
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
