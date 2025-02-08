@@ -8,3 +8,10 @@ final totalIngresosProvider = StreamProvider.autoDispose<double>((ref) {
   if (user == null) return Stream.value(0.0);
   return IngresosService().streamTotalIngresos(user.uid);
 });
+// Proveedor para escuchar solo el total de ingresos del mes actual
+final totalIngresosMesActualProvider =
+    StreamProvider.autoDispose<double>((ref) {
+  final user = ref.watch(authProvider);
+  if (user == null) return Stream.value(0.0);
+  return IngresosService().streamTotalIngresosMesActual(user.uid);
+});
