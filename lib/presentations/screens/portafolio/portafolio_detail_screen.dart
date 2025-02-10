@@ -1,136 +1,106 @@
+import 'package:finances/core/data/models/portafolio_model.dart';
+import 'package:finances/core/data/providers/investment_provider.dart';
+import 'package:finances/core/data/services/investment_service.dart';
+import 'package:finances/presentations/screens/portafolio/investment_form_screen.dart';
+import 'package:finances/presentations/screens/portafolio/portafolio_form_screen.dart';
+import 'package:finances/presentations/widgets/portafolio_chart.dart';
 import 'package:flutter/material.dart';
-import 'package:fl_chart/fl_chart.dart';
-import '../../../core/data/models/portafolio_model.dart';
-import '../../../core/data/services/portafolio_service.dart';
-import 'portafolio_form_screen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:tuple/tuple.dart';
 
-class PortafolioDetailScreen extends StatefulWidget {
+class PortafolioDetailScreen extends ConsumerWidget {
   final Portafolio portafolio;
 
   const PortafolioDetailScreen({super.key, required this.portafolio});
 
   @override
-  _PortafolioDetailScreenState createState() => _PortafolioDetailScreenState();
-}
+  Widget build(BuildContext context, WidgetRef ref) {
+    final investments = ref
+        .watch(investmentsProvider(Tuple2(portafolio.userId, portafolio.id)));
 
-class _PortafolioDetailScreenState extends State<PortafolioDetailScreen> {
-  final PortafolioService _service = PortafolioService();
-  List<FlSpot> _puntos = [];
-
-  @override
-  void initState() {
-    super.initState();
-    // _cargarDatos();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    // TODO: implement build
-    throw UnimplementedError();
-  }
-
-  /* Future<void> _cargarDatos() async {
-    List<Map<String, dynamic>> datos =
-        await _service.obtenerInversionesHistoricas(widget.portafolio.id);
-
-    List<FlSpot> puntos = datos.asMap().entries.map((entry) {
-      int index = entry.key;
-      double inversion = entry.value['monto'].toDouble();
-      return FlSpot(index.toDouble(), inversion);
-    }).toList();
-
-    setState(() {
-      _puntos = puntos;
-    });
-  }
-
-  void _eliminarPortafolio(BuildContext context) {
-    //_service.eliminarPortafolio(widget.portafolio.id);
-    Navigator.pop(context);
-  }
-
-  @override
-  Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(title: const Text("Detalles de la Inversión")),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text("Activo: ${widget.portafolio.activo}",
-                style: Theme.of(context).textTheme.headlineSmall),
-            const SizedBox(height: 8),
-            Text(
-                "Inversión Mensual: ${widget.portafolio.invMensual} ${widget.portafolio.moneda}"),
-            Text("Estado: ${widget.portafolio.estado}"),
-            Text(
-                "Fecha de Inversión: ${widget.portafolio.fechaInversion.toLocal()}"),
-            const SizedBox(height: 16),
-
-            // 📊 Gráfico de inversión
-            const Text("Evolución de la Inversión",
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 16),
-            SizedBox(
-              height: 250,
-              child: _puntos.isNotEmpty
-                  ? LineChart(
-                      LineChartData(
-                        gridData: const FlGridData(show: false),
-                        titlesData: const FlTitlesData(
-                          leftTitles: AxisTitles(
-                              sideTitles: SideTitles(showTitles: true)),
-                          bottomTitles: AxisTitles(
-                              sideTitles: SideTitles(showTitles: true)),
-                        ),
-                        borderData: FlBorderData(
-                          show: true,
-                          border: Border.all(color: Colors.blue, width: 2),
-                        ),
-                        lineBarsData: [
-                          LineChartBarData(
-                            spots: _puntos,
-                            isCurved: true,
-                            color: Colors.blue,
-                            barWidth: 4,
-                            isStrokeCapRound: true,
-                            belowBarData: BarAreaData(
-                                show: true,
-                                color: Colors.blue.withOpacity(0.3)),
-                          ),
-                        ],
-                      ),
-                    )
-                  : const Center(child: CircularProgressIndicator()),
+      appBar: AppBar(
+        title: Text(portafolio.nombre),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.edit),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => PortafolioFormScreen(
+                  userId: portafolio.userId,
+                  portafolio: portafolio,
+                ),
+              ),
             ),
-            const SizedBox(height: 16),
-
-            // Botones de acción
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                          builder: (_) => PortafolioFormScreen(
-                              portafolio: widget.portafolio)),
-                    );
-                  },
-                  child: const Text("Editar"),
-                ),
-                ElevatedButton(
-                  onPressed: () => _eliminarPortafolio(context),
-                  style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-                  child: const Text("Eliminar"),
-                ),
-              ],
+          ),
+        ],
+      ),
+      body: investments.when(
+        data: (investmentsList) => Column(
+          children: [
+            PortafolioChart(
+              investments: investmentsList,
+              portfolios: [portafolio],
+            ),
+            Expanded(
+              child: ListView.builder(
+                itemCount: investmentsList.length,
+                itemBuilder: (context, index) {
+                  final investment = investmentsList[index];
+                  return ListTile(
+                    title: Text(
+                        '${investment.invMensual.toStringAsFixed(2)} ${investment.moneda}'),
+                    subtitle: Text(investment.descripcion),
+                    trailing: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.edit),
+                          onPressed: () => Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => InvestmentFormScreen(
+                                userId: portafolio.userId,
+                                portafolioId: portafolio.id,
+                                investment: investment,
+                              ),
+                            ),
+                          ),
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete),
+                          onPressed: () async {
+                            await InvestmentService().eliminarInvestment(
+                              portafolio.userId,
+                              portafolio.id,
+                              investment.userId,
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  );
+                },
+              ),
             ),
           ],
         ),
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, _) => Center(child: Text('Error: $error')),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) => InvestmentFormScreen(
+              userId: portafolio.userId,
+              portafolioId: portafolio.id,
+            ),
+          ),
+        ),
+        child: const Icon(Icons.add),
       ),
     );
-  }*/
+  }
 }

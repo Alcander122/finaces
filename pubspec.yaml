@@ -46,6 +46,8 @@ dev_dependencies:
   intl: ^0.18.0
   fl_chart: ^0.68.0  
   uuid: ^3.0.4
+  http: ^0.13.5
+  tuple: ^2.0.0
   #pigeon: ^22.7.3
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is
