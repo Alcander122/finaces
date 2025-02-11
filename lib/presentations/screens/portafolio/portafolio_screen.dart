@@ -6,6 +6,7 @@ import 'package:finances/core/data/providers/portafolio_provider.dart';
 import 'package:finances/core/data/providers/investment_provider.dart';
 import 'package:finances/presentations/screens/portafolio/portafolio_form_screen.dart';
 import 'package:finances/presentations/widgets/portafolio_chart.dart';
+import 'package:finances/core/data/services/portafolio_service.dart'; // Asegúrate de importar el servicio
 
 class PortafolioScreen extends ConsumerWidget {
   const PortafolioScreen({super.key});
@@ -56,12 +57,42 @@ class PortafolioScreen extends ConsumerWidget {
                       return ListTile(
                         title: Text(portafolio.nombre),
                         subtitle: Text('Total: \$${total.toStringAsFixed(2)}'),
-                        trailing: Text(
-                          portafolio.descripcion ?? '',
-                          style: TextStyle(
-                            color: Colors.grey[600],
-                            fontStyle: FontStyle.italic,
-                          ),
+                        trailing: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            IconButton(
+                              icon: const Icon(Icons.delete),
+                              onPressed: () async {
+                                // Mostrar diálogo de confirmación
+                                final confirm = await showDialog(
+                                  context: context,
+                                  builder: (context) => AlertDialog(
+                                    title: const Text("Eliminar Portafolio"),
+                                    content: const Text(
+                                        "¿Estás seguro de que deseas eliminar este portafolio?"),
+                                    actions: [
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, false),
+                                        child: const Text("Cancelar"),
+                                      ),
+                                      TextButton(
+                                        onPressed: () =>
+                                            Navigator.pop(context, true),
+                                        child: const Text("Eliminar"),
+                                      ),
+                                    ],
+                                  ),
+                                );
+
+                                // Si el usuario confirma, eliminar el portafolio
+                                if (confirm == true) {
+                                  await PortafolioService().eliminarPortafolio(
+                                      user.uid, portafolio.id);
+                                }
+                              },
+                            ),
+                          ],
                         ),
                         onTap: () => Navigator.push(
                           context,

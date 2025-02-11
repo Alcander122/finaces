@@ -51,6 +51,21 @@ class InvestmentService {
         .delete();
   }
 
+  Future<void> eliminarInversionesDePortafolio(
+      String userId, String portafolioId) async {
+    final inversiones = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('portafolios')
+        .doc(portafolioId)
+        .collection('investments')
+        .get();
+
+    for (final doc in inversiones.docs) {
+      await doc.reference.delete();
+    }
+  }
+
   /// Actualiza una inversión existente usando su ID.
   Future<void> actualizarInvestment(String userId, String portafolioId,
       String investmentId, Investment investment) async {

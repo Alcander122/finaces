@@ -34,6 +34,7 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
   late String _selectedEstado;
   double _tasaConversion = 1.0;
   double _montoConvertido = 0.0;
+  late DateTime _selectedFechaInversion;
 
   final List<String> _meses = [
     'Enero',
@@ -69,9 +70,10 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
 
     _selectedMoneda = 'COP';
     _selectedMes = _meses[DateTime.now().month - 1];
-    _selectedOrigen = _origenes[0]; // Default
-    _selectedActivo = _activos[0]; // Default
+    _selectedOrigen = _origenes[0];
+    _selectedActivo = _activos[0];
     _selectedEstado = 'Activo';
+    _selectedFechaInversion = DateTime.now();
 
     if (widget.investment != null) {
       _montoController.text = widget.investment!.invMensual.toString();
@@ -81,18 +83,45 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
       _selectedOrigen = widget.investment!.origen;
       _selectedActivo = widget.investment!.activo;
       _selectedEstado = widget.investment!.estado;
+      _selectedFechaInversion = widget.investment!.fechaInversion;
     }
 
     _montoController.addListener(_updateConversion);
+    _updateConversion();
   }
 
-  void _updateConversion() {
+  Future<void> _updateConversion() async {
     final monto = double.tryParse(_montoController.text) ?? 0;
+
+    // Tasa de conversión fija para COP a USD (1 COP = 0.0003 USD)
+    const tasaCOPtoUSD = 0.0003;
+    const tasaUSDtoCOP = 1 / tasaCOPtoUSD;
+
     setState(() {
-      _montoConvertido = _selectedMoneda == 'COP'
-          ? monto * _tasaConversion
-          : monto / _tasaConversion;
+      if (_selectedMoneda == 'COP') {
+        // Convertir de COP a USD
+        _tasaConversion = tasaCOPtoUSD;
+        _montoConvertido = monto * _tasaConversion;
+      } else {
+        // Convertir de USD a COP
+        _tasaConversion = tasaUSDtoCOP;
+        _montoConvertido = monto * _tasaConversion;
+      }
     });
+  }
+
+  Future<void> _selectFechaInversion(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: _selectedFechaInversion,
+      firstDate: DateTime(1900),
+      lastDate: DateTime(2100),
+    );
+    if (picked != null && picked != _selectedFechaInversion) {
+      setState(() {
+        _selectedFechaInversion = picked;
+      });
+    }
   }
 
   Future<void> _guardarInversion() async {
@@ -107,7 +136,7 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
         moneda: _selectedMoneda,
         descripcion: _descripcionController.text,
         estado: _selectedEstado,
-        fechaInversion: DateTime.now(),
+        fechaInversion: _selectedFechaInversion,
         origen: _selectedOrigen,
         activo: _selectedActivo,
       );
@@ -130,29 +159,70 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
         title: Text(
             widget.investment == null ? "Nueva Inversión" : "Editar Inversión"),
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
+              // Campo de Monto
               TextFormField(
                 controller: _montoController,
                 decoration: const InputDecoration(labelText: 'Monto'),
-                keyboardType: TextInputType.number,
-                validator: (value) =>
-                    value!.isEmpty ? 'Ingrese un monto' : null,
+                keyboardType: TextInputType.numberWithOptions(decimal: true),
+                validator: (value) {
+                  if (value == null || value.isEmpty) return 'Ingrese un monto';
+                  final amount = double.tryParse(value);
+                  if (amount == null) return 'Monto inválido';
+                  if (amount <= 0) return 'Monto debe ser positivo';
+                  return null;
+                },
               ),
               const SizedBox(height: 10),
+
+              // Selector de Moneda
               DropdownButtonFormField<String>(
                 value: _selectedMoneda,
                 items: ['COP', 'USD', 'EUR']
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
-                onChanged: (value) => setState(() => _selectedMoneda = value!),
+                onChanged: (value) async {
+                  setState(() => _selectedMoneda = value!);
+                  await _updateConversion();
+                },
                 decoration: const InputDecoration(labelText: 'Moneda'),
               ),
               const SizedBox(height: 10),
+
+              // Tasa de conversión
+              Text(
+                'Tasa de conversión: 1 $_selectedMoneda = ${_tasaConversion.toStringAsFixed(4)} ${_selectedMoneda == 'COP' ? 'USD' : 'COP'}',
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 10),
+
+              // Monto convertido (con decimales)
+              Text(
+                'Monto convertido: ${_montoConvertido.toStringAsFixed(2)} ${_selectedMoneda == 'COP' ? 'USD' : 'COP'}',
+                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
+              ),
+              const SizedBox(height: 10),
+
+              // Selector de Fecha de Inversión
+              InkWell(
+                onTap: () => _selectFechaInversion(context),
+                child: InputDecorator(
+                  decoration:
+                      const InputDecoration(labelText: 'Fecha de Inversión'),
+                  child: Text(
+                    DateFormat('dd/MM/yyyy').format(_selectedFechaInversion),
+                    style: const TextStyle(fontSize: 16),
+                  ),
+                ),
+              ),
+              const SizedBox(height: 10),
+
+              // Selector de Mes
               DropdownButtonFormField<String>(
                 value: _selectedMes,
                 items: _meses
@@ -162,6 +232,8 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
                 decoration: const InputDecoration(labelText: 'Mes'),
               ),
               const SizedBox(height: 10),
+
+              // Selector de Origen
               DropdownButtonFormField<String>(
                 value: _selectedOrigen,
                 items: _origenes
@@ -171,6 +243,8 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
                 decoration: const InputDecoration(labelText: 'Origen'),
               ),
               const SizedBox(height: 10),
+
+              // Selector de Activo
               DropdownButtonFormField<String>(
                 value: _selectedActivo,
                 items: _activos
@@ -180,6 +254,8 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
                 decoration: const InputDecoration(labelText: 'Activo'),
               ),
               const SizedBox(height: 10),
+
+              // Selector de Estado
               DropdownButtonFormField<String>(
                 value: _selectedEstado,
                 items: ['Activo', 'Inactivo']
@@ -189,12 +265,16 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
                 decoration: const InputDecoration(labelText: 'Estado'),
               ),
               const SizedBox(height: 10),
+
+              // Campo de Descripción
               TextFormField(
                 controller: _descripcionController,
                 decoration: const InputDecoration(labelText: 'Descripción'),
                 maxLength: 100,
               ),
               const SizedBox(height: 20),
+
+              // Botón de Guardar
               ElevatedButton(
                 onPressed: _guardarInversion,
                 child: const Text('Guardar'),

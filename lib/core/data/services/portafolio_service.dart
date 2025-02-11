@@ -26,7 +26,12 @@ class PortafolioService {
   }
 
   Future<void> eliminarPortafolio(String userId, String portafolioId) async {
-    await _portafolioCollection(userId).doc(portafolioId).delete();
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('portafolios')
+        .doc(portafolioId)
+        .delete();
   }
 
   Future<void> actualizarPortafolio(

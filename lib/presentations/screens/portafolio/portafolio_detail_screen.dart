@@ -4,6 +4,7 @@ import 'package:finances/core/data/services/investment_service.dart';
 import 'package:finances/presentations/screens/portafolio/investment_form_screen.dart';
 import 'package:finances/presentations/screens/portafolio/portafolio_form_screen.dart';
 import 'package:finances/presentations/widgets/portafolio_chart.dart';
+import 'package:finances/utils/utilities.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tuple/tuple.dart';
@@ -40,7 +41,8 @@ class PortafolioDetailScreen extends ConsumerWidget {
         data: (investmentsList) => Column(
           children: [
             PortafolioChart(
-              investments: investmentsList,
+              investments:
+                  investmentsList.where((i) => i.estado == 'Activo').toList(),
               portfolios: [portafolio],
             ),
             Expanded(
@@ -50,7 +52,7 @@ class PortafolioDetailScreen extends ConsumerWidget {
                   final investment = investmentsList[index];
                   return ListTile(
                     title: Text(
-                        '${investment.invMensual.toStringAsFixed(2)} ${investment.moneda}'),
+                        '${Utilities.formatCurrency(investment.invMensual)} ${investment.moneda}'),
                     subtitle: Text(investment.descripcion),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
@@ -74,7 +76,7 @@ class PortafolioDetailScreen extends ConsumerWidget {
                             await InvestmentService().eliminarInvestment(
                               portafolio.userId,
                               portafolio.id,
-                              investment.userId,
+                              investment.id, // Corregido: usar investment.id
                             );
                           },
                         ),
