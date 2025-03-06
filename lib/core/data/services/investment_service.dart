@@ -53,16 +53,21 @@ class InvestmentService {
 
   Future<void> eliminarInversionesDePortafolio(
       String userId, String portafolioId) async {
-    final inversiones = await _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('portafolios')
-        .doc(portafolioId)
-        .collection('investments')
-        .get();
+    try {
+      final inversiones = await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('portafolios')
+          .doc(portafolioId)
+          .collection('investments')
+          .get();
 
-    for (final doc in inversiones.docs) {
-      await doc.reference.delete();
+      for (final doc in inversiones.docs) {
+        await doc.reference.delete();
+      }
+    } catch (e) {
+      print('Error al eliminar inversiones: $e');
+      rethrow;
     }
   }
 
