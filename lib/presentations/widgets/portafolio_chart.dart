@@ -1,35 +1,44 @@
-import 'package:finances/utils/category_color_generator.dart';
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:finances/core/data/models/portafolio_model.dart';
+import '../../core/data/models/investment_model.dart';
+import '../../core/data/models/portafolio_model.dart';
+import '../../utils/category_color_generator.dart';
 
 class PortafolioChart extends StatelessWidget {
-  final List<Portafolio> portafolios;
+  final List<Investment> investments;
+  final List<Portafolio> portfolios;
 
-  const PortafolioChart({super.key, required this.portafolios});
+  const PortafolioChart({
+    super.key,
+    required this.investments,
+    required this.portfolios,
+  });
 
   @override
   Widget build(BuildContext context) {
-    if (portafolios.isEmpty) return const SizedBox.shrink();
+    if (investments.isEmpty) return const SizedBox.shrink();
 
-    final categoriasUnicas = _obtenerCategoriasUnicas();
-    final total = portafolios.fold(0.0, (sum, item) => sum + item.valor);
+    final total = investments.fold(0.0, (sum, item) => sum + item.invMensual);
+    if (total == 0) return const SizedBox.shrink();
 
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Card(
-        elevation: 2,
+        elevation: 4,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
             children: [
               Text(
-                'Distribución por Categoría',
-                style: Theme.of(context).textTheme.titleMedium,
+                'Distribución del Portafolio',
+                style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Colors.blueGrey,
+                    ),
               ),
-              const SizedBox(height: 16),
+              const SizedBox(height: 20),
               AspectRatio(
-                aspectRatio: 1.2,
+                aspectRatio: 1.3,
                 child: PieChart(
                   PieChartData(
                     sections: _chartSections(total),
@@ -39,8 +48,8 @@ class PortafolioChart extends StatelessWidget {
                   ),
                 ),
               ),
-              const SizedBox(height: 16),
-              _buildLeyenda(categoriasUnicas, context),
+              const SizedBox(height: 20),
+              _buildLeyenda(),
             ],
           ),
         ),
@@ -49,31 +58,33 @@ class PortafolioChart extends StatelessWidget {
   }
 
   List<PieChartSectionData> _chartSections(double total) {
-    return portafolios.map((portafolio) {
-      final percentage = (portafolio.valor / total * 100).toStringAsFixed(1);
-      final color = CategoryColorGenerator.getColor(portafolio.categoria);
+    return portfolios.map((portfolio) {
+      final portfolioInvestments =
+          investments.where((inv) => inv.portafolioId == portfolio.id).toList();
+      final value = portfolioInvestments.fold(
+          0.0, (sum, investment) => sum + investment.invMensual);
+      final percentage = (value / total * 100).toStringAsFixed(1);
 
       return PieChartSectionData(
-        color: color,
-        value: portafolio.valor,
+        color: CategoryColorGenerator.getColor(portfolio.id),
+        value: value,
         title: '$percentage%',
         radius: 25,
-        titleStyle: TextStyle(
+        titleStyle: const TextStyle(
           fontSize: 14,
-          color: CategoryColorGenerator.getContrastTextColor(color),
+          color: Colors.white,
           fontWeight: FontWeight.bold,
         ),
       );
     }).toList();
   }
 
-  Widget _buildLeyenda(List<String> categorias, BuildContext context) {
+  Widget _buildLeyenda() {
     return Wrap(
-      alignment: WrapAlignment.center,
-      spacing: 12,
-      runSpacing: 8,
-      children: categorias.map((categoria) {
-        final color = CategoryColorGenerator.getColor(categoria);
+      spacing: 10,
+      runSpacing: 10,
+      children: portfolios.map((portfolio) {
+        final color = CategoryColorGenerator.getColor(portfolio.id);
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -87,19 +98,15 @@ class PortafolioChart extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             Text(
-              categoria,
-              style: Theme.of(context).textTheme.bodyLarge?.copyWith(
-                    fontWeight: FontWeight.w500,
-                    color: color,
-                  ),
+              portfolio.nombre,
+              style: TextStyle(
+                color: color,
+                fontWeight: FontWeight.bold,
+              ),
             ),
           ],
         );
       }).toList(),
     );
-  }
-
-  List<String> _obtenerCategoriasUnicas() {
-    return portafolios.map((p) => p.categoria).toSet().toList();
   }
 }

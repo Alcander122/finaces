@@ -1,3 +1,5 @@
+// ignore_for_file: depend_on_referenced_packages
+
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -12,7 +14,7 @@ class AuthStorage {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString(_tokenKey, token);
     } catch (e) {
-      print("❌ Error al guardar el token: $e");
+      //print("❌ Error al guardar el token: $e");
     }
   }
 
@@ -21,7 +23,7 @@ class AuthStorage {
       final prefs = await SharedPreferences.getInstance();
       await prefs.remove(_tokenKey);
     } catch (e) {
-      print("❌ Error al eliminar el token: $e");
+      //print("❌ Error al eliminar el token: $e");
     }
   }
 
@@ -30,7 +32,7 @@ class AuthStorage {
       final prefs = await SharedPreferences.getInstance();
       return prefs.getString(_tokenKey);
     } catch (e) {
-      print("❌ Error al obtener el token: $e");
+      //print("❌ Error al obtener el token: $e");
       return null;
     }
   }
@@ -62,10 +64,9 @@ class AuthNotifier extends StateNotifier<User?> {
           await _storage.deleteToken();
         }
         state = user;
-        print(
-            "🔄 Estado de autenticación actualizado: ${user?.email ?? 'Desconectado'}");
+        //print("🔄 Estado de autenticación actualizado: ${user?.email ?? 'Desconectado'}");
       } catch (e) {
-        print("❌ Error en authStateChanges: $e");
+        //print("❌ Error en authStateChanges: $e");
       }
     });
   }
@@ -73,11 +74,11 @@ class AuthNotifier extends StateNotifier<User?> {
   Future<void> signIn(String email, String password) async {
     try {
       await _auth.signInWithEmailAndPassword(email: email, password: password);
-      print("✅ Inicio de sesión exitoso para: $email");
+      //("✅ Inicio de sesión exitoso para: $email");
     } on FirebaseAuthException catch (e) {
       _handleAuthError(e);
     } catch (e) {
-      print("❌ Error inesperado al iniciar sesión: $e");
+      //print("❌ Error inesperado al iniciar sesión: $e");
     }
   }
 
@@ -85,12 +86,12 @@ class AuthNotifier extends StateNotifier<User?> {
     try {
       await _userService.registerUser(
           name: name, email: email, password: password);
-      print("✅ Registro exitoso para: $email");
+      //print("✅ Registro exitoso para: $email");
     } on FirebaseAuthException catch (e) {
       _handleAuthError(e);
     } catch (e) {
-      print("❌ Error inesperado al registrar usuario: $e");
-      throw e;
+      //print("❌ Error inesperado al registrar usuario: $e");
+      rethrow;
     }
   }
 
@@ -99,9 +100,9 @@ class AuthNotifier extends StateNotifier<User?> {
       await _auth.signOut();
       await _storage.deleteToken();
       state = null;
-      print("✅ Sesión cerrada exitosamente");
+      //print("✅ Sesión cerrada exitosamente");
     } catch (e) {
-      print("❌ Error al cerrar sesión: $e");
+      //print("❌ Error al cerrar sesión: $e");
     }
   }
 
@@ -126,7 +127,7 @@ class AuthNotifier extends StateNotifier<User?> {
       default:
         errorMessage = "Error de autenticación: ${e.message}";
     }
-    print("❌ $errorMessage");
+    //print("❌ $errorMessage");
     throw errorMessage;
   }
 
@@ -149,10 +150,10 @@ class AuthNotifier extends StateNotifier<User?> {
       await _firestore.collection('users').doc(userId).update({
         'displayName': displayName,
       });
-      print("✅ Nombre de usuario actualizado en Firestore");
+      //print("✅ Nombre de usuario actualizado en Firestore");
     } catch (e) {
-      print("❌ Error al actualizar Firestore: $e");
-      throw e;
+      //print("❌ Error al actualizar Firestore: $e");
+      rethrow;
     }
   }
 }

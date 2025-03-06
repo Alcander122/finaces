@@ -1,3 +1,4 @@
+// ignore: depend_on_referenced_packages
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 class Portafolio {
@@ -6,9 +7,7 @@ class Portafolio {
   final String nombre;
   final String? descripcion;
   final DateTime fechaCreacion;
-  final String categoria;
-  final String moneda;
-  final double valor;
+  final String nota;
 
   Portafolio({
     required this.id,
@@ -16,9 +15,7 @@ class Portafolio {
     required this.nombre,
     this.descripcion,
     required this.fechaCreacion,
-    required this.categoria,
-    required this.moneda,
-    required this.valor,
+    required this.nota,
   });
 
   factory Portafolio.fromFirestore(DocumentSnapshot doc) {
@@ -29,9 +26,7 @@ class Portafolio {
       nombre: data['nombre'] ?? '',
       descripcion: data['descripcion'],
       fechaCreacion: (data['fechaCreacion'] as Timestamp).toDate(),
-      categoria: data['categoria'] ?? '',
-      moneda: data['moneda'] ?? '',
-      valor: (data['valor'] ?? 0.0).toDouble(),
+      nota: data['nota'] ?? '',
     );
   }
 
@@ -41,9 +36,7 @@ class Portafolio {
       'nombre': nombre,
       'descripcion': descripcion,
       'fechaCreacion': fechaCreacion,
-      'categoria': categoria,
-      'moneda': moneda,
-      'valor': valor,
+      'nota': nota,
     };
   }
 }

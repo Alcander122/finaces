@@ -1,3 +1,5 @@
+// ignore_for_file: depend_on_referenced_packages
+
 import 'package:firebase_auth/firebase_auth.dart';
 
 class Authservices {
@@ -9,8 +11,8 @@ class Authservices {
       return await _auth.createUserWithEmailAndPassword(
           email: email, password: password);
     } on FirebaseAuthException catch (e) {
-      print("Error en el registro: ${e.code} - ${e.message}");
-      throw e; // Lanza la excepción para que pueda ser capturada en LoginScreen
+      //print("Error en el registro: ${e.code} - ${e.message}");
+      rethrow; // Lanza la excepción para que pueda ser capturada en LoginScreen
     }
   }
 
@@ -20,8 +22,8 @@ class Authservices {
       return await _auth.signInWithEmailAndPassword(
           email: email, password: password);
     } on FirebaseAuthException catch (e) {
-      print("Error en login: ${e.code} - ${e.message}");
-      throw e; // Lanza la excepción para que pueda ser capturada en LoginScreen
+      //print("Error en login: ${e.code} - ${e.message}");
+      rethrow; // Lanza la excepción para que pueda ser capturada en LoginScreen
     }
   }
 

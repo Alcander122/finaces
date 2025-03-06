@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finances/core/data/models/portafolio_model.dart';
+import 'package:finances/core/data/services/investment_service.dart';
 
 class PortafolioService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -26,7 +27,18 @@ class PortafolioService {
   }
 
   Future<void> eliminarPortafolio(String userId, String portafolioId) async {
-    await _portafolioCollection(userId).doc(portafolioId).delete();
+    try {
+      await InvestmentService()
+          .eliminarInversionesDePortafolio(userId, portafolioId);
+      await _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('portafolios')
+          .doc(portafolioId)
+          .delete();
+    } catch (e) {
+      print('Error al eliminar portafolio: $e');
+    }
   }
 
   Future<void> actualizarPortafolio(

@@ -3,6 +3,7 @@ import 'package:finances/presentations/screens/auth/LoginScreen.dart';
 import 'package:finances/presentations/screens/auth/register.screen.dart';
 import 'package:finances/presentations/screens/profile/ProfileScreen.dart';
 import 'package:finances/presentations/screens/portafolio/portafolio_screen.dart';
+import 'package:finances/presentations/screens/auth/welcome_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:finances/presentations/screens/home/home_screen.dart';
 
@@ -17,7 +18,7 @@ class AppRoutes {
   static Map<String, WidgetBuilder> getRoutes(authState) {
     return {
       login: (context) =>
-          authState == null ? const LoginScreen() : const HomeScreen(),
+          authState == null ? const WelcomeScreen() : const HomeScreen(),
       loginScreen: (context) => const LoginScreen(), // Nueva ruta directa
       home: (context) => const HomeScreen(),
       profile: (context) => const ProfileScreen(),

@@ -6,6 +6,8 @@ import 'package:intl/intl.dart';
 import 'package:finances/presentations/widgets/ingreso_table.dart';
 
 class IngresosScreen extends ConsumerStatefulWidget {
+  const IngresosScreen({super.key});
+
   @override
   _IngresosScreenState createState() => _IngresosScreenState();
 }
