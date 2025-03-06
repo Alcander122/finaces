@@ -71,10 +71,10 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                     (Route<dynamic> route) => false,
                   );
                 },
-                child: const Text('Salir'),
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Colors.red,
                 ),
+                child: const Text('Salir'),
               ),
             ],
           ),

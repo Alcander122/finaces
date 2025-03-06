@@ -1,0 +1,87 @@
+import 'package:flutter/material.dart';
+import 'package:finances/presentations/screens/auth/LoginScreen.dart';
+import 'package:finances/presentations/screens/auth/register.screen.dart';
+import 'package:finances/presentations/theme/theme.dart';
+import 'package:finances/presentations/widgets/custom_scaffold.dart';
+import 'package:finances/presentations/widgets/welcome_button.dart';
+
+class WelcomeScreen extends StatelessWidget {
+  const WelcomeScreen({super.key});
+
+  @override
+  Widget build(BuildContext context) {
+    return CustomScaffold(
+      child: Column(
+        children: [
+          Flexible(
+            flex: 8,
+            child: Container(
+              padding: const EdgeInsets.symmetric(
+                vertical: 0,
+                horizontal: 40.0,
+              ),
+              child: Center(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    // Logo temporal
+                    Image.asset(
+                      'assets/images/Logo1.png',
+                      height: 80, // Ajusta el tamaño según necesites
+                    ),
+                    const SizedBox(
+                        height: 10), // Espacio entre el logo y el título
+                    RichText(
+                      textAlign: TextAlign.center,
+                      text: const TextSpan(
+                        children: [
+                          TextSpan(
+                            text: 'BillNance\n',
+                            style: TextStyle(
+                              fontSize: 45.0,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          TextSpan(
+                            text:
+                                '\nHaz que cada peso cuente: controla tus finanzas con precisión.',
+                            style: TextStyle(
+                              fontSize: 20,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: 0.0),
+            child: Row(
+              children: [
+                Expanded(
+                  child: WelcomeButton(
+                    buttonText: 'Login',
+                    onTap: LoginScreen(),
+                    color: Colors.transparent,
+                    textColor: Colors.white,
+                  ),
+                ),
+                Expanded(
+                  child: WelcomeButton(
+                    buttonText: 'Register',
+                    onTap: const RegisterScreen(),
+                    color: Colors.white,
+                    textColor: lightColorScheme.primary,
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
