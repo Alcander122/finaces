@@ -275,64 +275,12 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider);
     return Scaffold(
-<<<<<<< HEAD
       appBar: AppBar(
         title: Text('Ingresos'),
         actions: [
           IconButton(
             icon: Icon(Icons.view_list),
             onPressed: () => _mostrarDialogoSeleccionColumnas(context),
-=======
-      appBar: AppBar(title: Text('Ingresos')),
-      body: Column(
-        children: [
-          ElevatedButton(
-            onPressed: () {
-              _limpiarFormulario();
-              _mostrarDialogo(context);
-            },
-            child: Text('Agregar Ingreso'),
-          ),
-          Expanded(
-            child: StreamBuilder<List<Map<String, dynamic>>>(
-              stream: _ingresosService.obtenerIngresos(user.uid).asStream(),
-              builder: (context, snapshot) {
-                if (!snapshot.hasData) {
-                  return Center(child: CircularProgressIndicator());
-                }
-                final ingresos = snapshot.data!;
-                return ListView.builder(
-                  itemCount: ingresos.length,
-                  itemBuilder: (context, index) {
-                    final ingreso = ingresos[index];
-                    return ListTile(
-                      title: Text(ingreso['concepto']),
-                      subtitle:
-                          Text('\$${ingreso['valor']} - ${ingreso['fecha']}'),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: Icon(Icons.edit),
-                            onPressed: () {
-                              _editarIngreso(ingreso);
-                              _mostrarDialogo(context);
-                            },
-                          ),
-                          IconButton(
-                            icon: Icon(Icons.delete),
-                            onPressed: () async {
-                              await _eliminarIngreso(ingreso['id']);
-                            },
-                          ),
-                        ],
-                      ),
-                    );
-                  },
-                );
-              },
-            ),
->>>>>>> d251a602acd46738823f2be3fca9c2d66ce3e325
           ),
         ],
       ),

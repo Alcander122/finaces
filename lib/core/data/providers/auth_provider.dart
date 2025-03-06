@@ -90,11 +90,7 @@ class AuthNotifier extends StateNotifier<User?> {
     } on FirebaseAuthException catch (e) {
       _handleAuthError(e);
     } catch (e) {
-<<<<<<< HEAD
       //print("❌ Error inesperado al registrar usuario: $e");
-=======
-      print("❌ Error inesperado al registrar usuario: $e");
->>>>>>> d251a602acd46738823f2be3fca9c2d66ce3e325
       rethrow;
     }
   }
@@ -156,11 +152,7 @@ class AuthNotifier extends StateNotifier<User?> {
       });
       //print("✅ Nombre de usuario actualizado en Firestore");
     } catch (e) {
-<<<<<<< HEAD
       //print("❌ Error al actualizar Firestore: $e");
-=======
-      print("❌ Error al actualizar Firestore: $e");
->>>>>>> d251a602acd46738823f2be3fca9c2d66ce3e325
       rethrow;
     }
   }
