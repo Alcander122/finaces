@@ -14,6 +14,8 @@ List<String> categorias = [
 ];
 
 class IngresosScreen extends ConsumerStatefulWidget {
+  const IngresosScreen({super.key});
+
   @override
   _IngresosScreenState createState() => _IngresosScreenState();
 }
@@ -162,8 +164,9 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
             child: StreamBuilder<List<Map<String, dynamic>>>(
               stream: _ingresosService.obtenerIngresos(user.uid).asStream(),
               builder: (context, snapshot) {
-                if (!snapshot.hasData)
+                if (!snapshot.hasData) {
                   return Center(child: CircularProgressIndicator());
+                }
                 final ingresos = snapshot.data!;
                 return ListView.builder(
                   itemCount: ingresos.length,

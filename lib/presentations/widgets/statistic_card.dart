@@ -6,11 +6,11 @@ class StatisticCard extends StatelessWidget {
   final Color color;
 
   const StatisticCard({
-    Key? key,
+    super.key,
     required this.title,
     required this.amount,
     required this.color,
-  }) : super(key: key);
+  });
 
   @override
   Widget build(BuildContext context) {

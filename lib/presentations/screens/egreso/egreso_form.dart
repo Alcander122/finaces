@@ -3,7 +3,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/models/egreso_model.dart';
-import 'package:finances/core/data/services/egreso_service.dart';
 import 'package:intl/intl.dart'; // Importar paquete para formatear fechas
 import 'dart:math'; // Para generar el ID aleatorio
 

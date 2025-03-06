@@ -55,7 +55,9 @@ class AuthNotifier extends StateNotifier<User?> {
       try {
         if (user != null) {
           String? token = await user.getIdToken();
-          await _storage.saveToken(token!);
+          if (token != null) {
+            await _storage.saveToken(token);
+          }
         } else {
           await _storage.deleteToken();
         }
@@ -88,7 +90,7 @@ class AuthNotifier extends StateNotifier<User?> {
       _handleAuthError(e);
     } catch (e) {
       print("❌ Error inesperado al registrar usuario: $e");
-      throw e;
+      rethrow;
     }
   }
 
@@ -150,7 +152,7 @@ class AuthNotifier extends StateNotifier<User?> {
       print("✅ Nombre de usuario actualizado en Firestore");
     } catch (e) {
       print("❌ Error al actualizar Firestore: $e");
-      throw e;
+      rethrow;
     }
   }
 }
