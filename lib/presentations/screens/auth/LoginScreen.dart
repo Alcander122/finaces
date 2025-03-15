@@ -70,7 +70,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
       // AppBar sin flechas.
       appBar: AppBar(
         automaticallyImplyLeading: false, // Desactiva la flecha de la izquierda
-        backgroundColor: const Color.fromARGB(255, 5, 5, 5),
+        backgroundColor: Colors.white,
         elevation: 0,
         // Eliminamos el IconButton de 'actions' para quitar la flecha de la derecha
       ),

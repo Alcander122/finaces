@@ -69,7 +69,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                   await ref.read(authProvider.notifier).signOut();
                   Navigator.pushNamedAndRemoveUntil(
                     context,
-                    AppRoutes.login,
+                    AppRoutes.welcome,
                     (Route<dynamic> route) => false,
                   );
                 },
