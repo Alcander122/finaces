@@ -64,10 +64,12 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
               ),
               const SizedBox(height: 20),
               ElevatedButton(
-                onPressed: () {
+                onPressed: () async {
+                  // Llamar al método signOut para eliminar el token y marcar la sesión como cerrada.
+                  await ref.read(authProvider.notifier).signOut();
                   Navigator.pushNamedAndRemoveUntil(
                     context,
-                    AppRoutes.loginScreen,
+                    AppRoutes.login,
                     (Route<dynamic> route) => false,
                   );
                 },

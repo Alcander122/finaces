@@ -4,16 +4,16 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/services/ingresos_service.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 
-// Proveedor para escuchar ingresos en tiempo real
+// Donde tengas tus providers
 final totalIngresosProvider = StreamProvider.autoDispose<double>((ref) {
-  final user = ref.watch(authProvider);
-  if (user == null) return Stream.value(0.0);
-  return IngresosService().streamTotalIngresos(user.uid);
+  final authState = ref.watch(authProvider);
+  if (authState.user == null) return Stream.value(0.0);
+  return IngresosService().streamTotalIngresos(authState.user!.uid);
 });
-// Proveedor para escuchar solo el total de ingresos del mes actual
+
 final totalIngresosMesActualProvider =
     StreamProvider.autoDispose<double>((ref) {
-  final user = ref.watch(authProvider);
-  if (user == null) return Stream.value(0.0);
-  return IngresosService().streamTotalIngresosMesActual(user.uid);
+  final authState = ref.watch(authProvider);
+  if (authState.user == null) return Stream.value(0.0);
+  return IngresosService().streamTotalIngresosMesActual(authState.user!.uid);
 });

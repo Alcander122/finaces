@@ -14,7 +14,7 @@ class HomeScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final user = ref.watch(authProvider);
+    final authState = ref.watch(authProvider);
     final totalIngresosMesAsync = ref.watch(totalIngresosMesActualProvider);
     final totalGastosAsync = ref.watch(totalEgresoMesActualProvider);
 
@@ -48,8 +48,9 @@ class HomeScreen extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
+            // Ajuste: usamos user.user?.displayName
             Text(
-              'Bienvenido, ${user?.displayName ?? 'Usuario'}',
+              'Bienvenido, ${authState.user?.displayName ?? 'Sin nombre'}',
               style: const TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),
@@ -120,7 +121,7 @@ class HomeScreen extends ConsumerWidget {
       ),
       MenuOption(
         icon: Icons.trending_up,
-        title: 'Portafolio de  Inversión',
+        title: 'Portafolio de Inversión',
         color: Colors.purple,
         onTap: () {
           Navigator.push(

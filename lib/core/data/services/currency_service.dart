@@ -15,7 +15,7 @@ class CurrencyService {
         return from == 'USD' ? toRate : 1 / fromRate;
       }
     } catch (e) {
-      print('Error obteniendo tasa de cambio: $e');
+      //print('Error obteniendo tasa de cambio: $e');
     }
     // Valor de respaldo realista para COP-USD
     return from == 'COP' ? 0.00025 : 4000.0;

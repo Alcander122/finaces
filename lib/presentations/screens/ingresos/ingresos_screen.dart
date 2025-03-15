@@ -52,7 +52,7 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
     final user = ref.read(authProvider);
     if (user == null) return;
 
-    _ingresos = await _ingresosService.obtenerIngresos(user.uid);
+    //_ingresos = await _ingresosService.obtenerIngresos(user.uid);
     _ingresos.sort((a, b) {
       final anioA = a['anio'] ?? 0;
       final anioB = b['anio'] ?? 0;
@@ -103,12 +103,12 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
         'nota': _notaController.text,
       };
 
-      if (_editId == null) {
+      /*  if (_editId == null) {
         await _ingresosService.guardarIngreso(user.uid, ingreso);
       } else {
         await _ingresosService.actualizarIngreso(user.uid, _editId!, ingreso);
         _editId = null;
-      }
+      }*/
 
       _cargarIngresos();
       Navigator.pop(context);
@@ -233,7 +233,7 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
   Future<void> _eliminarIngreso(String id) async {
     final user = ref.read(authProvider);
     if (user == null) return;
-    await _ingresosService.eliminarIngreso(user.uid, id);
+    // await _ingresosService.eliminarIngreso(user.uid, id);
     _cargarIngresos();
   }
 
