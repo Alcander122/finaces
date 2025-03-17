@@ -14,4 +14,7 @@ abstract class ErrorStrings {
   static const unexpectedError = "Ocurrió un error inesperado";
   static const requiredField = "Este campo es obligatorio";
   static const invalidFormat = "Formato inválido";
+
+  // Nuevo: Contraseñas no coinciden
+  static const passwordMismatch = "Las contraseñas no coinciden";
 }

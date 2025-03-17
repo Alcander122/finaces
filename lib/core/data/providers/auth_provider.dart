@@ -19,7 +19,7 @@ class AuthStorage {
       await prefs.setString(_tokenKey, token);
     } catch (e, stack) {
       logger.e('Error saving token', error: e, stackTrace: stack);
-      print("Error saving token, error: $e, stackTrace: $stack");
+      //print("Error saving token, error: $e, stackTrace: $stack");
       throw ErrorStrings.unexpectedError;
     }
   }
@@ -30,7 +30,7 @@ class AuthStorage {
       await prefs.remove(_tokenKey);
     } catch (e, stack) {
       logger.e('Error deleting token', error: e, stackTrace: stack);
-      print("Error deleting token, error: $e, stackTrace: $stack");
+      //print("Error deleting token, error: $e, stackTrace: $stack");
       throw ErrorStrings.unexpectedError;
     }
   }
@@ -49,10 +49,10 @@ class AuthStorage {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_loggedOutKey, value);
-      print('Logged out flag set to: $value');
+      //print('Logged out flag set to: $value');
     } catch (e, stack) {
       logger.e('Error setting logged out flag', error: e, stackTrace: stack);
-      print("Error setting logged out flag, error: $e, stackTrace: $stack");
+      //print("Error setting logged out flag, error: $e, stackTrace: $stack");
       throw ErrorStrings.unexpectedError;
     }
   }
@@ -99,13 +99,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
         // Revisar si el usuario cerró sesión manualmente.
         bool loggedOut = await _storage.isLoggedOut();
         // Si el flag está activo, forzamos el signOut de Firebase.
-        if (loggedOut && user != null) {
+        /* if (loggedOut && user != null) {
           await _auth.signOut();
-          await _storage.deleteToken();
+          //await _storage.deleteToken();
           state = const AuthState.unauthenticated();
           logger.i('Forzado signOut por flag de cierre de sesión manual');
           return;
-        }
+        }*/
         if (user != null) {
           final token = await user.getIdToken();
           await _storage.saveToken(token ?? '');
@@ -161,11 +161,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> _forceTokenDeletion() async {
     try {
       await _storage.deleteToken();
-      logger.i('Limpieza de token forzada exitosa');
-      print('Limpieza de token forzada exitosa');
+      //logger.i('Limpieza de token forzada exitosa');
+      //print('Limpieza de token forzada exitosa');
     } catch (e, stack) {
       logger.e('Error en limpieza forzada', error: e, stackTrace: stack);
-      print("Error en limpieza forzada, error: $e, stackTrace: $stack");
+      // print("Error en limpieza forzada, error: $e, stackTrace: $stack");
     }
   }
 
@@ -184,13 +184,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (currentUser == null && token == null) {
         state = const AuthState.unauthenticated();
         logger.i('Sesión cerrada completamente');
-        print('Sesión cerrada completamente');
+        //print('Sesión cerrada completamente');
       } else {
         throw ErrorStrings.unexpectedError;
       }
     } catch (e, stack) {
       logger.e('Error crítico en signOut', error: e, stackTrace: stack);
-      print("Error crítico en signOut, error: $e, stackTrace: $stack");
+      //print("Error crítico en signOut, error: $e, stackTrace: $stack");
       await _forceTokenDeletion();
       state = AuthState.error(ErrorStrings.unexpectedError);
       throw ErrorStrings.unexpectedError;
@@ -240,7 +240,7 @@ class AuthState {
 
   const AuthState.loading()
       : user = null,
-        isLoading = true,
+        isLoading = false,
         error = null;
 
   const AuthState.authenticated(this.user)

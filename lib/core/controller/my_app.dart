@@ -16,7 +16,7 @@ class MyApp extends ConsumerWidget {
 
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      initialRoute: AppRoutes.login,
+      initialRoute: AppRoutes.welcome,
       routes: AppRoutes.getRoutes(authState),
     );
   }

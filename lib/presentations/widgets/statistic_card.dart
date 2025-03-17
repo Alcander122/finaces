@@ -4,12 +4,14 @@ class StatisticCard extends StatelessWidget {
   final String title;
   final double amount; // Cambiado de String a double
   final Color color;
+  final Icon icon;
 
   const StatisticCard({
     super.key,
     required this.title,
     required this.amount,
     required this.color,
+    required this.icon,
   });
 
   @override
