@@ -1,4 +1,3 @@
-// lib/presentations/screens/home/widgets/menu_option.dart
 import 'package:flutter/material.dart';
 
 class MenuOption extends StatelessWidget {
@@ -21,7 +20,8 @@ class MenuOption extends StatelessWidget {
       leading: Icon(icon, color: color, size: 30),
       title: Text(
         title,
-        style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+        style: TextStyle(
+            fontSize: 14, fontWeight: FontWeight.bold), // Reducido a 14
       ),
       onTap: onTap,
     );

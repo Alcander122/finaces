@@ -1,8 +1,9 @@
 // ignore: depend_on_referenced_packages
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class Ingreso {
-  int id; // Consecutivo único
+  String id; // Consecutivo único
   DateTime fecha; // Fecha del registro
   String mes; // Mes seleccionado desde lista desplegable
   int anio; // Año seleccionado de los 3 años futuros
@@ -22,31 +23,77 @@ class Ingreso {
     required this.valor,
   });
 
-  // Conversión desde un Map (Firestore o similar) a un objeto `Ingreso`
+  // Método para formatear la fecha correctamente
+  String get fechaFormateada => DateFormat('dd/MM/yyyy').format(fecha);
+
+  // Conversión desde un Map (Firestore a objeto `Ingreso`)
   factory Ingreso.fromMap(Map<String, dynamic> map) {
+    DateTime fecha;
+
+    if (map['fecha'] is Timestamp) {
+      // ✅ Si la fecha es un Timestamp, convertirla a DateTime
+      fecha = (map['fecha'] as Timestamp).toDate();
+    } else if (map['fecha'] is String) {
+      // ✅ Si es un String, intentamos detectar su formato
+      try {
+        if (map['fecha'].contains('/')) {
+          // Si tiene "/", asumimos formato `dd/MM/yyyy`
+          fecha = DateFormat('dd/MM/yyyy').parse(map['fecha']);
+        } else if (map['fecha'].contains('-')) {
+          // Si tiene "-", asumimos formato `yyyy-MM-dd`
+          fecha = DateFormat('yyyy-MM-dd').parse(map['fecha']);
+        } else {
+          throw FormatException('Formato de fecha desconocido');
+        }
+      } catch (e) {
+        fecha = DateTime.now(); // Evita errores si la fecha no es válida
+      }
+    } else {
+      fecha = DateTime.now();
+    }
+
     return Ingreso(
-      id: map['id'],
-      fecha: (map['fecha'] as Timestamp).toDate(),
-      mes: map['mes'],
-      anio: map['anio'],
-      quincena: map['quincena'],
-      categoria: map['categoria'],
-      concepto: map['concepto'],
-      valor: map['valor'].toInt(), // Asegura que se convierta a un valor entero
+      id: map['id'].toString(), // Convertir a String directamente
+      fecha: fecha,
+      mes: map['mes'] ?? '',
+      anio: int.tryParse(map['anio'].toString()) ?? DateTime.now().year,
+      quincena: map['quincena'] ?? '',
+      categoria: map['categoria'] ?? '',
+      concepto: map['concepto'] ?? '',
+      valor: int.tryParse(map['valor'].toString()) ?? 0,
     );
   }
 
-  // Conversión desde un objeto `Ingreso` a un Map (para Firestore o similar)
+  // Conversión de objeto `Ingreso` a Map (para guardar en Firestore)
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'fecha': fecha,
+      'fecha': fechaFormateada, // ✅ Guardar siempre en formato `dd/MM/yyyy`
       'mes': mes,
       'anio': anio,
       'quincena': quincena,
       'categoria': categoria,
       'concepto': concepto,
-      'valor': valor, // Guardamos el valor como entero
+      'valor': valor,
     };
+  }
+
+  // Método para obtener el mes en formato numérico
+  int getMesNumero() {
+    const meses = [
+      'Enero',
+      'Febrero',
+      'Marzo',
+      'Abril',
+      'Mayo',
+      'Junio',
+      'Julio',
+      'Agosto',
+      'Septiembre',
+      'Octubre',
+      'Noviembre',
+      'Diciembre'
+    ];
+    return meses.indexOf(mes) + 1;
   }
 }

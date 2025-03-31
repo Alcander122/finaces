@@ -96,21 +96,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _auth.authStateChanges().listen((User? user) async {
       try {
         state = const AuthState.loading();
-        // Revisar si el usuario cerró sesión manualmente.
         bool loggedOut = await _storage.isLoggedOut();
-        // Si el flag está activo, forzamos el signOut de Firebase.
-        /* if (loggedOut && user != null) {
-          await _auth.signOut();
-          //await _storage.deleteToken();
-          state = const AuthState.unauthenticated();
-          logger.i('Forzado signOut por flag de cierre de sesión manual');
-          return;
-        }*/
+
         if (user != null) {
           final token = await user.getIdToken();
-          await _storage.saveToken(token ?? '');
+          await _storage
+              .saveToken(token ?? ''); // 🔹 Aquí corregimos el posible null
+
           state = AuthState.authenticated(user);
-          logger.i('Usuario autenticado: ${user.email}');
+          logger.i(
+              'Usuario autenticado: ${user.email ?? 'Desconocido'}'); // 🔹 Evita null en email
         } else {
           await _forceTokenDeletion();
           state = const AuthState.unauthenticated();
@@ -240,7 +235,7 @@ class AuthState {
 
   const AuthState.loading()
       : user = null,
-        isLoading = false,
+        isLoading = true,
         error = null;
 
   const AuthState.authenticated(this.user)
@@ -256,5 +251,5 @@ class AuthState {
       : user = null,
         isLoading = false;
 
-  String? get uid => user?.uid;
+  String? get uid => user?.uid ?? '';
 }

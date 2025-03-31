@@ -1,15 +1,18 @@
-// lib/core/utils/category_color_generator.dart
+import 'dart:math';
+
 import 'package:flutter/material.dart';
 
 class CategoryColorGenerator {
-  static Color getColor(String category) {
-    final hue = category.hashCode % 360;
-    return HSLColor.fromAHSL(1.0, hue.toDouble(), 0.7, 0.6).toColor();
-  }
+  static Random _random = Random();
 
-  static Color getContrastTextColor(Color backgroundColor) {
-    return backgroundColor.computeLuminance() > 0.5
-        ? Colors.black
-        : Colors.white;
+  static Color getColor(String id) {
+    final seed = id.hashCode;
+    _random = Random(seed);
+    return Color.fromARGB(
+      255,
+      _random.nextInt(256),
+      _random.nextInt(256),
+      _random.nextInt(256),
+    );
   }
 }

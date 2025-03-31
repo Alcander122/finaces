@@ -6,7 +6,7 @@ import 'package:finances/core/data/providers/portafolio_provider.dart';
 import 'package:finances/core/data/providers/investment_provider.dart';
 import 'package:finances/presentations/screens/portafolio/portafolio_form_screen.dart';
 import 'package:finances/presentations/widgets/portafolio_chart.dart';
-import 'package:finances/core/data/services/portafolio_service.dart'; // Asegúrate de importar el servicio
+import 'package:finances/core/data/services/portafolio_service.dart';
 
 class PortafolioScreen extends ConsumerWidget {
   const PortafolioScreen({super.key});

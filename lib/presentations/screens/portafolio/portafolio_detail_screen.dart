@@ -3,7 +3,7 @@ import 'package:finances/core/data/providers/investment_provider.dart';
 import 'package:finances/core/data/services/investment_service.dart';
 import 'package:finances/presentations/screens/portafolio/investment_form_screen.dart';
 import 'package:finances/presentations/screens/portafolio/portafolio_form_screen.dart';
-import 'package:finances/presentations/widgets/portafolio_chart.dart';
+import 'package:finances/presentations/widgets/investment_chart.dart';
 import 'package:finances/utils/utilities.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -40,20 +40,16 @@ class PortafolioDetailScreen extends ConsumerWidget {
       body: investments.when(
         data: (investmentsList) => Column(
           children: [
-            PortafolioChart(
-              investments:
-                  investmentsList.where((i) => i.estado == 'Activo').toList(),
-              portfolios: [portafolio],
-            ),
+            InvestmentChart(investments: investmentsList),
             Expanded(
               child: ListView.builder(
                 itemCount: investmentsList.length,
                 itemBuilder: (context, index) {
                   final investment = investmentsList[index];
                   return ListTile(
-                    title: Text(
+                    title: Text(investment.descripcion),
+                    subtitle: Text(
                         '${Utilities.formatCurrency(investment.invMensual)} ${investment.moneda}'),
-                    subtitle: Text(investment.descripcion),
                     trailing: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
@@ -76,7 +72,7 @@ class PortafolioDetailScreen extends ConsumerWidget {
                             await InvestmentService().eliminarInvestment(
                               portafolio.userId,
                               portafolio.id,
-                              investment.id, // Corregido: usar investment.id
+                              investment.id,
                             );
                           },
                         ),

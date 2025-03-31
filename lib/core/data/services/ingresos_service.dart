@@ -1,17 +1,17 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:finances/core/data/models/ingreso.model.dart';
 
 class IngresosService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // Guardar un nuevo ingreso
-  Future<String> guardarIngreso(
-      String userId, Map<String, dynamic> ingreso) async {
+  Future<String> guardarIngreso(String userId, Ingreso ingreso) async {
     try {
       final docRef = await _firestore
           .collection('users')
           .doc(userId)
           .collection('ingresos')
-          .add(ingreso);
+          .add(ingreso.toMap());
 
       await _firestore
           .collection('users')
@@ -29,30 +29,32 @@ class IngresosService {
   }
 
   // Obtener todos los ingresos
-  Future<List<Map<String, dynamic>>> obtenerIngresos(String userId) async {
+  Future<List<Ingreso>> obtenerIngresos(String userId) async {
     try {
       final snapshot = await _firestore
           .collection('users')
           .doc(userId)
           .collection('ingresos')
           .get();
-      return snapshot.docs.map((doc) => {'id': doc.id, ...doc.data()}).toList();
+
+      return snapshot.docs
+          .map((doc) => Ingreso.fromMap(doc.data()..['id'] = doc.id))
+          .toList();
     } catch (e) {
       print("❌ Error al obtener ingresos: $e");
       throw Exception("No se pudieron obtener los ingresos");
     }
   }
 
-  // Actualizar un ingreso existente
   Future<void> actualizarIngreso(
-      String userId, String ingresoId, Map<String, dynamic> ingreso) async {
+      String userId, String ingresoId, Ingreso ingreso) async {
     try {
       await _firestore
           .collection('users')
           .doc(userId)
           .collection('ingresos')
           .doc(ingresoId)
-          .update(ingreso);
+          .update(ingreso.toMap());
       print("✅ Ingreso actualizado exitosamente: ID $ingresoId");
     } catch (e) {
       print("❌ Error al actualizar ingreso: $e");
@@ -93,33 +95,10 @@ class IngresosService {
     });
   }
 
-  // Obtener el total de ingresos del mes actual en tiempo real (Stream)
   Stream<double> streamTotalIngresosMesActual(String userId) {
     final now = DateTime.now();
-    final mesActual =
-        _obtenerNombreMes(now.month); // Convertir a nombre del mes
     final anioActual = now.year;
-
-    return _firestore
-        .collection('users')
-        .doc(userId)
-        .collection('ingresos')
-        .where('mes', isEqualTo: mesActual)
-        .where('anio', isEqualTo: anioActual)
-        .snapshots()
-        .map((snapshot) {
-      double totalIngresos = 0.0;
-      for (var doc in snapshot.docs) {
-        final valor = doc.data()['valor'];
-        totalIngresos += valor is num ? valor.toDouble() : 0.0;
-      }
-      return totalIngresos;
-    });
-  }
-
-  // Función auxiliar para convertir número de mes a nombre
-  String _obtenerNombreMes(int numeroMes) {
-    return [
+    const meses = [
       'Enero',
       'Febrero',
       'Marzo',
@@ -132,6 +111,24 @@ class IngresosService {
       'Octubre',
       'Noviembre',
       'Diciembre'
-    ][numeroMes - 1];
+    ];
+    String mesActualNombre =
+        meses[now.month - 1]; // Obtiene el nombre del mes actual
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('ingresos')
+        .where('mes',
+            isEqualTo: mesActualNombre) // Consulta por el nombre del mes
+        .where('anio', isEqualTo: anioActual)
+        .snapshots()
+        .map((snapshot) {
+      double totalIngresos = 0.0;
+      for (var doc in snapshot.docs) {
+        final valor = doc.data()['valor'];
+        totalIngresos += valor is num ? valor.toDouble() : 0.0;
+      }
+      return totalIngresos;
+    });
   }
 }

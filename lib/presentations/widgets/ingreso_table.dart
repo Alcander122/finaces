@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class IngresoTable extends StatelessWidget {
   final List<Map<String, dynamic>> ingresos;
@@ -17,6 +19,15 @@ class IngresoTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    Set<String> camposDisponibles = {};
+    if (ingresos.isNotEmpty) {
+      camposDisponibles = ingresos.first.keys.toSet();
+    }
+
+    List<String> camposMostrar = camposVisibles
+        .where((campo) => camposDisponibles.contains(campo))
+        .toList();
+
     if (ingresos.isEmpty) {
       return Center(
         child: Text('No hay ingresos disponibles'),
@@ -26,7 +37,7 @@ class IngresoTable extends StatelessWidget {
     return SingleChildScrollView(
       child: DataTable(
         columns: [
-          ...camposVisibles.map(
+          ...camposMostrar.map(
             (campo) => DataColumn(label: Text(campo)),
           ),
           const DataColumn(label: Text('Acciones')),
@@ -34,10 +45,18 @@ class IngresoTable extends StatelessWidget {
         rows: ingresos.map((ingreso) {
           return DataRow(
             cells: [
-              ...camposVisibles.map(
-                (campo) => DataCell(
-                  Text(ingreso[campo]?.toString() ?? ''),
-                ),
+              ...camposMostrar.map(
+                (campo) {
+                  if (campo == 'fecha' && ingreso[campo] is Timestamp) {
+                    return DataCell(
+                      Text(DateFormat('dd/MM/yyyy')
+                          .format((ingreso[campo] as Timestamp).toDate())),
+                    );
+                  }
+                  return DataCell(
+                    Text(ingreso[campo]?.toString() ?? ''),
+                  );
+                },
               ),
               DataCell(
                 Row(
@@ -49,7 +68,7 @@ class IngresoTable extends StatelessWidget {
                     IconButton(
                       icon: Icon(Icons.delete, color: Colors.red),
                       onPressed: () =>
-                          _confirmarEliminar(context, ingreso['id']),
+                          _confirmarEliminar(context, ingreso['id'].toString()),
                     ),
                   ],
                 ),

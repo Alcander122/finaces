@@ -63,14 +63,6 @@ class HomeScreen extends ConsumerWidget {
           ],
         ),
       ),
-      /*floatingActionButton: FloatingActionButton.extended(
-        icon: const Icon(Icons.add),
-        label: const Text('Nueva Transacción'),
-        onPressed: () {
-          // Abrir modal para nueva transacción
-        },
-        backgroundColor: Colors.green,
-      ),*/
     );
   }
 
@@ -234,7 +226,7 @@ class HomeScreen extends ConsumerWidget {
           children: [
             MenuOption(
               icon: Icons.savings,
-              title: 'Ahorros',
+              title: 'Ahorros', // Acortado
               color: Colors.blue,
               onTap: () {
                 // Navegar a la pantalla de Ahorros
@@ -242,7 +234,7 @@ class HomeScreen extends ConsumerWidget {
             ),
             MenuOption(
               icon: Icons.trending_up,
-              title: 'Portafolio de Inversión',
+              title: 'Portafolio', // Acortado
               color: Colors.purple,
               onTap: () {
                 Navigator.push(
@@ -253,7 +245,7 @@ class HomeScreen extends ConsumerWidget {
             ),
             MenuOption(
               icon: Icons.schedule,
-              title: 'Pagos Programados',
+              title: 'Pagos Programados', // Acortado
               color: Colors.orange,
               onTap: () {
                 // Navegar a la pantalla de Pagos Programados
@@ -261,7 +253,7 @@ class HomeScreen extends ConsumerWidget {
             ),
             MenuOption(
               icon: Icons.pending_actions,
-              title: 'Pagos Pendientes',
+              title: 'Pagos Pendientes', // Acortado
               color: Colors.teal,
               onTap: () {
                 // Navegar a la pantalla de Pagos Pendientes
@@ -269,7 +261,7 @@ class HomeScreen extends ConsumerWidget {
             ),
             MenuOption(
               icon: Icons.account_balance,
-              title: 'Neo Bank',
+              title: 'Mis Bancos', // Acortado
               color: Colors.brown,
               onTap: () {
                 // Navegar a la pantalla de Neo Bank
@@ -277,7 +269,7 @@ class HomeScreen extends ConsumerWidget {
             ),
             MenuOption(
               icon: Icons.history,
-              title: 'Historial',
+              title: 'Historial', // Acortado
               color: Colors.grey,
               onTap: () {
                 // Navegar a la pantalla de Historial

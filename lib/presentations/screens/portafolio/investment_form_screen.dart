@@ -1,6 +1,7 @@
 import 'package:finances/core/data/models/investment_model.dart';
 import 'package:finances/core/data/services/currency_service.dart';
 import 'package:finances/core/data/services/investment_service.dart';
+import 'package:finances/core/data/utils/Portafolio_validator.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
@@ -26,6 +27,7 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
   final _montoController = TextEditingController();
   final _descripcionController = TextEditingController();
   final CurrencyService _currencyService = CurrencyService();
+  final FormValidator _validator = FormValidator();
 
   late String _selectedMoneda;
   late String _selectedMes;
@@ -148,6 +150,9 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
         await InvestmentService().actualizarInvestment(widget.userId,
             widget.portafolioId, widget.investment!.id, investment);
       }
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Inversión guardada correctamente')),
+      );
       Navigator.pop(context);
     }
   }

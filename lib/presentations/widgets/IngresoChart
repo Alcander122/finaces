@@ -1,0 +1,81 @@
+import 'package:flutter/material.dart';
+import 'package:charts_flutter/flutter.dart' as charts;
+import 'package:finances/core/data/models/ingreso.model.dart';
+import 'package:finances/core/data/services/ingresos_service.dart';
+
+class IncomeChart extends StatelessWidget {
+  final List<Ingreso> ingresos;
+
+  const IncomeChart({super.key, required this.ingresos});
+
+  @override
+  Widget build(BuildContext context) {
+    List<charts.Series<IngresoCategoria, String>> series = [
+      charts.Series(
+        id: 'Ingresos',
+        data: _getCategoriaData(),
+        domainFn: (IngresoCategoria categoria, _) => categoria.categoria,
+        measureFn: (IngresoCategoria categoria, _) => categoria.valor,
+        colorFn: (IngresoCategoria categoria, _) => categoria.color,
+      )
+    ];
+
+    return SizedBox(
+      height: 300,
+      child: charts.PieChart(
+        series,
+        animate: true,
+        defaultRenderer: charts.ArcRendererConfig(
+          arcWidth: 60,
+          arcRendererDecorators: [charts.ArcLabelDecorator()],
+        ),
+      ),
+    );
+  }
+
+  List<IngresoCategoria> _getCategoriaData() {
+    Map<String, int> categoriaTotales = {};
+
+    for (var ingreso in ingresos) {
+      if (categoriaTotales.containsKey(ingreso.categoria)) {
+        categoriaTotales[ingreso.categoria] =
+            (categoriaTotales[ingreso.categoria] ?? 0) + ingreso.valor;
+      } else {
+        categoriaTotales[ingreso.categoria] = ingreso.valor;
+      }
+    }
+
+    List<IngresoCategoria> data = [];
+    final colors = [
+      charts.MaterialPalette.blue.shadeDefault,
+      charts.MaterialPalette.red.shadeDefault,
+      charts.MaterialPalette.green.shadeDefault,
+      charts.MaterialPalette.yellow.shadeDefault,
+      charts.MaterialPalette.purple.shadeDefault,
+    ];
+
+    categoriaTotales.entries.forEach((entry) {
+      data.add(
+        IngresoCategoria(
+          categoria: entry.key,
+          valor: entry.value,
+          color: colors[data.length % colors.length],
+        ),
+      );
+    });
+
+    return data;
+  }
+}
+
+class IngresoCategoria {
+  final String categoria;
+  final int valor;
+  final charts.Color color;
+
+  IngresoCategoria({
+    required this.categoria,
+    required this.valor,
+    required this.color,
+  });
+}

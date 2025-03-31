@@ -1,21 +1,23 @@
-import 'package:finances/core/data/providers/egreso_provider.dart';
-import 'package:finances/core/data/models/egreso_model.dart'; // Add this line
+import 'package:finances/core/data/models/egreso_model.dart';
 import 'package:finances/presentations/screens/egreso/egreso_form.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:finances/core/data/services/egreso_service.dart';
+import 'package:finances/core/data/providers/egreso_provider.dart';
+import 'package:finances/presentations/widgets/egreso_chart.dart';
+import 'package:finances/presentations/widgets/column_selection_dialog.dart';
 import 'package:intl/intl.dart';
-import 'package:finances/presentations/widgets/column_selection_dialog.dart'; // Add this line
-import 'package:firebase_auth/firebase_auth.dart'; // Add this line
+import 'package:firebase_auth/firebase_auth.dart';
 
 class EgresosScreen extends ConsumerStatefulWidget {
   const EgresosScreen({super.key});
 
   @override
-  ConsumerState<EgresosScreen> createState() => _EgresosScreenState();
+  _EgresosScreenState createState() => _EgresosScreenState();
 }
 
 class _EgresosScreenState extends ConsumerState<EgresosScreen> {
-  final List<String> _allColumns = [
+  final _allColumns = [
     'Quincena',
     'Fecha',
     'Mes',
@@ -109,44 +111,61 @@ class _EgresosScreenState extends ConsumerState<EgresosScreen> {
       ),
       body: egresosAsync.when(
         data: (egresos) => SingleChildScrollView(
-          scrollDirection: Axis.horizontal,
-          child: DataTable(
-            columns: [
-              ..._allColumns.where(_visibleColumns.contains).map(
-                    (column) => DataColumn(label: Text(column)),
-                  ),
-              const DataColumn(label: Text('Acciones')),
-            ],
-            rows: egresos.map((egreso) {
-              return DataRow(
-                cells: [
-                  ..._allColumns.where(_visibleColumns.contains).map((column) {
-                    return DataCell(
-                      Text(_getEgresoCellValue(egreso, column)),
-                    );
-                  }),
-                  DataCell(
-                    Row(
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit, size: 20),
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (context) => EgresoForm(egreso: egreso),
-                            ),
+          child: Column(
+            children: [
+              // Gráfico de Dona para mostrar la distribución de egresos por categoría
+              Padding(
+                padding: const EdgeInsets.all(16.0),
+                child: EgresoChart(
+                  egresos: egresos,
+                ),
+              ),
+              // Tabla de egresos
+              SingleChildScrollView(
+                scrollDirection: Axis.horizontal,
+                child: DataTable(
+                  columns: [
+                    ..._allColumns.where(_visibleColumns.contains).map(
+                          (column) => DataColumn(label: Text(column)),
+                        ),
+                    const DataColumn(label: Text('Acciones')),
+                  ],
+                  rows: egresos.map((egreso) {
+                    return DataRow(
+                      cells: [
+                        ..._allColumns
+                            .where(_visibleColumns.contains)
+                            .map((column) {
+                          return DataCell(
+                            Text(_getEgresoCellValue(egreso, column)),
+                          );
+                        }),
+                        DataCell(
+                          Row(
+                            children: [
+                              IconButton(
+                                icon: const Icon(Icons.edit, size: 20),
+                                onPressed: () => Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) =>
+                                        EgresoForm(egreso: egreso),
+                                  ),
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.delete, size: 20),
+                                onPressed: () => _deleteEgreso(egreso),
+                              ),
+                            ],
                           ),
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.delete, size: 20),
-                          onPressed: () => _deleteEgreso(egreso),
-                        ),
                       ],
-                    ),
-                  ),
-                ],
-              );
-            }).toList(),
+                    );
+                  }).toList(),
+                ),
+              ),
+            ],
           ),
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
