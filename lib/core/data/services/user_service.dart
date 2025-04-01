@@ -9,6 +9,7 @@ class UserService {
   /// Registra un nuevo usuario con nombre, correo electrónico y contraseña
   Future<UserModel> registerUser({
     required String name,
+    required String displayName,
     required String email,
     required String password,
   }) async {
@@ -31,6 +32,7 @@ class UserService {
       await userDoc.set({
         'uid': user.uid,
         'name': name,
+        'displayName': displayName,
         'email': email,
         'createdAt': FieldValue.serverTimestamp(),
       });
