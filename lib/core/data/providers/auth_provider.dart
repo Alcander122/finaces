@@ -82,10 +82,14 @@ class AuthNotifier extends StateNotifier<User?> {
     }
   }
 
-  Future<void> signUp(String name, String email, String password) async {
+  Future<void> signUp(
+      String name, String displayName, String email, String password) async {
     try {
       await _userService.registerUser(
-          name: name, email: email, password: password);
+          name: name,
+          displayName: displayName,
+          email: email,
+          password: password);
       //print("✅ Registro exitoso para: $email");
     } on FirebaseAuthException catch (e) {
       _handleAuthError(e);

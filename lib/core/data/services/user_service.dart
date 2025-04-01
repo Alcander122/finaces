@@ -7,6 +7,7 @@ class UserService {
 
   Future<void> registerUser({
     required String name,
+    required String displayName,
     required String email,
     required String password,
   }) async {
@@ -29,6 +30,7 @@ class UserService {
       await _firestore.collection('users').doc(user.uid).set({
         'uid': user.uid,
         'name': name,
+        'displayName': displayName,
         'email': email,
         'createdAt': FieldValue.serverTimestamp(),
       });

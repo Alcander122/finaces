@@ -42,6 +42,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       final userService = UserService();
       await userService.registerUser(
         name: _nameController.text,
+        displayName: _usernameController.text,
         email: _emailController.text,
         password: _passwordController.text,
       );
@@ -134,13 +135,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         controller: _nameController,
                         validator: (value) {
                           if (value == null || value.isEmpty) {
-                            return 'Ingresa tu nombre';
+                            return 'Ingresa tu nombre Completo';
                           }
                           return null;
                         },
                         decoration: InputDecoration(
-                          label: const Text('Nombre'),
-                          hintText: 'Ingresa nombre',
+                          label: const Text('Nombre Completo'),
+                          hintText: 'Ingresa nombre Completo',
                           hintStyle: const TextStyle(
                             color: Colors.black26,
                           ),
@@ -239,6 +240,40 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         decoration: InputDecoration(
                           label: const Text('Contraseña'),
                           hintText: 'Ingresa contraseña',
+                          hintStyle: const TextStyle(
+                            color: Colors.black26,
+                          ),
+                          border: OutlineInputBorder(
+                            borderSide: const BorderSide(
+                              color: Colors.black12, // Default border color
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderSide: const BorderSide(
+                              color: Colors.black12, // Default border color
+                            ),
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                        ),
+                      ),
+                      const SizedBox(
+                        height: 25.0,
+                      ),
+                      // confirm password
+                      TextFormField(
+                        controller: _confirmPasswordController,
+                        obscureText: true,
+                        obscuringCharacter: '*',
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return 'Ingresa nuevamente la contraseña';
+                          }
+                          return null;
+                        },
+                        decoration: InputDecoration(
+                          label: const Text('Confirmar Contraseña'),
+                          hintText: 'Ingresa nuevamente contraseña',
                           hintStyle: const TextStyle(
                             color: Colors.black26,
                           ),
