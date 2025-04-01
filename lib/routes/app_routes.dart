@@ -1,4 +1,5 @@
 // lib/routes/app_routes.dart
+import 'package:finances/presentations/screens/ahorro/pantalla_ahorro.dart';
 import 'package:finances/presentations/screens/auth/LoginScreen.dart';
 import 'package:finances/presentations/screens/auth/register.screen.dart';
 import 'package:finances/presentations/screens/profile/ProfileScreen.dart';
@@ -18,6 +19,7 @@ class AppRoutes {
   static const String register = '/register';
   static const String ingresos = '/ingresos';
   static const String portafolio = '/portafolio';
+  static const String ahorro = '/ahorro';
 
   // Aquí se decide qué pantalla mostrar según el estado de autenticación.
   // En lugar de verificar si authState es null, se comprueba si authState.user es null.
@@ -29,7 +31,8 @@ class AppRoutes {
       home: (context) => const HomeScreen(),
       profile: (context) => const ProfileScreen(),
       register: (context) => const RegisterScreen(),
-      portafolio: (context) => PortafolioScreen(),
+      portafolio: (context) => const PortafolioScreen(),
+      ahorro: (context) => const AhorroScreen(),
     };
   }
 }
