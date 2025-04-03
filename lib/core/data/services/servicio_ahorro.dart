@@ -8,8 +8,7 @@ class AhorroService {
 
   Stream<List<ObjetivoAhorro>> obtenerMetas() {
     return _firestore
-        .collection(
-            'users') // Corregido para coincidir con las reglas de Firebase
+        .collection('users')
         .doc(_usuario?.uid)
         .collection('ahorro')
         .snapshots()
@@ -47,6 +46,7 @@ class AhorroService {
     final transaccion = Transaccion(
       tipo: tipo,
       monto: monto,
+      // Asegúrate de que fecha no sea null
       fecha: DateTime.now(),
     );
 

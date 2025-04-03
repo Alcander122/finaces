@@ -2,11 +2,10 @@ import 'package:finances/core/data/models/objetivo_ahorro.dart';
 import 'package:finances/core/data/services/servicio_ahorro.dart';
 import 'package:finances/core/data/utils/ahorro_validator.dart';
 import 'package:finances/presentations/widgets/elemento_objetivo_ahorro.dart';
-import 'package:flutter/material.dart';
 import 'package:finances/presentations/widgets/dialogo_transaccion.dart';
+import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-// Clase principal que extiende ConsumerStatefulWidget
 class AhorroScreen extends StatefulWidget {
   const AhorroScreen({super.key});
 
@@ -14,9 +13,7 @@ class AhorroScreen extends StatefulWidget {
   _PantallaAhorroState createState() => _PantallaAhorroState();
 }
 
-// Estado de la pantalla que extiende ConsumerState
 class _PantallaAhorroState extends State<AhorroScreen> {
-  // Inicializa _ahorroService directamente
   final AhorroService _ahorroService = AhorroService();
 
   @override
@@ -56,12 +53,13 @@ class _PantallaAhorroState extends State<AhorroScreen> {
     );
   }
 
-  // Método para mostrar el diálogo de transacción
   Future<void> _mostrarDialogo(
       BuildContext context, String metaId, String tipo) async {
+    // Guarda el contexto del widget padre para mostrar mensajes
+    final parentContext = context;
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: const Text('Nueva Transacción'),
         content: FutureBuilder<List<ObjetivoAhorro>>(
           future: _ahorroService.obtenerMetas().first,
@@ -75,25 +73,29 @@ class _PantallaAhorroState extends State<AhorroScreen> {
             if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return const Center(child: Text('No hay metas disponibles'));
             }
-
             final metas = snapshot.data!;
             final metaSeleccionada =
                 metas.firstWhere((meta) => meta.id == metaId);
-
             return DialogoTransaccion(
               onGuardar: (monto) =>
-                  _manejarTransaccion(context, metaId, tipo, monto),
+                  _manejarTransaccion(parentContext, metaId, tipo, monto),
               maxMonto: tipo == 'retiro' ? metaSeleccionada.montoActual : null,
             );
           },
         ),
+        // Agrega un botón para cerrar el diálogo manualmente si el usuario lo desea
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Cerrar'),
+          ),
+        ],
       ),
     );
   }
 
-  // Método para manejar la transacción
   void _manejarTransaccion(
-      BuildContext context, String metaId, String tipo, double monto) {
+      BuildContext parentContext, String metaId, String tipo, double monto) {
     _ahorroService
         .agregarTransaccion(
       metaId: metaId,
@@ -101,17 +103,19 @@ class _PantallaAhorroState extends State<AhorroScreen> {
       monto: monto,
     )
         .then((_) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) return;
+      // No se cierra el diálogo automáticamente; simplemente se muestra el mensaje
+      ScaffoldMessenger.of(parentContext).showSnackBar(
         const SnackBar(content: Text('Operación exitosa')),
       );
     }).catchError((error) {
-      ScaffoldMessenger.of(context).showSnackBar(
+      if (!mounted) return;
+      ScaffoldMessenger.of(parentContext).showSnackBar(
         SnackBar(content: Text('Error: $error')),
       );
     });
   }
 
-  // Método para mostrar el diálogo de nueva meta
   void _mostrarDialogoNuevaMeta(BuildContext context) {
     final _formKey = GlobalKey<FormState>();
     final _nombreController = TextEditingController();
