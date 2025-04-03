@@ -14,7 +14,7 @@ class Transaccion {
   }) : fecha = fecha ?? DateTime.now(); // Si fecha es null, usa la fecha actual
 
   Map<String, dynamic> toMap() {
-    final fechaValida = fecha ?? DateTime.now();
+    final fechaValida = fecha;
     return {
       'tipo': tipo,
       'monto': monto,
