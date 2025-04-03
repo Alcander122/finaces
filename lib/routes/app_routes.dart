@@ -1,5 +1,5 @@
 // lib/routes/app_routes.dart
-import 'package:finances/presentations/screens/ahorro/pantalla_ahorro.dart';
+import 'package:finances/presentations/screens/ahorro/ahorro_screen.dart';
 import 'package:finances/presentations/screens/auth/LoginScreen.dart';
 import 'package:finances/presentations/screens/auth/register.screen.dart';
 import 'package:finances/presentations/screens/profile/ProfileScreen.dart';

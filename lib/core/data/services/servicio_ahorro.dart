@@ -42,12 +42,13 @@ class AhorroService {
     required String metaId,
     required String tipo,
     required double monto,
+    String? descripcion,
   }) async {
     final transaccion = Transaccion(
       tipo: tipo,
       monto: monto,
-      // Asegúrate de que fecha no sea null
       fecha: DateTime.now(),
+      descripcion: descripcion,
     );
 
     await _firestore

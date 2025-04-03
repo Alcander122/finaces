@@ -1,6 +1,6 @@
 import 'package:finances/core/data/providers/egreso_provider.dart';
 import 'package:finances/core/data/providers/finanzas_provider.dart';
-import 'package:finances/presentations/screens/ahorro/pantalla_ahorro.dart';
+import 'package:finances/presentations/screens/ahorro/ahorro_screen.dart';
 import 'package:finances/presentations/screens/egreso/egresos_screen.dart';
 import 'package:finances/presentations/screens/portafolio/portafolio_screen.dart';
 import 'package:flutter/material.dart';
