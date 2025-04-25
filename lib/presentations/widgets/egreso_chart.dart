@@ -30,7 +30,7 @@ class EgresoChart extends StatelessWidget {
       const Color.fromRGBO(153, 102, 255, 1),
     ];
 
-    categoriaTotales.entries.forEach((entry) {
+    for (var entry in categoriaTotales.entries) {
       datosGrafico.add(
         ChartData(
           categoria: entry.key,
@@ -38,7 +38,7 @@ class EgresoChart extends StatelessWidget {
           color: colores[datosGrafico.length % colores.length],
         ),
       );
-    });
+    }
 
     return SizedBox(
       height: 300,

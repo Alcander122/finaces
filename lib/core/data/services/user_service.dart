@@ -47,7 +47,7 @@ class UserService {
         email: email,
         createdAt: DateTime.now(),
       );
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException {
       rethrow;
     } catch (e, stackTrace) {
       print("❌ Error en registerUser: $e");

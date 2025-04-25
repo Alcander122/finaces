@@ -28,7 +28,7 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
   final IngresosService _ingresosService = IngresosService();
   final IngresoValidator _validator = IngresoValidator();
 
-  List<String> _camposVisibles = [
+  final List<String> _camposVisibles = [
     'fecha',
     'mes',
     'anio',
@@ -57,7 +57,7 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
         await _ingresosService.obtenerIngresos(authState.user!.uid);
     ingresos.sort((a, b) {
       if (a.anio != b.anio) {
-        return a.anio!.compareTo(b.anio!);
+        return a.anio.compareTo(b.anio);
       }
       return a.getMesNumero().compareTo(b.getMesNumero());
     });
@@ -303,7 +303,7 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: IngresoTable(
-                userID: user?.uid ?? '',
+                userID: user.uid ?? '',
                 ingresos: _ingresos,
                 onEdit: (ingreso) => _mostrarDialogo(context, ingreso),
                 onDelete: (id) => _eliminarIngreso(id),
