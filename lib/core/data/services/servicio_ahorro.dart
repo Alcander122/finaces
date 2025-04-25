@@ -8,8 +8,7 @@ class AhorroService {
 
   Stream<List<ObjetivoAhorro>> obtenerMetas() {
     return _firestore
-        .collection(
-            'users') // Corregido para coincidir con las reglas de Firebase
+        .collection('users')
         .doc(_usuario?.uid)
         .collection('ahorro')
         .snapshots()
@@ -43,11 +42,13 @@ class AhorroService {
     required String metaId,
     required String tipo,
     required double monto,
+    String? descripcion,
   }) async {
     final transaccion = Transaccion(
       tipo: tipo,
       monto: monto,
       fecha: DateTime.now(),
+      descripcion: descripcion,
     );
 
     await _firestore
