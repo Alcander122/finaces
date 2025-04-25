@@ -3,7 +3,7 @@ import 'package:finances/core/data/providers/investment_provider.dart';
 import 'package:finances/core/data/services/investment_service.dart';
 import 'package:finances/presentations/screens/portafolio/investment_form_screen.dart';
 import 'package:finances/presentations/screens/portafolio/portafolio_form_screen.dart';
-import 'package:finances/presentations/widgets/investment_chart.dart';
+import 'package:finances/presentations/screens/portafolio/widgets/investment_chart.dart';
 import 'package:finances/utils/utilities.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';

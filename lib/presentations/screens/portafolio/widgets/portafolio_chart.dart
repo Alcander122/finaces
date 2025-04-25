@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../core/data/models/investment_model.dart';
-import '../../core/data/models/portafolio_model.dart';
-import '../../utils/category_color_generator.dart';
+import '../../../../core/data/models/investment_model.dart';
+import '../../../../core/data/models/portafolio_model.dart';
+import '../../../../utils/category_color_generator.dart';
 
 class PortafolioChart extends StatelessWidget {
   final List<Investment> investments;
