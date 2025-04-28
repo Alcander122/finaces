@@ -2,6 +2,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 
 class CurrencyService {
+  // ignore: constant_identifier_names
   static const String API_URL = 'https://api.exchangerate.host/latest?base=USD';
 
   Future<double> getExchangeRate(String from, String to) async {

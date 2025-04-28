@@ -96,7 +96,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _auth.authStateChanges().listen((User? user) async {
       try {
         state = const AuthState.loading();
-        bool loggedOut = await _storage.isLoggedOut();
+        await _storage.isLoggedOut(); // Removed unused variable
 
         if (user != null) {
           final token = await user.getIdToken();

@@ -37,7 +37,7 @@ class PortafolioService {
           .doc(portafolioId)
           .delete();
     } catch (e) {
-      print('Error al eliminar portafolio: $e');
+      //print('Error al eliminar portafolio: $e');
     }
   }
 

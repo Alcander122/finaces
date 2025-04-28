@@ -47,11 +47,11 @@ class UserService {
         email: email,
         createdAt: DateTime.now(),
       );
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException {
       rethrow;
-    } catch (e, stackTrace) {
-      print("❌ Error en registerUser: $e");
-      print("🔍 StackTrace: $stackTrace");
+    } catch (e) {
+     // print("❌ Error en registerUser: $e");
+      //print("🔍 StackTrace: $stackTrace");
       rethrow;
     }
   }
@@ -72,9 +72,9 @@ class UserService {
       if (user != null) {
         await user.updateDisplayName(newName);
       }
-    } catch (e, stackTrace) {
-      print("❌ Error al actualizar perfil: $e");
-      print("🔍 StackTrace: $stackTrace");
+    } catch (e) {
+      //print("❌ Error al actualizar perfil: $e");
+      //print("🔍 StackTrace: $stackTrace");
       rethrow;
     }
   }
@@ -89,9 +89,9 @@ class UserService {
       if (!userDoc.exists) return null;
 
       return UserModel.fromMap(userDoc.data()!);
-    } catch (e, stackTrace) {
-      print("❌ Error al obtener usuario actual: $e");
-      print("🔍 StackTrace: $stackTrace");
+    } catch (e) {
+      //print("❌ Error al obtener usuario actual: $e");
+      //print("🔍 StackTrace: $stackTrace");
       return null;
     }
   }
@@ -109,9 +109,9 @@ class UserService {
 
       // Eliminar usuario de Auth
       await user.delete();
-    } catch (e, stackTrace) {
-      print("❌ Error al eliminar cuenta: $e");
-      print("🔍 StackTrace: $stackTrace");
+    } catch (e) {
+      //print("❌ Error al eliminar cuenta: $e");
+      //print("🔍 StackTrace: $stackTrace");
       rethrow;
     }
   }
@@ -119,11 +119,12 @@ class UserService {
   /// Verifica si un correo electrónico está disponible para registro
   Future<bool> isEmailAvailable(String email) async {
     try {
+      // ignore: deprecated_member_use
       final methods = await _auth.fetchSignInMethodsForEmail(email);
       return methods.isEmpty;
-    } catch (e, stackTrace) {
-      print("❌ Error al verificar disponibilidad de correo: $e");
-      print("🔍 StackTrace: $stackTrace");
+    } catch (e) {
+      //print("❌ Error al verificar disponibilidad de correo: $e");
+      //print("🔍 StackTrace: $stackTrace");
       rethrow;
     }
   }

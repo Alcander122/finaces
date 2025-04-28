@@ -20,10 +20,10 @@ class IngresosService {
           .doc(docRef.id)
           .update({'id': docRef.id});
 
-      print("✅ Ingreso guardado exitosamente: ID ${docRef.id}");
+      //print("✅ Ingreso guardado exitosamente: ID ${docRef.id}");
       return docRef.id;
     } catch (e) {
-      print("❌ Error al guardar ingreso: $e");
+     //print("❌ Error al guardar ingreso: $e");
       throw Exception("No se pudo guardar el ingreso");
     }
   }
@@ -41,7 +41,7 @@ class IngresosService {
           .map((doc) => Ingreso.fromMap(doc.data()..['id'] = doc.id))
           .toList();
     } catch (e) {
-      print("❌ Error al obtener ingresos: $e");
+      //print("❌ Error al obtener ingresos: $e");
       throw Exception("No se pudieron obtener los ingresos");
     }
   }
@@ -55,9 +55,9 @@ class IngresosService {
           .collection('ingresos')
           .doc(ingresoId)
           .update(ingreso.toMap());
-      print("✅ Ingreso actualizado exitosamente: ID $ingresoId");
+      //print("✅ Ingreso actualizado exitosamente: ID $ingresoId");
     } catch (e) {
-      print("❌ Error al actualizar ingreso: $e");
+     // print("❌ Error al actualizar ingreso: $e");
       throw Exception("No se pudo actualizar el ingreso");
     }
   }
@@ -71,9 +71,9 @@ class IngresosService {
           .collection('ingresos')
           .doc(ingresoId)
           .delete();
-      print("✅ Ingreso eliminado exitosamente: ID $ingresoId");
+      //print("✅ Ingreso eliminado exitosamente: ID $ingresoId");
     } catch (e) {
-      print("❌ Error al eliminar ingreso: $e");
+      //print("❌ Error al eliminar ingreso: $e");
       throw Exception("No se pudo eliminar el ingreso");
     }
   }

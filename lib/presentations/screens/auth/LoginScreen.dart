@@ -34,16 +34,6 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     return true;
   }
 
-  bool _validateEmail() {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      UIHelpers.showErrorSnackBar(
-        context: context,
-        message: ErrorStrings.requiredField,
-      );
-      return false;
-    }
-    return true;
-  }
 
   String _handleError(Object error) {
     if (error is FirebaseAuthException) {
