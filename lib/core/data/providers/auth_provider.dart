@@ -5,6 +5,7 @@ import 'package:finances/core/errors/handlers/auth_error_handler.dart';
 import 'package:finances/utils/logger.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import '../services/user_service.dart';
@@ -85,6 +86,7 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
 class AuthNotifier extends StateNotifier<AuthState> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final UserService _userService = UserService();
+  final GoogleSignIn _googleSignIn = GoogleSignIn(); // Añade esta línea
   final AuthStorage _storage = AuthStorage();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -225,6 +227,66 @@ class AuthNotifier extends StateNotifier<AuthState> {
       throw ErrorStrings.unexpectedError;
     }
   }
+
+  // Añade este nuevo método
+  Future<void> signInWithGoogle() async {
+    try {
+      state = const AuthState.loading();
+      await _storage.clearLoggedOut();
+
+      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      if (googleUser == null) {
+        throw FirebaseAuthException(
+          code: 'aborted-by-user',
+          message: 'Sign in aborted by user',
+        );
+      }
+
+      final GoogleSignInAuthentication googleAuth =
+          await googleUser.authentication;
+
+      final OAuthCredential credential = GoogleAuthProvider.credential(
+        accessToken: googleAuth.accessToken,
+        idToken: googleAuth.idToken,
+      );
+
+      final UserCredential userCredential =
+          await _auth.signInWithCredential(credential);
+
+      final User? user = userCredential.user;
+
+      if (user != null) {
+        await _handleNewGoogleUser(user);
+        final token = await user.getIdToken();
+        await _storage.saveToken(token ?? '');
+        state = AuthState.authenticated(user);
+        logger.i('Google sign-in successful: ${user.email}');
+      }
+    } on FirebaseAuthException catch (e) {
+      final message = AuthErrorHandler.handle(e);
+      state = AuthState.error(message);
+      throw message;
+    } catch (e, stack) {
+      logger.e('Error in Google sign-in', error: e, stackTrace: stack);
+      state = AuthState.error(ErrorStrings.unexpectedError);
+      throw ErrorStrings.unexpectedError;
+    }
+  }
+
+  Future<void> _handleNewGoogleUser(User user) async {
+    if (user.metadata.creationTime == user.metadata.lastSignInTime) {
+      await _firestore.collection('users').doc(user.uid).set({
+        'uid': user.uid,
+        'name': user.displayName ?? 'Usuario Google',
+        'email': user.email ?? '',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+  }
+  // Añade al final del archivo
+/*final googleAuthProvider = Provider<GoogleAuthProvider>((ref) {
+  return GoogleAuthProvider();
+});*/
 }
 
 class AuthState {

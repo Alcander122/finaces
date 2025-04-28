@@ -128,4 +128,25 @@ class UserService {
       rethrow;
     }
   }
+   Future<UserModel> handleGoogleUser(User user) async {
+    final userDoc = _firestore.collection('users').doc(user.uid);
+    final docSnapshot = await userDoc.get();
+
+    if (!docSnapshot.exists) {
+      await userDoc.set({
+        'uid': user.uid,
+        'name': user.displayName ?? 'Usuario Google',
+        'email': user.email ?? '',
+        'createdAt': FieldValue.serverTimestamp(),
+      });
+    }
+
+    return UserModel(
+      uid: user.uid,
+      name: user.displayName ?? 'Usuario Google',
+      email: user.email ?? '',
+      createdAt: DateTime.now(),
+    );
+  }
+  
 }

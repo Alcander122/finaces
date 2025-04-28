@@ -1,8 +1,11 @@
+import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/core/data/services/user_service.dart';
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/core/errors/handlers/auth_error_handler.dart';
+import 'package:finances/presentations/screens/home/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'LoginScreen.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:icons_plus/icons_plus.dart';
 import 'package:finances/presentations/theme/theme.dart';
@@ -131,10 +134,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       TextFormField(
                         controller: _emailController,
                         validator: (value) {
-                          if (value == null || value.isEmpty)
+                          if (value == null || value.isEmpty) {
                             return ErrorStrings.requiredField;
-                          if (!_validateEmail(value))
+                          }
+                          if (!_validateEmail(value)) {
                             return ErrorStrings.invalidEmail;
+                          }
                           return null;
                         },
                         decoration: _inputDecoration('Correo'),
@@ -251,11 +256,36 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       const SizedBox(height: 30.0),
 
                       // Iconos de redes sociales
+                      // Sección de iconos de redes sociales
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           Logo(Logos.facebook_f),
-                          Logo(Logos.google),
+                          Consumer(
+                            builder: (context, ref, _) {
+                              return GestureDetector(
+                                onTap: () async {
+                                  try {
+                                    final authNotifier =
+                                        ref.read(authProvider.notifier);
+                                    await authNotifier.signInWithGoogle();
+                                    if (mounted) {
+                                      Navigator.pushAndRemoveUntil(
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                const HomeScreen()),
+                                        (route) => false,
+                                      );
+                                    }
+                                  } catch (e) {
+                                    _showSnackBar(e.toString(), Colors.red);
+                                  }
+                                },
+                                child: Logo(Logos.google),
+                              );
+                            },
+                          ),
                         ],
                       ),
                       const SizedBox(height: 25.0),
