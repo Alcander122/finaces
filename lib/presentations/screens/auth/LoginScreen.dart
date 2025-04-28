@@ -2,6 +2,7 @@ import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/core/errors/handlers/auth_error_handler.dart';
 import 'package:finances/presentations/screens/auth/register.screen.dart';
+import 'package:finances/presentations/screens/home/home_screen.dart';
 import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/widgets/custom_scaffold.dart';
 import 'package:finances/routes/app_routes.dart';
@@ -34,6 +35,12 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     return true;
   }
 
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
+  }
+
 
   String _handleError(Object error) {
     if (error is FirebaseAuthException) {
@@ -64,6 +71,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
       _showErrorFeedback(_handleError(e));
     }
   }
+  
 
   @override
   Widget build(BuildContext context) {
@@ -151,7 +159,32 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                           mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                           children: [
                             Logo(Logos.facebook_f),
-                            Logo(Logos.google),
+                            Consumer(
+                            builder: (context, ref, _) {
+                              return GestureDetector(
+                                onTap: () async {
+                                  try {
+                                    final authNotifier =
+                                        ref.read(authProvider.notifier);
+                                    await authNotifier.signInWithGoogle();
+                                    if (mounted) {
+                                      Navigator.pushAndRemoveUntil(
+                                        // ignore: use_build_context_synchronously
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (context) =>
+                                                const HomeScreen()),
+                                        (route) => false,
+                                      );
+                                    }
+                                  } catch (e) {
+                                    _showSnackBar(e.toString(), Colors.red);
+                                  }
+                                },
+                                child: Logo(Logos.google),
+                              );
+                            },
+                          ),
                           ],
                         ),
                         const SizedBox(height: 25.0),
@@ -180,7 +213,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
         ),
         const Padding(
           padding: EdgeInsets.symmetric(horizontal: 10),
-          child: Text('Registrar', style: TextStyle(color: Colors.black45)),
+          child: Text('Login', style: TextStyle(color: Colors.black45)),
         ),
         Expanded(
           child: Divider(
