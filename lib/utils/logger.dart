@@ -5,7 +5,7 @@ final logger = Logger(
   printer: PrettyPrinter(
     colors: true,
     printEmojis: true,
-    printTime: true,
+    //printTime: true,
     methodCount: 0,
     lineLength: 80,
   ),

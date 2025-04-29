@@ -3,7 +3,7 @@ import 'package:finances/presentations/screens/egreso/egreso_form.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
-import 'package:finances/presentations/widgets/egreso_chart.dart';
+import 'package:finances/presentations/screens/egreso/widgets/egreso_chart.dart';
 import 'package:finances/presentations/widgets/column_selection_dialog.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';

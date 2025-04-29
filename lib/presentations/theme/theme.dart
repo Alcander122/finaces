@@ -34,18 +34,12 @@ ThemeData lightMode = ThemeData(
   colorScheme: lightColorScheme,
   elevatedButtonTheme: ElevatedButtonThemeData(
     style: ButtonStyle(
-      backgroundColor: WidgetStateProperty.all<Color>(
-        lightColorScheme.primary, // Slightly darker shade for the button
-      ),
-      foregroundColor:
-          WidgetStateProperty.all<Color>(Colors.white), // text color
-      elevation: WidgetStateProperty.all<double>(5.0), // shadow
-      padding: WidgetStateProperty.all<EdgeInsets>(
-          const EdgeInsets.symmetric(horizontal: 20, vertical: 18)),
+      backgroundColor: WidgetStateProperty.all<Color>(lightColorScheme.primary),
+      foregroundColor: WidgetStateProperty.all<Color>(Colors.white),
+      elevation: WidgetStateProperty.all<double>(5.0),
+      padding: WidgetStateProperty.all<EdgeInsets>(const EdgeInsets.symmetric(horizontal: 20, vertical: 18)),
       shape: WidgetStateProperty.all<RoundedRectangleBorder>(
-        RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16), // Adjust as needed
-        ),
+        RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),
     ),
   ),

@@ -45,7 +45,7 @@ dependencies {
     implementation platform('com.google.firebase:firebase-bom:32.2.0') // BOM de Firebase para gestionar versiones
     implementation 'com.google.firebase:firebase-analytics' // Firebase Analytics
     implementation 'com.google.firebase:firebase-auth' // Firebase Authentication
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:1.8.22" // Biblioteca estándar de Kotlin
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.1.0" // Biblioteca estándar de Kotlin
 }
 
 apply plugin: 'com.google.gms.google-services' // Aplica el plugin de Google Services para Firebase
