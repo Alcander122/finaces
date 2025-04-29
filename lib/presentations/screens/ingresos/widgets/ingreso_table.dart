@@ -9,7 +9,8 @@ class IngresoTable extends StatelessWidget {
   final List<String> camposVisibles;
   final String userID;
 
-  IngresoTable({
+  const IngresoTable({
+    super.key,
     required this.ingresos,
     required this.onEdit,
     required this.onDelete,

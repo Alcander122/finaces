@@ -9,6 +9,8 @@ import 'package:finances/presentations/widgets/statistic_card.dart';
 import 'package:finances/presentations/widgets/menu_option.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import '../ingresos/ingresos_screen.dart';
+import 'package:finances/presentations/widgets/app_bar_finances.dart';
+import 'package:intl/intl.dart';
 
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
@@ -30,36 +32,20 @@ class HomeScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: AppBar(
-        automaticallyImplyLeading: false,
-        title: const Text('Finanzas Personales'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.account_circle),
-            onPressed: () {
-              Navigator.pushNamed(context, '/profile');
-            },
-          ),
-          /* IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              // Navegar a la pantalla de configuración
-            },
-          ),*/
-        ],
-      ),
+      appBar: const AppBarFinances(),
+      backgroundColor: Color(0xFFd6eaf8),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 20),
+            const SizedBox(height: 5),
             _buildUserProfile(authState),
-            const SizedBox(height: 30),
+            const SizedBox(height: 5),
             _buildFinancialSummary(totalIngresos, totalGastos),
-            const SizedBox(height: 30),
+            const SizedBox(height: 5),
             _buildQuickActions(context),
-            const SizedBox(height: 30),
+            const SizedBox(height: 5),
             _buildMainMenu(context),
           ],
         ),
@@ -68,141 +54,240 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildUserProfile(AuthState authState) {
-    return Row(
-      children: [
-        CircleAvatar(
-          radius: 30,
-          backgroundColor: Colors.grey[300],
-          child: Icon(
-            Icons.person,
-            color: Colors.grey[700],
-            size: 40,
-          ),
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFF3A57E8),
+            Color(0xFF0C1F6F),
+            Color(0xFF050A30),
+          ],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
         ),
-        const SizedBox(width: 15),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                'Bienvenido, ${authState.user?.displayName ?? 'Sin nombre'}',
-                style: const TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.black87,
-                ),
-              ),
-              const SizedBox(height: 5),
-              const Text(
-                'Resumen de este mes',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey,
-                ),
-              ),
-            ],
+        borderRadius: BorderRadius.circular(20),
+      ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          CircleAvatar(
+            radius: 28,
+            backgroundColor: const Color(0xFF1B263B),
+            child: const Icon(
+              Icons.person,
+              color: Colors.white,
+              size: 32,
+            ),
           ),
-        ),
-      ],
+          const SizedBox(width: 16),
+          Expanded(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  'Bienvenido, ${authState.user?.displayName ?? 'Sin nombre'}',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.white,
+                  ),
+                ),
+                const SizedBox(height: 4),
+                const Text(
+                  'Resumen de este mes',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Color(0xFF9BAEC8),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _buildFinancialSummary(double totalIngresos, double totalGastos) {
     final saldo = totalIngresos - totalGastos;
-    return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15),
+    final isPositive = saldo >= 0;
+
+    String formatCurrency(double value) {
+      final formatter = NumberFormat.decimalPattern('es_CO');
+      return '\$${formatter.format(value)}';
+    }
+
+    return Container(
+      decoration: BoxDecoration(
+        gradient: LinearGradient(
+          colors: [
+            Color(0xFF050A30),
+            Color(0xFF08124D),
+            Color(0xFF0C1F6F),
+            Color(0xFF2045C6),
+            Color(0xFF3A57E8),
+          ],
+          stops: [0.0, 0.25, 0.5, 0.75, 1.0],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.3),
+            blurRadius: 10,
+            offset: Offset(0, 6),
+          ),
+        ],
       ),
-      child: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Column(
-          children: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceAround,
-              children: [
-                StatisticCard(
-                  title: 'Ingresos',
-                  amount: totalIngresos,
-                  color: Colors.green,
-                  icon: Icon(Icons.arrow_upward),
-                ),
-                StatisticCard(
-                  title: 'Gastos',
-                  amount: totalGastos,
-                  color: Colors.red,
-                  icon: Icon(Icons.arrow_downward),
-                ),
-              ],
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Text(
+            "Resumen financiero",
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 22,
+              fontWeight: FontWeight.bold,
+              letterSpacing: 1.2,
             ),
-            const SizedBox(height: 20),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Icon(
-                  saldo >= 0 ? Icons.trending_up : Icons.trending_down,
-                  color: saldo >= 0 ? Colors.green : Colors.red,
-                  size: 30,
+          ),
+          const SizedBox(height: 20),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.spaceAround,
+            children: [
+              _customStatCard(
+                title: "Ingresos",
+                amount: totalIngresos,
+                icon: Icons.arrow_upward,
+                color: Colors.greenAccent,
+              ),
+              _customStatCard(
+                title: "Gastos",
+                amount: totalGastos,
+                icon: Icons.arrow_downward,
+                color: Colors.redAccent,
+              ),
+            ],
+          ),
+          const SizedBox(height: 30),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Icon(
+                isPositive ? Icons.trending_up : Icons.trending_down,
+                color: isPositive ? Colors.greenAccent : Colors.redAccent,
+                size: 34,
+              ),
+              const SizedBox(width: 10),
+              Text(
+                formatCurrency(saldo),
+                style: TextStyle(
+                  fontSize: 28,
+                  fontWeight: FontWeight.bold,
+                  color: isPositive ? Colors.greenAccent : Colors.redAccent,
                 ),
-                const SizedBox(width: 10),
-                Text(
-                  '\$${saldo.toStringAsFixed(2)}',
-                  style: TextStyle(
-                    fontSize: 28,
-                    fontWeight: FontWeight.bold,
-                    color: saldo >= 0 ? Colors.green : Colors.red,
-                  ),
-                ),
-              ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 10),
+          Text(
+            isPositive ? '¡Estás en positivo!' : 'Atención: saldo negativo',
+            style: TextStyle(
+              color: isPositive ? Colors.greenAccent : Colors.redAccent,
+              fontSize: 16,
+              fontWeight: FontWeight.w500,
             ),
-            const SizedBox(height: 10),
-            Text(
-              saldo >= 0 ? 'Saldo Positivo' : 'Saldo Negativo',
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _customStatCard({
+    required String title,
+    required double amount,
+    required IconData icon,
+    required Color color,
+  }) {
+    String formatCurrency(double value) {
+      final formatter = NumberFormat.decimalPattern('es_CO');
+      return '\$${formatter.format(value)}';
+    }
+
+    return Container(
+      width: 130,
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: Colors.white.withOpacity(0.05),
+        borderRadius: BorderRadius.circular(18),
+        border: Border.all(color: Colors.white10),
+      ),
+      child: Column(
+        children: [
+          Icon(icon, color: color, size: 24),
+          const SizedBox(height: 8),
+          Text(
+            title,
+            style: TextStyle(
+              color: Colors.white,
+              fontSize: 13,
+              fontWeight: FontWeight.w600,
+            ),
+          ),
+          const SizedBox(height: 6),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            child: Text(
+              formatCurrency(amount),
               style: TextStyle(
-                color: saldo >= 0 ? Colors.green : Colors.red,
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
                 fontSize: 16,
               ),
             ),
-          ],
-        ),
+          ),
+        ],
       ),
     );
   }
 
   Widget _buildQuickActions(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      mainAxisAlignment: MainAxisAlignment.spaceAround,
       children: [
-        ActionChip(
-          avatar: Icon(Icons.add_circle, color: Colors.green),
-          label: const Text('Ingreso'),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => IngresosScreen()),
-            );
+        _actionButton(context, 'Ingreso', Icons.add_circle, Colors.green,
+            IngresosScreen()),
+        _actionButton(
+            context, 'Gasto', Icons.remove_circle, Colors.red, EgresosScreen()),
+        _actionButton(
+            context, 'Portafolio', Icons.bar_chart, Colors.purple, null),
+      ],
+    );
+  }
+
+  Widget _actionButton(BuildContext context, String label, IconData icon,
+      Color color, Widget? screen) {
+    return Column(
+      children: [
+        InkWell(
+          onTap: () {
+            if (screen != null) {
+              Navigator.push(
+                  context, MaterialPageRoute(builder: (context) => screen));
+            }
           },
-          backgroundColor: Colors.green[50],
+          child: CircleAvatar(
+            radius: 26,
+            backgroundColor: color.withOpacity(0.3),
+            child: Icon(icon, color: color, size: 28),
+          ),
         ),
-        ActionChip(
-          avatar: Icon(Icons.remove_circle, color: Colors.red),
-          label: const Text('Gasto'),
-          onPressed: () {
-            Navigator.push(
-              context,
-              MaterialPageRoute(builder: (context) => EgresosScreen()),
-            );
-          },
-          backgroundColor: Colors.red[50],
-        ),
-        ActionChip(
-          avatar: Icon(Icons.bar_chart, color: Colors.blue),
-          label: const Text('Estadísticas'),
-          onPressed: () {
-            // Navegar a la pantalla de estadísticas
-          },
-          backgroundColor: Colors.blue[50],
-        ),
+        const SizedBox(height: 6),
+        Text(label, style: const TextStyle(color: Color(0xFF0B0D39))),
       ],
     );
   }

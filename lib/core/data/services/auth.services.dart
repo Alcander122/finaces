@@ -12,7 +12,7 @@ class Authservices {
           email: email, password: password);
     } on FirebaseAuthException {
       //print("Error en el registro: ${e.code} - ${e.message}");
-      rethrow; // Lanza la excepción para que pueda ser capturada en LoginScreen
+      rethrow;
     }
   }
 
@@ -23,7 +23,7 @@ class Authservices {
           email: email, password: password);
     } on FirebaseAuthException {
       //print("Error en login: ${e.code} - ${e.message}");
-      rethrow; // Lanza la excepción para que pueda ser capturada en LoginScreen
+      rethrow;
     }
   }
 
