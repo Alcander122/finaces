@@ -1,3 +1,6 @@
+import 'package:finances/core/data/providers/auth_provider.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:finances/presentations/screens/home/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:finances/presentations/screens/auth/LoginScreen.dart';
 import 'package:finances/presentations/screens/auth/register.screen.dart';
@@ -5,11 +8,20 @@ import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/widgets/custom_scaffold.dart';
 import 'package:finances/presentations/widgets/welcome_button.dart';
 
-class WelcomeScreen extends StatelessWidget {
+class WelcomeScreen extends ConsumerWidget {
   const WelcomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context) {
+  Widget build(BuildContext context,WidgetRef ref) {
+    final authState = ref.watch(authProvider);
+
+    if (authState.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (authState.isAuthenticated) {
+      return const HomeScreen();
+    }
     return CustomScaffold(
       child: Column(
         children: [

@@ -1,8 +1,7 @@
-// auth_provider.dart
-// ignore_for_file: depend_on_referenced_packages
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/core/errors/handlers/auth_error_handler.dart';
 import 'package:finances/utils/logger.dart';
+import 'package:flutter/foundation.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -20,7 +19,6 @@ class AuthStorage {
       await prefs.setString(_tokenKey, token);
     } catch (e, stack) {
       logger.e('Error saving token', error: e, stackTrace: stack);
-      //print("Error saving token, error: $e, stackTrace: $stack");
       throw ErrorStrings.unexpectedError;
     }
   }
@@ -31,7 +29,6 @@ class AuthStorage {
       await prefs.remove(_tokenKey);
     } catch (e, stack) {
       logger.e('Error deleting token', error: e, stackTrace: stack);
-      //print("Error deleting token, error: $e, stackTrace: $stack");
       throw ErrorStrings.unexpectedError;
     }
   }
@@ -50,10 +47,8 @@ class AuthStorage {
     try {
       final prefs = await SharedPreferences.getInstance();
       await prefs.setBool(_loggedOutKey, value);
-      //print('Logged out flag set to: $value');
     } catch (e, stack) {
       logger.e('Error setting logged out flag', error: e, stackTrace: stack);
-      //print("Error setting logged out flag, error: $e, stackTrace: $stack");
       throw ErrorStrings.unexpectedError;
     }
   }
@@ -86,7 +81,7 @@ final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
 class AuthNotifier extends StateNotifier<AuthState> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final UserService _userService = UserService();
-  final GoogleSignIn _googleSignIn = GoogleSignIn(); // Añade esta línea
+  final GoogleSignIn _googleSignIn = GoogleSignIn();
   final AuthStorage _storage = AuthStorage();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -98,47 +93,57 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _auth.authStateChanges().listen((User? user) async {
       try {
         state = const AuthState.loading();
-        await _storage.isLoggedOut(); // Removed unused variable
+        //logger.d('authStateChanges escuchando...');
 
         if (user != null) {
-          final token = await user.getIdToken();
-          await _storage
-              .saveToken(token ?? ''); // 🔹 Aquí corregimos el posible null
-
-          state = AuthState.authenticated(user);
-          logger.i(
-              'Usuario autenticado: ${user.email ?? 'Desconocido'}'); // 🔹 Evita null en email
+          //logger.d('Usuario detectado: ${user.email}');
+          await user.reload();
+          final updatedUser = _auth.currentUser;
+          if (updatedUser != null) {
+            final token = await updatedUser.getIdToken();
+            await _storage.saveToken(token ?? '');
+            //logger.d('Token guardado: $token');
+            state = AuthState.authenticated(updatedUser);
+          }
         } else {
-          await _forceTokenDeletion();
+          //logger.d('No hay usuario autenticado');
+          await _storage.deleteToken();
           state = const AuthState.unauthenticated();
         }
-      } catch (e, stack) {
-        logger.e('Error en authStateChanges', error: e, stackTrace: stack);
+      } catch (e) {
+        //logger.e('Error en authStateChanges: $e');
         state = AuthState.error(ErrorStrings.unexpectedError);
       }
     });
   }
 
-  Future<void> signIn(String email, String password) async {
-    try {
-      state = const AuthState.loading();
-      // Al iniciar sesión, limpiamos el flag de logout.
-      await _storage.clearLoggedOut();
-      await _auth.signInWithEmailAndPassword(email: email, password: password);
-      logger.i('Inicio de sesión exitoso: $email');
-    } on FirebaseAuthException catch (e) {
-      final message = AuthErrorHandler.handle(e);
-      state = AuthState.error(message);
-      throw message;
-    } catch (e, stack) {
-      logger.e('Error general en signIn', error: e, stackTrace: stack);
-      state = AuthState.error(ErrorStrings.unexpectedError);
-      throw ErrorStrings.unexpectedError;
-    }
-  }
+ Future<void> signIn(String email, String password) async {
+  try {
+    state = const AuthState.loading();
+    await _storage.clearLoggedOut();
 
-  Future<void> signUp(
-      String name, String displayName, String email, String password) async {
+    // Añadir esta línea para evitar llamar a setPersistence() en plataformas no web
+    if (kIsWeb) {
+      await _auth.setPersistence(Persistence.LOCAL);
+    }
+
+    await _auth.signInWithEmailAndPassword(email: email, password: password);
+    User? user = _auth.currentUser;
+    if (user != null) {
+      await user.reload();
+    }
+    //logger.i('Inicio de sesión exitoso: $email');
+  } on FirebaseAuthException catch (e) {
+    final message = AuthErrorHandler.handle(e);
+    state = AuthState.error(message);
+    throw message;
+  } catch (e, stack) {
+    //logger.e('Error general en signIn', error: e, stackTrace: stack);
+    state = AuthState.error(ErrorStrings.unexpectedError);
+    throw ErrorStrings.unexpectedError;
+  }
+}
+  Future<void> signUp(String name, String displayName, String email, String password) async {
     try {
       state = const AuthState.loading();
       await _storage.clearLoggedOut();
@@ -147,52 +152,36 @@ class AuthNotifier extends StateNotifier<AuthState> {
           displayName: displayName,
           email: email,
           password: password);
-      //print("✅ Registro exitoso para: $email");
     } on FirebaseAuthException catch (e) {
       final message = AuthErrorHandler.handle(e);
       state = AuthState.error(message);
       throw message;
     } catch (e, stack) {
-      logger.e('Error general en signUp', error: e, stackTrace: stack);
+      //logger.e('Error general en signUp', error: e, stackTrace: stack);
       state = AuthState.error(ErrorStrings.unexpectedError);
       throw ErrorStrings.unexpectedError;
-    }
-  }
-
-  Future<void> _forceTokenDeletion() async {
-    try {
-      await _storage.deleteToken();
-      //logger.i('Limpieza de token forzada exitosa');
-      //print('Limpieza de token forzada exitosa');
-    } catch (e, stack) {
-      logger.e('Error en limpieza forzada', error: e, stackTrace: stack);
-      // print("Error en limpieza forzada, error: $e, stackTrace: $stack");
     }
   }
 
   Future<void> signOut() async {
     try {
       state = const AuthState.loading();
-      // Establecer el flag para indicar que el usuario cerró sesión manualmente.
       await _storage.setLoggedOut(true);
       await _auth.signOut();
       await _storage.deleteToken();
 
-      // Verificación adicional para confirmar la eliminación.
       final currentUser = _auth.currentUser;
       final token = await _storage.getToken();
 
       if (currentUser == null && token == null) {
         state = const AuthState.unauthenticated();
-        logger.i('Sesión cerrada completamente');
-        //print('Sesión cerrada completamente');
+        //logger.i('Sesión cerrada completamente');
       } else {
         throw ErrorStrings.unexpectedError;
       }
     } catch (e, stack) {
-      logger.e('Error crítico en signOut', error: e, stackTrace: stack);
-      //print("Error crítico en signOut, error: $e, stackTrace: $stack");
-      await _forceTokenDeletion();
+      //logger.e('Error crítico en signOut', error: e, stackTrace: stack);
+      await _storage.deleteToken();
       state = AuthState.error(ErrorStrings.unexpectedError);
       throw ErrorStrings.unexpectedError;
     }
@@ -207,10 +196,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
         await user.reload();
         await updateUserInFirestore(user.uid, displayName);
         state = AuthState.authenticated(_auth.currentUser!);
-        logger.i('Nombre actualizado: $displayName');
+        //logger.i('Nombre actualizado: $displayName');
       }
     } catch (e, stack) {
-      logger.e('Error en updateDisplayName', error: e, stackTrace: stack);
+      //logger.e('Error en updateDisplayName', error: e, stackTrace: stack);
       state = AuthState.error(ErrorStrings.unexpectedError);
       throw ErrorStrings.unexpectedError;
     }
@@ -221,14 +210,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _firestore.collection('users').doc(userId).update({
         'displayName': displayName,
       });
-      logger.i('Firestore actualizado para usuario: $userId');
+      //logger.i('Firestore actualizado para usuario: $userId');
     } catch (e, stack) {
-      logger.e('Error en updateUserInFirestore', error: e, stackTrace: stack);
+      //logger.e('Error en updateUserInFirestore', error: e, stackTrace: stack);
       throw ErrorStrings.unexpectedError;
     }
   }
 
-  // Añade este nuevo método
   Future<void> signInWithGoogle() async {
     try {
       state = const AuthState.loading();
@@ -260,33 +248,35 @@ class AuthNotifier extends StateNotifier<AuthState> {
         final token = await user.getIdToken();
         await _storage.saveToken(token ?? '');
         state = AuthState.authenticated(user);
-        logger.i('Google sign-in successful: ${user.email}');
+        //logger.i('Google sign-in successful: ${user.email}');
       }
     } on FirebaseAuthException catch (e) {
       final message = AuthErrorHandler.handle(e);
       state = AuthState.error(message);
       throw message;
     } catch (e, stack) {
-      logger.e('Error in Google sign-in', error: e, stackTrace: stack);
+      //logger.e('Error in Google sign-in', error: e, stackTrace: stack);
       state = AuthState.error(ErrorStrings.unexpectedError);
       throw ErrorStrings.unexpectedError;
     }
   }
 
   Future<void> _handleNewGoogleUser(User user) async {
-    if (user.metadata.creationTime == user.metadata.lastSignInTime) {
-      await _firestore.collection('users').doc(user.uid).set({
-        'uid': user.uid,
-        'name': user.displayName ?? 'Usuario Google',
-        'email': user.email ?? '',
-        'createdAt': FieldValue.serverTimestamp(),
-      });
+    try {
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      
+      if (!userDoc.exists) {
+        await _firestore.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'displayName': user.displayName ?? 'Usuario Nuevo',
+          'email': user.email ?? '',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      //logger.e('Error al sincronizar datos de usuario', error: e);
     }
   }
-  // Añade al final del archivo
-/*final googleAuthProvider = Provider<GoogleAuthProvider>((ref) {
-  return GoogleAuthProvider();
-});*/
 }
 
 class AuthState {
@@ -318,4 +308,6 @@ class AuthState {
         isLoading = false;
 
   String? get uid => user?.uid ?? '';
+
+  bool get isAuthenticated => user != null;
 }

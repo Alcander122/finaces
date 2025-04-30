@@ -1,8 +1,10 @@
 import 'package:finances/core/data/providers/egreso_provider.dart';
 import 'package:finances/core/data/providers/finanzas_provider.dart';
 import 'package:finances/presentations/screens/ahorro/ahorro_screen.dart';
+import 'package:finances/presentations/screens/auth/LoginScreen.dart';
 import 'package:finances/presentations/screens/egreso/egresos_screen.dart';
 import 'package:finances/presentations/screens/portafolio/portafolio_screen.dart';
+import 'package:finances/utils/logger.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/presentations/widgets/statistic_card.dart';
@@ -18,6 +20,18 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
+    /*logger.d(
+        'Estado de autenticación en HomeScreen: ${authState.isAuthenticated}');
+    print(
+        'Estado de autenticación en HomeScreen: ${authState.isAuthenticated}');*/
+
+    if (authState.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (!authState.isAuthenticated) {
+      return const LoginScreen(); // Asegúrate de redirigir al login
+    }
     final totalIngresosMesAsync = ref.watch(totalIngresosMesActualProvider);
     final totalGastosAsync = ref.watch(totalEgresoMesActualProvider);
 
@@ -54,60 +68,62 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildUserProfile(AuthState authState) {
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFF3A57E8),
-            Color(0xFF0C1F6F),
-            Color(0xFF050A30),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 28,
-            backgroundColor: const Color(0xFF1B263B),
-            child: const Icon(
-              Icons.person,
-              color: Colors.white,
-              size: 32,
+    return authState.user == null
+        ? const CircularProgressIndicator()
+        : Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF3A57E8),
+                  Color(0xFF0C1F6F),
+                  Color(0xFF050A30),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  'Bienvenido, ${authState.user?.displayName ?? 'Sin nombre'}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: const Color(0xFF1B263B),
+                  child: const Icon(
+                    Icons.person,
                     color: Colors.white,
+                    size: 32,
                   ),
                 ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Resumen de este mes',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF9BAEC8),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Bienvenido, ${authState.user?.displayName ?? 'Sin nombre'}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Resumen de este mes',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF9BAEC8),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
+          );
   }
 
   Widget _buildFinancialSummary(double totalIngresos, double totalGastos) {
@@ -264,7 +280,7 @@ class HomeScreen extends ConsumerWidget {
         _actionButton(
             context, 'Gasto', Icons.remove_circle, Colors.red, EgresosScreen()),
         _actionButton(
-            context, 'Portafolio', Icons.bar_chart, Colors.purple, null),
+            context, 'Estadisticas', Icons.bar_chart, Colors.purple, null),
       ],
     );
   }
