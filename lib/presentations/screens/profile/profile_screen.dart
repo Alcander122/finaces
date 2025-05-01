@@ -12,8 +12,7 @@ class ProfileScreen extends ConsumerStatefulWidget {
   ProfileScreenState createState() => ProfileScreenState();
 }
 
-class ProfileScreenState extends ConsumerState<ProfileScreen>
- {
+class ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   bool _isSaving = false;
@@ -37,12 +36,12 @@ class ProfileScreenState extends ConsumerState<ProfileScreen>
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     return Scaffold(
-     appBar: AppBarFinances(
-    title: 'Editar Perfil',
-    showBackButton: true, // Muestra el botón de regreso
-    showProfileAction: false, // Oculta el botón de perfil
-  ),
-                          //backgroundColor: Colors.white,
+      appBar: AppBarFinances(
+        title: 'Editar Perfil',
+        showBackButton: true, // Muestra el botón de regreso
+        showProfileAction: false, // Oculta el botón de perfil
+      ),
+      //backgroundColor: Colors.white,
 
       body: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -144,8 +143,6 @@ class ProfileScreenState extends ConsumerState<ProfileScreen>
         boxShadow: [
           BoxShadow(
             color: Colors.white.withValues(alpha: 0.2),
-            
-
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -173,8 +170,6 @@ class ProfileScreenState extends ConsumerState<ProfileScreen>
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
-                      
-
                   ),
                 ),
                 const SizedBox(height: 8),
