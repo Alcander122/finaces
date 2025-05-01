@@ -12,10 +12,10 @@ class EgresosScreen extends ConsumerStatefulWidget {
   const EgresosScreen({super.key});
 
   @override
-  _EgresosScreenState createState() => _EgresosScreenState();
+  EgresosScreenState createState() => EgresosScreenState();
 }
 
-class _EgresosScreenState extends ConsumerState<EgresosScreen> {
+class EgresosScreenState extends ConsumerState<EgresosScreen> {
   final _allColumns = [
     'Quincena',
     'Fecha',

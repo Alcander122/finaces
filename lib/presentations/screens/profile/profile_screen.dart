@@ -8,10 +8,11 @@ class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
   @override
-  _ProfileScreenState createState() => _ProfileScreenState();
+  ProfileScreenState createState() => ProfileScreenState();
 }
 
-class _ProfileScreenState extends ConsumerState<ProfileScreen> {
+class ProfileScreenState extends ConsumerState<ProfileScreen>
+ {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   bool _isSaving = false;
@@ -75,7 +76,8 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
                                 .updateDisplayName(_nameController.text);
                             ScaffoldMessenger.of(context).showSnackBar(
                               const SnackBar(
-                                content: Text('Perfil actualizado exitosamente'),
+                                content:
+                                    Text('Perfil actualizado exitosamente'),
                               ),
                             );
                             Navigator.pop(context);
@@ -140,7 +142,7 @@ class _ProfileScreenState extends ConsumerState<ProfileScreen> {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.2),
+            color: Colors.white.withValues(alpha: 0.2),
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),

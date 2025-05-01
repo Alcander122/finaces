@@ -2,7 +2,6 @@ import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/core/errors/handlers/auth_error_handler.dart';
 import 'package:finances/presentations/screens/auth/register.screen.dart';
-import 'package:finances/presentations/screens/home/home_screen.dart';
 import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/widgets/custom_scaffold.dart';
 import 'package:finances/routes/app_routes.dart';
@@ -201,7 +200,8 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
         Expanded(
           child: Divider(
             thickness: 0.7,
-            color: Colors.grey.withOpacity(0.5),
+            	color: Colors.grey.withValues(alpha: 0.5),
+
           ),
         ),
         const Padding(
@@ -211,7 +211,8 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
         Expanded(
           child: Divider(
             thickness: 0.7,
-            color: Colors.grey.withOpacity(0.5),
+            color: Colors.grey.withValues(alpha: 0.5),
+
           ),
         ),
       ],

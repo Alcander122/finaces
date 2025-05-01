@@ -5,7 +5,7 @@ import 'package:intl/intl.dart';
 class DetallesTransacciones extends StatelessWidget {
   final ObjetivoAhorro meta;
 
-  const DetallesTransacciones({Key? key, required this.meta}) : super(key: key);
+  const DetallesTransacciones({required this.meta, super.key});
 
   @override
   Widget build(BuildContext context) {

@@ -15,10 +15,10 @@ class PortafolioFormScreen extends StatefulWidget {
   });
 
   @override
-  _PortafolioFormScreenState createState() => _PortafolioFormScreenState();
+  PortafolioFormScreenState createState() => PortafolioFormScreenState();
 }
 
-class _PortafolioFormScreenState extends State<PortafolioFormScreen> {
+class PortafolioFormScreenState extends State<PortafolioFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nombreController = TextEditingController();
   final _descripcionController = TextEditingController();

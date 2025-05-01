@@ -11,10 +11,10 @@ class IngresosScreen extends ConsumerStatefulWidget {
   const IngresosScreen({super.key});
 
   @override
-  _IngresosScreenState createState() => _IngresosScreenState();
+  IngresosScreenState createState() => IngresosScreenState();
 }
 
-class _IngresosScreenState extends ConsumerState<IngresosScreen> {
+class IngresosScreenState extends ConsumerState<IngresosScreen> {
   final _formKey = GlobalKey<FormState>();
   final _conceptoController = TextEditingController();
   final _valorController = TextEditingController();

@@ -11,10 +11,10 @@ class ColumnSelectionDialog extends StatefulWidget {
   });
 
   @override
-  _ColumnSelectionDialogState createState() => _ColumnSelectionDialogState();
+  ColumnSelectionDialogState createState() => ColumnSelectionDialogState();
 }
 
-class _ColumnSelectionDialogState extends State<ColumnSelectionDialog> {
+class ColumnSelectionDialogState extends State<ColumnSelectionDialog> {
   late Set<String> tempSelectedColumns;
 
   @override

@@ -2,7 +2,7 @@
 import 'package:finances/presentations/screens/ahorro/ahorro_screen.dart';
 import 'package:finances/presentations/screens/auth/LoginScreen.dart';
 import 'package:finances/presentations/screens/auth/register.screen.dart';
-import 'package:finances/presentations/screens/profile/ProfileScreen.dart';
+import 'package:finances/presentations/screens/profile/profile_screen.dart';
 import 'package:finances/presentations/screens/portafolio/portafolio_screen.dart';
 import 'package:finances/presentations/screens/auth/welcome_screen.dart';
 import 'package:flutter/material.dart';
