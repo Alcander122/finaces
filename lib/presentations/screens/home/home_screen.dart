@@ -18,11 +18,6 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
-    /*logger.d(
-        'Estado de autenticación en HomeScreen: ${authState.isAuthenticated}');
-    print(
-        'Estado de autenticación en HomeScreen: ${authState.isAuthenticated}');*/
-
     if (authState.isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -44,7 +39,10 @@ class HomeScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: const AppBarFinances(),
+      appBar: const AppBarFinances(
+        title: 'Panel Principal',
+        showProfileAction: true, // Habilitamos el botón
+      ),
       backgroundColor: Color(0xFFd6eaf8),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -151,7 +149,6 @@ class HomeScreen extends ConsumerWidget {
         boxShadow: [
           BoxShadow(
             color: Colors.white.withValues(alpha: 0.3),
-
             blurRadius: 10,
             offset: Offset(0, 6),
           ),
@@ -238,7 +235,6 @@ class HomeScreen extends ConsumerWidget {
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
         color: Colors.white.withValues(alpha: 0.05),
-
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.white10),
       ),
@@ -299,7 +295,6 @@ class HomeScreen extends ConsumerWidget {
           child: CircleAvatar(
             radius: 26,
             backgroundColor: color.withValues(alpha: 0.3),
-
             child: Icon(icon, color: color, size: 28),
           ),
         ),

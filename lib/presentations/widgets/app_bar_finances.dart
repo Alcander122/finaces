@@ -1,7 +1,16 @@
 import 'package:flutter/material.dart';
 
 class AppBarFinances extends StatelessWidget implements PreferredSizeWidget {
-  const AppBarFinances({super.key});
+  final String title;
+  final bool showProfileAction; // Nuevo parámetro para controlar la acción
+  final bool showBackButton;
+
+  const AppBarFinances({ 
+    super.key,
+    required this.title,
+    this.showBackButton = false, // Valor predeterminado: no mostrar
+    this.showProfileAction = false, // Por defecto no se muestra
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -9,27 +18,35 @@ class AppBarFinances extends StatelessWidget implements PreferredSizeWidget {
       automaticallyImplyLeading: false,
       backgroundColor: const Color(0xFF0B0D39),
       centerTitle: true,
-      title: const Text(
-        'Finanzas Personales',
-        style: TextStyle(
+      title: Text(
+        title,
+        style: const TextStyle(
           color: Colors.white,
           fontWeight: FontWeight.bold,
           fontSize: 20,
         ),
       ),
-      actions: [
-        IconButton(
-          icon: const Icon(Icons.account_circle),
-          color: Colors.white, // Ícono en blanco
-          iconSize: 28,
-          onPressed: () {
-            Navigator.pushNamed(context, '/profile');
-          },
-        ),
-      ],
+      leading: showBackButton
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back),
+              color: Colors.white,
+              onPressed: () => Navigator.pop(context),
+            )
+          : null, // Aquí implementamos el botón de regreso
+      actions: showProfileAction
+          ? [
+              IconButton(
+                icon: const Icon(Icons.account_circle),
+                color: Colors.white,
+                iconSize: 28,
+                onPressed: () {
+                  Navigator.pushNamed(context, '/profile');
+                },
+              ),
+            ]
+          : null,
       elevation: 4,
-      shadowColor: Colors.black.withValues(alpha: 0.3),
-
+      shadowColor: Colors.black,
     );
   }
 

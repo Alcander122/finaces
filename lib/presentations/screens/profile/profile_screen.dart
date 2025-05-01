@@ -1,3 +1,4 @@
+import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -36,13 +37,13 @@ class ProfileScreenState extends ConsumerState<ProfileScreen>
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Editar Perfil'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () => Navigator.pop(context),
-        ),
-      ),
+     appBar: AppBarFinances(
+    title: 'Editar Perfil',
+    showBackButton: true, // Muestra el botón de regreso
+    showProfileAction: false, // Oculta el botón de perfil
+  ),
+                          //backgroundColor: Colors.white,
+
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Form(
@@ -143,6 +144,8 @@ class ProfileScreenState extends ConsumerState<ProfileScreen>
         boxShadow: [
           BoxShadow(
             color: Colors.white.withValues(alpha: 0.2),
+            
+
             blurRadius: 10,
             offset: const Offset(0, 4),
           ),
@@ -170,6 +173,8 @@ class ProfileScreenState extends ConsumerState<ProfileScreen>
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
+                      
+
                   ),
                 ),
                 const SizedBox(height: 8),
