@@ -4,10 +4,8 @@ import 'package:finances/presentations/screens/ahorro/ahorro_screen.dart';
 import 'package:finances/presentations/screens/auth/LoginScreen.dart';
 import 'package:finances/presentations/screens/egreso/egresos_screen.dart';
 import 'package:finances/presentations/screens/portafolio/portafolio_screen.dart';
-import 'package:finances/utils/logger.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:finances/presentations/widgets/statistic_card.dart';
 import 'package:finances/presentations/widgets/menu_option.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import '../ingresos/ingresos_screen.dart';
@@ -152,6 +150,7 @@ class HomeScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
+            // ignore: deprecated_member_use
             color: Colors.black.withOpacity(0.3),
             blurRadius: 10,
             offset: Offset(0, 6),
@@ -238,7 +237,8 @@ class HomeScreen extends ConsumerWidget {
       width: 130,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
+
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.white10),
       ),
@@ -298,7 +298,8 @@ class HomeScreen extends ConsumerWidget {
           },
           child: CircleAvatar(
             radius: 26,
-            backgroundColor: color.withOpacity(0.3),
+            backgroundColor: color.withValues(alpha: 0.3),
+
             child: Icon(icon, color: color, size: 28),
           ),
         ),

@@ -1,17 +1,18 @@
 # ==================================
 # Flutter y Dart - Archivos de configuración y temporales
-.dart_tool/                 # Archivos temporales de Dart y Flutter
+.dart_tool/                 # Archivos temporales de Dart y Flutter (recomendado no subir)
 .packages                   # Archivo de paquetes generado
-.flutter-plugins             # Plugin registries
+.flutter-plugins            # Plugin registries
 .flutter-plugins-dependencies
-.metadata                    # Metadatos de Flutter
-.melody/                     # Archivos de Melody (si se usa)
+.metadata                   # Metadatos de Flutter
+.melody/                    # Archivos de Melody (si se usa)
 
 # ==================================
 # Pub related - Dependencias y caché
-pubspec.lock                 # Archivo de lock de dependencias (opcional ignorarlo)
-.pub-cache/                  # Caché de paquetes de pub
-.pub/                        # Directorio de paquetes pub temporal
+# NOTA: pubspec.lock debería **NO** ignorarse en aplicaciones Flutter, solo en paquetes
+# pubspec.lock              # Descomenta si estás desarrollando un paquete
+.pub-cache/                 # Caché de paquetes de pub
+.pub/                       # Directorio de paquetes pub temporal
 
 # ==================================
 # Build outputs - Archivos generados de compilaciones
@@ -31,16 +32,16 @@ app.*.map.json
 
 # ==================================
 # Android - Archivos y carpetas generadas por Android Studio/Gradle
-/android/.gradle/            # Caché de Gradle
-/android/.idea/              # Configuración de Android Studio
-/android/local.properties    # Configuración local (paths personalizados)
-/android/*.iml               # Configuración específica del proyecto
-**/android/captures/         # Capturas de pantalla de Android Studio
-/android/gradle-wrapper.jar  # Wrapper de Gradle generado
-/android/app/debug/          # Build debug
-/android/app/profile/        # Build profile
-/android/app/release/        # Build release
-/android/app/.cxx/           # Compilaciones C++ de Android
+/android/.gradle/           # Caché de Gradle
+/android/.idea/             # Configuración de Android Studio
+/android/local.properties   # Configuración local (paths personalizados)
+/android/*.iml              # Configuración específica del proyecto
+**/android/captures/        # Capturas de pantalla de Android Studio
+/android/gradle-wrapper.jar # Wrapper de Gradle generado
+/android/app/debug/         # Build debug
+/android/app/profile/       # Build profile
+/android/app/release/       # Build release
+/android/app/.cxx/          # Compilaciones C++ de Android
 
 # ==================================
 # iOS - Archivos generados por Xcode y CocoaPods
@@ -48,16 +49,16 @@ app.*.map.json
 /ios/Flutter/App.framework
 /ios/Flutter/Flutter.framework
 /ios/.generated/
-**/ios/Runner.xcworkspace/    # Espacios de trabajo de Xcode
-**/ios/Pods/                  # Dependencias de CocoaPods
-Podfile.lock                  # Lockfile de dependencias iOS
+**/ios/Runner.xcworkspace/   # Espacios de trabajo de Xcode
+**/ios/Pods/                 # Dependencias de CocoaPods
+Podfile.lock                 # Lockfile de dependencias iOS
 
 # Xcode - Archivos temporales de Xcode
 *.xcuserstate
 *.xcworkspace
 *.xcuserdata
 *.moved-aside
-DerivedData/                  # Build cache de Xcode
+DerivedData/                 # Build cache de Xcode
 
 # ==================================
 # Web - Archivos generados para proyectos Flutter Web
@@ -71,7 +72,7 @@ DerivedData/                  # Build cache de Xcode
 # ==================================
 # MacOS - Archivos generados para aplicaciones de Mac
 /macos/.dart_tool/
-/macos/Flutter/ephemeral/     # Carpeta temporal de build en macOS
+/macos/Flutter/ephemeral/    # Carpeta temporal de build en macOS
 /macos/build/
 
 # ==================================
@@ -85,10 +86,10 @@ DerivedData/                  # Build cache de Xcode
 
 # ==================================
 # Fastlane - Archivos generados por Fastlane (automatización de deploy)
- /fastlane/report.xml
- /fastlane/Preview.html
- /fastlane/screenshots/**/*.png
- /fastlane/test_output
+/fastlane/report.xml
+/fastlane/Preview.html
+/fastlane/screenshots/**/*.png
+/fastlane/test_output
 
 # ==================================
 # Otros generales - Archivos binarios, temporales, configuraciones IDE
@@ -97,8 +98,8 @@ DerivedData/                  # Build cache de Xcode
 *.tmp
 *.temp
 *.swp
-*.DS_Store                   # Configuración de MacOS
-.idea/                        # Configuración de JetBrains/Android Studio
+*.DS_Store                  # Configuración de MacOS
+.idea/                      # Configuración de JetBrains/Android Studio
 *.iml
 *.ipr
 *.iws
@@ -115,14 +116,14 @@ DerivedData/                  # Build cache de Xcode
 *.ap_
 *.aab
 *.jar
-*.keystore                   # Certificados de firma (sensible)
+*.keystore                 # Certificados de firma (sensible)
 
 # ==================================
 # Firebase / Google Services - Archivos de configuración sensibles
-**/google-services.json       # Configuración de Firebase para Android
-**/GoogleService-Info.plist   # Configuración de Firebase para iOS
-firebase-debug.log            # Logs de Firebase
+**/google-services.json      # Configuración de Firebase para Android
+**/GoogleService-Info.plist  # Configuración de Firebase para iOS
+firebase-debug.log           # Logs de Firebase
 
 # ==================================
 # Herramientas CI/CD - Configuraciones de integración continua temporales
-*.yml~                        # Backups temporales de archivos YAML
+*.yml~                       # Backups temporales de archivos YAML
