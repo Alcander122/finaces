@@ -2,18 +2,39 @@ import 'package:flutter/material.dart';
 
 class AppBarFinances extends StatelessWidget implements PreferredSizeWidget {
   final String title;
-  final bool showProfileAction; // Nuevo parámetro para controlar la acción
+  final bool showProfileAction;
   final bool showBackButton;
+  final List<Widget>? actions;
 
   const AppBarFinances({ 
     super.key,
     required this.title,
-    this.showBackButton = false, // Valor predeterminado: no mostrar
-    this.showProfileAction = false, // Por defecto no se muestra
+    this.showBackButton = false,
+    this.showProfileAction = false,
+    this.actions = const [],
   });
 
   @override
   Widget build(BuildContext context) {
+    List<Widget> appBarActions = [];
+
+    if (showProfileAction) {
+      appBarActions.add(
+        IconButton(
+          icon: const Icon(Icons.account_circle),
+          color: Colors.white,
+          iconSize: 28,
+          onPressed: () {
+            Navigator.pushNamed(context, '/profile');
+          },
+        ),
+      );
+    }
+
+    if (actions != null && actions!.isNotEmpty) {
+      appBarActions.addAll(actions!);
+    }
+
     return AppBar(
       automaticallyImplyLeading: false,
       backgroundColor: const Color(0xFF0B0D39),
@@ -32,19 +53,8 @@ class AppBarFinances extends StatelessWidget implements PreferredSizeWidget {
               color: Colors.white,
               onPressed: () => Navigator.pop(context),
             )
-          : null, // Aquí implementamos el botón de regreso
-      actions: showProfileAction
-          ? [
-              IconButton(
-                icon: const Icon(Icons.account_circle),
-                color: Colors.white,
-                iconSize: 28,
-                onPressed: () {
-                  Navigator.pushNamed(context, '/profile');
-                },
-              ),
-            ]
           : null,
+      actions: appBarActions.isNotEmpty ? appBarActions : null,
       elevation: 4,
       shadowColor: Colors.black,
     );

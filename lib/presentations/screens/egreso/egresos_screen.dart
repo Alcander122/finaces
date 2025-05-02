@@ -1,5 +1,6 @@
 import 'package:finances/core/data/models/egreso_model.dart';
 import 'package:finances/presentations/screens/egreso/egreso_form.dart';
+import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
@@ -92,8 +93,10 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
     final egresosAsync = ref.watch(egresosProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Egresos'),
+      appBar: AppBarFinances(
+        title: 'Egresos',
+        showBackButton: true, // Muestra el botón de regreso
+        showProfileAction: false, // Oculta el botón de perfil
         actions: [
           IconButton(
             icon: const Icon(Icons.view_column),

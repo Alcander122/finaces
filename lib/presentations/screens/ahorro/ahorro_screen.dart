@@ -1,6 +1,7 @@
 import 'package:finances/core/data/models/objetivo_ahorro.dart';
 import 'package:finances/core/data/services/servicio_ahorro.dart';
 import 'package:finances/core/data/utils/ahorro_validator.dart';
+import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -22,8 +23,10 @@ class AhorroScreenState extends State<AhorroScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mis Ahorros'),
+      appBar: AppBarFinances(
+        title: 'Mis Metas de Ahorro',
+        showBackButton: true, // Muestra el botón de regreso
+        showProfileAction: false, // Oculta el botón de perfil
       ),
       // Permite que el contenido se ajuste cuando aparece el teclado
       resizeToAvoidBottomInset: true,
