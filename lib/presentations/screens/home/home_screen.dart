@@ -1,8 +1,9 @@
 import 'package:finances/core/data/providers/egreso_provider.dart';
 import 'package:finances/core/data/providers/finanzas_provider.dart';
-import 'package:finances/presentations/screens/ahorro/ahorro_screen.dart';
-import 'package:finances/presentations/screens/auth/LoginScreen.dart';
-import 'package:finances/presentations/screens/egreso/egresos_screen.dart';
+import 'package:finances/presentations/screens/Ahorro/ahorro_screen.dart';
+import 'package:finances/presentations/screens/Auth/LoginScreen.dart';
+import 'package:finances/presentations/screens/Egreso/egresos_screen.dart';
+import 'package:finances/presentations/screens/Estadistica/Statistics_Screen.dart';
 import 'package:finances/presentations/screens/portafolio/portafolio_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -276,7 +277,7 @@ class HomeScreen extends ConsumerWidget {
         _actionButton(
             context, 'Gasto', Icons.remove_circle, Colors.red, EgresosScreen()),
         _actionButton(
-            context, 'Estadisticas', Icons.bar_chart, Colors.purple, null),
+            context, 'Estadisticas', Icons.bar_chart, Colors.purple, StatisticsScreen()),
       ],
     );
   }

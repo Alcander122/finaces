@@ -1,4 +1,4 @@
-import 'package:finances/presentations/screens/egreso/egreso_form.dart';
+import 'package:finances/presentations/screens/Egreso/egreso_form.dart';
 import 'package:flutter/material.dart';
 import 'package:finances/core/data/models/egreso_model.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
