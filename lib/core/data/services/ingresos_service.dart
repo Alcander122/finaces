@@ -23,7 +23,7 @@ class IngresosService {
       //print("✅ Ingreso guardado exitosamente: ID ${docRef.id}");
       return docRef.id;
     } catch (e) {
-     //print("❌ Error al guardar ingreso: $e");
+      //print("❌ Error al guardar ingreso: $e");
       throw Exception("No se pudo guardar el ingreso");
     }
   }
@@ -57,7 +57,7 @@ class IngresosService {
           .update(ingreso.toMap());
       //print("✅ Ingreso actualizado exitosamente: ID $ingresoId");
     } catch (e) {
-     // print("❌ Error al actualizar ingreso: $e");
+      // print("❌ Error al actualizar ingreso: $e");
       throw Exception("No se pudo actualizar el ingreso");
     }
   }
@@ -92,6 +92,26 @@ class IngresosService {
         totalIngresos += valor is num ? valor.toDouble() : 0.0;
       }
       return totalIngresos;
+    });
+  }
+
+// Método para obtener el total de ingresos en un rango de fechas
+  Stream<double> streamTotalIngresosInRange(
+      String userId, DateTime start, DateTime end) {
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('ingresos')
+        .where('fecha', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('fecha', isLessThanOrEqualTo: Timestamp.fromDate(end))
+        .snapshots()
+        .map((snapshot) {
+      double total = 0.0;
+      for (var doc in snapshot.docs) {
+        final valor = doc.data()['valor'];
+        total += valor is num ? valor.toDouble() : 0.0;
+      }
+      return total;
     });
   }
 

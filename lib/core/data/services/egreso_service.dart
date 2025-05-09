@@ -108,6 +108,48 @@ class EgresoService {
       return totalIngresos;
     });
   }
+   Stream<double> streamTotalGastosMesActual(String userId) {
+    final now = DateTime.now();
+    final mesActual = _obtenerNombreMes(now.month);
+    final anioActual = now.year;
+
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('egreso')
+        .where('mes', isEqualTo: mesActual)
+        .where('anio', isEqualTo: anioActual)
+        /*.where('estado', isEqualTo: 'Pendiente')*/
+        .snapshots()
+        .map((snapshot) {
+      double total = 0.0;
+      for (var doc in snapshot.docs) {
+        final valor = doc.data()['valor'];
+        total += valor is num ? valor.toDouble() : 0.0;
+      }
+      return total;
+    });
+  }
+
+  // Método para obtener el total de gastos en un rango de fechas
+  Stream<double> streamTotalGastosInRange(String userId, DateTime start, DateTime end) {
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('egreso')
+        .where('fecha', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('fecha', isLessThanOrEqualTo: Timestamp.fromDate(end))
+        /*.where('estado', isEqualTo: 'Pendiente')*/
+        .snapshots()
+        .map((snapshot) {
+      double total = 0.0;
+      for (var doc in snapshot.docs) {
+        final valor = doc.data()['valor'];
+        total += valor is num ? valor.toDouble() : 0.0;
+      }
+      return total;
+    });
+  }
 
   // Función auxiliar para convertir número de mes a nombre
   String _obtenerNombreMes(int numeroMes) {

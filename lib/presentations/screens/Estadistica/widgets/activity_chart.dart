@@ -36,7 +36,7 @@ class ActivityChart extends StatelessWidget {
                   isCurved: true,
                   barWidth: 3,
                   color: const Color(0xFF1976D2),
-                  belowBarData: BarAreaData(show: true, color: const Color(0xFF1976D2).withOpacity(0.3)),
+                  belowBarData: BarAreaData(show: true, color: const Color(0xFF1976D2).withValues(alpha:0.3)),
                 ),
               ],
               maxX: 6,

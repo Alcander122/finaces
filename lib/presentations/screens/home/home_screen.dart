@@ -1,5 +1,5 @@
 import 'package:finances/core/data/providers/egreso_provider.dart';
-import 'package:finances/core/data/providers/finanzas_provider.dart';
+import 'package:finances/core/data/providers/Ingreso_provider.dart';
 import 'package:finances/presentations/screens/Ahorro/ahorro_screen.dart';
 import 'package:finances/presentations/screens/Auth/LoginScreen.dart';
 import 'package:finances/presentations/screens/Egreso/egresos_screen.dart';
