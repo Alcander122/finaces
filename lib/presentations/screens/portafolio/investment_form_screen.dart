@@ -19,15 +19,15 @@ class InvestmentFormScreen extends StatefulWidget {
   });
 
   @override
-  _InvestmentFormScreenState createState() => _InvestmentFormScreenState();
+  InvestmentFormScreenState createState() => InvestmentFormScreenState();
 }
 
-class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
+class InvestmentFormScreenState extends State<InvestmentFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _montoController = TextEditingController();
   final _descripcionController = TextEditingController();
-  final CurrencyService _currencyService = CurrencyService();
-  final FormValidator _validator = FormValidator();
+  final CurrencyService currencyService = CurrencyService();
+  final FormValidator validator = FormValidator();
 
   late String _selectedMoneda;
   late String _selectedMes;

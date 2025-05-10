@@ -1,16 +1,14 @@
-// ignore: depend_on_referenced_packages
+import 'package:intl/intl.dart'; // Importa este paquete
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:intl/intl.dart';
-
 class Ingreso {
-  String id; // Consecutivo único
-  DateTime fecha; // Fecha del registro
-  String mes; // Mes seleccionado desde lista desplegable
-  int anio; // Año seleccionado de los 3 años futuros
-  String quincena; // Selector de quincena (Primera o Segunda)
-  String categoria; // Categoría del ingreso (selector)
-  String concepto; // Concepto descriptivo
-  int valor; // Monto del ingreso, almacenado como INT
+  String id;
+  DateTime fecha;
+  String mes;
+  int anio;
+  String quincena;
+  String categoria;
+  String concepto;
+  int valor;
 
   Ingreso({
     required this.id,
@@ -31,29 +29,17 @@ class Ingreso {
     DateTime fecha;
 
     if (map['fecha'] is Timestamp) {
-      // ✅ Si la fecha es un Timestamp, convertirla a DateTime
+      // Convertir Timestamp a DateTime
       fecha = (map['fecha'] as Timestamp).toDate();
     } else if (map['fecha'] is String) {
-      // ✅ Si es un String, intentamos detectar su formato
-      try {
-        if (map['fecha'].contains('/')) {
-          // Si tiene "/", asumimos formato `dd/MM/yyyy`
-          fecha = DateFormat('dd/MM/yyyy').parse(map['fecha']);
-        } else if (map['fecha'].contains('-')) {
-          // Si tiene "-", asumimos formato `yyyy-MM-dd`
-          fecha = DateFormat('yyyy-MM-dd').parse(map['fecha']);
-        } else {
-          throw FormatException('Formato de fecha desconocido');
-        }
-      } catch (e) {
-        fecha = DateTime.now(); // Evita errores si la fecha no es válida
-      }
+      // Parsear String a DateTime
+      fecha = DateFormat('dd/MM/yyyy').parse(map['fecha']);
     } else {
       fecha = DateTime.now();
     }
 
     return Ingreso(
-      id: map['id'].toString(), // Convertir a String directamente
+      id: map['id'].toString(),
       fecha: fecha,
       mes: map['mes'] ?? '',
       anio: int.tryParse(map['anio'].toString()) ?? DateTime.now().year,
@@ -68,7 +54,7 @@ class Ingreso {
   Map<String, dynamic> toMap() {
     return {
       'id': id,
-      'fecha': fechaFormateada, // ✅ Guardar siempre en formato `dd/MM/yyyy`
+      'fecha': Timestamp.fromDate(fecha), // Guardar como Timestamp
       'mes': mes,
       'anio': anio,
       'quincena': quincena,

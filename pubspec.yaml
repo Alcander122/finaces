@@ -36,6 +36,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   icons_plus: ^4.0.0
   google_sign_in: ^6.3.0
+  logger: ^2.5.0
+  rx_bloc: ^6.0.1
 
 dev_dependencies:
   flutter_test:
@@ -53,7 +55,6 @@ dev_dependencies:
   uuid: ^3.0.4
   http: ^0.13.5
   tuple: ^2.0.0
-  logger: ^2.0.0
   #pigeon: ^22.7.3
   # The "flutter_lints" package below contains a set of recommended lints to
   # encourage good coding practices. The lint set provided by the package is

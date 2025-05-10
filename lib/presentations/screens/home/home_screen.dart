@@ -1,11 +1,12 @@
 import 'package:finances/core/data/providers/egreso_provider.dart';
-import 'package:finances/core/data/providers/finanzas_provider.dart';
-import 'package:finances/presentations/screens/ahorro/ahorro_screen.dart';
-import 'package:finances/presentations/screens/egreso/egresos_screen.dart';
+import 'package:finances/core/data/providers/Ingreso_provider.dart';
+import 'package:finances/presentations/screens/Ahorro/ahorro_screen.dart';
+import 'package:finances/presentations/screens/Auth/LoginScreen.dart';
+import 'package:finances/presentations/screens/Egreso/egresos_screen.dart';
+import 'package:finances/presentations/screens/Estadistica/Statistics_Screen.dart';
 import 'package:finances/presentations/screens/portafolio/portafolio_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:finances/presentations/widgets/statistic_card.dart';
 import 'package:finances/presentations/widgets/menu_option.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import '../ingresos/ingresos_screen.dart';
@@ -18,6 +19,13 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
+    if (authState.isLoading) {
+      return const Scaffold(body: Center(child: CircularProgressIndicator()));
+    }
+
+    if (!authState.isAuthenticated) {
+      return const LoginScreen(); // Asegúrate de redirigir al login
+    }
     final totalIngresosMesAsync = ref.watch(totalIngresosMesActualProvider);
     final totalGastosAsync = ref.watch(totalEgresoMesActualProvider);
 
@@ -32,7 +40,10 @@ class HomeScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: const AppBarFinances(),
+      appBar: const AppBarFinances(
+        title: 'Panel Principal',
+        showProfileAction: true, // Habilitamos el botón
+      ),
       backgroundColor: Color(0xFFd6eaf8),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
@@ -54,61 +65,62 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildUserProfile(AuthState authState) {
-    final nameUser = authState.user?.displayName;
-    return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-      decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFF3A57E8),
-            Color(0xFF0C1F6F),
-            Color(0xFF050A30),
-          ],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-      ),
-      child: Row(
-        crossAxisAlignment: CrossAxisAlignment.center,
-        children: [
-          CircleAvatar(
-            radius: 28,
-            backgroundColor: const Color(0xFF1B263B),
-            child: const Icon(
-              Icons.person,
-              color: Colors.white,
-              size: 32,
+    return authState.user == null
+        ? const CircularProgressIndicator()
+        : Container(
+            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
+            decoration: BoxDecoration(
+              gradient: LinearGradient(
+                colors: [
+                  Color(0xFF3A57E8),
+                  Color(0xFF0C1F6F),
+                  Color(0xFF050A30),
+                ],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
+              borderRadius: BorderRadius.circular(20),
             ),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              crossAxisAlignment: CrossAxisAlignment.start,
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.center,
               children: [
-                Text(
-                  'Bienvenido, ${nameUser ?? 'Sin nombre'}',
-                  style: const TextStyle(
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
+                CircleAvatar(
+                  radius: 28,
+                  backgroundColor: const Color(0xFF1B263B),
+                  child: const Icon(
+                    Icons.person,
                     color: Colors.white,
+                    size: 32,
                   ),
                 ),
-                const SizedBox(height: 4),
-                const Text(
-                  'Resumen de este mes',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Color(0xFF9BAEC8),
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'Bienvenido, ${authState.user?.displayName ?? 'Sin nombre'}',
+                        style: const TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const SizedBox(height: 4),
+                      const Text(
+                        'Resumen de este mes',
+                        style: TextStyle(
+                          fontSize: 14,
+                          color: Color(0xFF9BAEC8),
+                        ),
+                      ),
+                    ],
                   ),
                 ),
               ],
             ),
-          ),
-        ],
-      ),
-    );
+          );
   }
 
   Widget _buildFinancialSummary(double totalIngresos, double totalGastos) {
@@ -137,7 +149,7 @@ class HomeScreen extends ConsumerWidget {
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.3),
+            color: Colors.white.withValues(alpha: 0.3),
             blurRadius: 10,
             offset: Offset(0, 6),
           ),
@@ -223,7 +235,7 @@ class HomeScreen extends ConsumerWidget {
       width: 130,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withOpacity(0.05),
+        color: Colors.white.withValues(alpha: 0.05),
         borderRadius: BorderRadius.circular(18),
         border: Border.all(color: Colors.white10),
       ),
@@ -264,8 +276,8 @@ class HomeScreen extends ConsumerWidget {
             IngresosScreen()),
         _actionButton(
             context, 'Gasto', Icons.remove_circle, Colors.red, EgresosScreen()),
-        _actionButton(
-            context, 'Portafolio', Icons.bar_chart, Colors.purple, null),
+        _actionButton(context, 'Estadisticas', Icons.bar_chart, Colors.purple,
+            StatisticsScreen()),
       ],
     );
   }
@@ -283,7 +295,7 @@ class HomeScreen extends ConsumerWidget {
           },
           child: CircleAvatar(
             radius: 26,
-            backgroundColor: color.withOpacity(0.3),
+            backgroundColor: color.withValues(alpha: 0.3),
             child: Icon(icon, color: color, size: 28),
           ),
         ),

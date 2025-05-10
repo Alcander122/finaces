@@ -1,6 +1,7 @@
 import 'package:finances/core/data/models/objetivo_ahorro.dart';
 import 'package:finances/core/data/services/servicio_ahorro.dart';
 import 'package:finances/core/data/utils/ahorro_validator.dart';
+import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -13,17 +14,19 @@ class AhorroScreen extends StatefulWidget {
   const AhorroScreen({super.key});
 
   @override
-  _AhorroScreenState createState() => _AhorroScreenState();
+  AhorroScreenState createState() => AhorroScreenState();
 }
 
-class _AhorroScreenState extends State<AhorroScreen> {
+class AhorroScreenState extends State<AhorroScreen> {
   final AhorroService _ahorroService = AhorroService();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mis Ahorros'),
+      appBar: AppBarFinances(
+        title: 'Mis Metas de Ahorro',
+        showBackButton: true, // Muestra el botón de regreso
+        showProfileAction: false, // Oculta el botón de perfil
       ),
       // Permite que el contenido se ajuste cuando aparece el teclado
       resizeToAvoidBottomInset: true,
@@ -137,11 +140,11 @@ class _AhorroScreenState extends State<AhorroScreen> {
   }
 
   void _mostrarDialogoNuevaMeta(BuildContext context) {
-    final _formKey = GlobalKey<FormState>();
-    final _nombreController = TextEditingController();
-    final _montoController = TextEditingController();
-    final _fechaController = TextEditingController();
-    final AhorroValidator _validator = AhorroValidator();
+    final formKey = GlobalKey<FormState>();
+    final nombreController = TextEditingController();
+    final montoController = TextEditingController();
+    final fechaController = TextEditingController();
+    final AhorroValidator validator = AhorroValidator();
 
     showDialog(
       context: context,
@@ -152,33 +155,33 @@ class _AhorroScreenState extends State<AhorroScreen> {
         ),
         title: const Text('Nueva Meta de Ahorro'),
         content: Form(
-          key: _formKey,
+          key: formKey,
           child: Column(
             mainAxisSize: MainAxisSize.min,
             children: [
               TextFormField(
-                controller: _nombreController,
+                controller: nombreController,
                 decoration: const InputDecoration(
                   labelText: 'Nombre de la Meta',
                   prefixIcon: Icon(Icons.title),
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) => _validator.validateNombre(value),
+                validator: (value) => validator.validateNombre(value),
               ),
               const SizedBox(height: 16),
               TextFormField(
-                controller: _montoController,
+                controller: montoController,
                 keyboardType: TextInputType.number,
                 decoration: const InputDecoration(
                   labelText: 'Monto Objetivo',
                   prefixIcon: Icon(Icons.attach_money),
                   border: OutlineInputBorder(),
                 ),
-                validator: (value) => _validator.validateMonto(value, null),
+                validator: (value) => validator.validateMonto(value, null),
               ),
               const SizedBox(height: 16),
               TextFormField(
-                controller: _fechaController,
+                controller: fechaController,
                 decoration: const InputDecoration(
                   labelText: 'Fecha Objetivo',
                   prefixIcon: Icon(Icons.calendar_today),
@@ -194,7 +197,7 @@ class _AhorroScreenState extends State<AhorroScreen> {
                   );
                   if (picked != null) {
                     setState(() {
-                      _fechaController.text =
+                      fechaController.text =
                           DateFormat('yyyy-MM-dd').format(picked);
                     });
                   }
@@ -211,10 +214,10 @@ class _AhorroScreenState extends State<AhorroScreen> {
           ),
           ElevatedButton(
             onPressed: () {
-              if (_formKey.currentState!.validate()) {
-                final nombre = _nombreController.text.trim();
-                final montoObjetivo = double.parse(_montoController.text);
-                final fechaObjetivo = DateTime.parse(_fechaController.text);
+              if (formKey.currentState!.validate()) {
+                final nombre = nombreController.text.trim();
+                final montoObjetivo = double.parse(montoController.text);
+                final fechaObjetivo = DateTime.parse(fechaController.text);
                 _ahorroService
                     .crearMeta(
                   nombre: nombre,

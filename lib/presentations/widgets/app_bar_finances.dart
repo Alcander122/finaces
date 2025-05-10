@@ -1,34 +1,62 @@
 import 'package:flutter/material.dart';
 
 class AppBarFinances extends StatelessWidget implements PreferredSizeWidget {
-  const AppBarFinances({super.key});
+  final String title;
+  final bool showProfileAction;
+  final bool showBackButton;
+  final List<Widget>? actions;
+
+  const AppBarFinances({ 
+    super.key,
+    required this.title,
+    this.showBackButton = false,
+    this.showProfileAction = false,
+    this.actions = const [],
+  });
 
   @override
   Widget build(BuildContext context) {
-    return AppBar(
-      automaticallyImplyLeading: false,
-      backgroundColor: const Color(0xFF0B0D39),
-      centerTitle: true,
-      title: const Text(
-        'Finanzas Personales',
-        style: TextStyle(
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-          fontSize: 20,
-        ),
-      ),
-      actions: [
+    List<Widget> appBarActions = [];
+
+    if (showProfileAction) {
+      appBarActions.add(
         IconButton(
           icon: const Icon(Icons.account_circle),
-          color: Colors.white, // Ícono en blanco
+          color: Colors.white,
           iconSize: 28,
           onPressed: () {
             Navigator.pushNamed(context, '/profile');
           },
         ),
-      ],
+      );
+    }
+
+    if (actions != null && actions!.isNotEmpty) {
+      appBarActions.addAll(actions!);
+    }
+
+    return AppBar(
+      automaticallyImplyLeading: false,
+      backgroundColor: const Color(0xFF0B0D39),
+      centerTitle: true,
+      title: Text(
+        title,
+        style: const TextStyle(
+          color: Colors.white,
+          fontWeight: FontWeight.bold,
+          fontSize: 20,
+        ),
+      ),
+      leading: showBackButton
+          ? IconButton(
+              icon: const Icon(Icons.arrow_back),
+              color: Colors.white,
+              onPressed: () => Navigator.pop(context),
+            )
+          : null,
+      actions: appBarActions.isNotEmpty ? appBarActions : null,
       elevation: 4,
-      shadowColor: Colors.black.withOpacity(0.3),
+      shadowColor: Colors.black,
     );
   }
 

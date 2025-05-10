@@ -1,3 +1,6 @@
+import 'package:cloud_firestore/cloud_firestore.dart'; // Importa aquí
+import 'package:intl/intl.dart'; // Importa este paquete
+
 class Egreso {
   final String id;
   final String quincena;
@@ -30,7 +33,7 @@ class Egreso {
     return {
       'id': id,
       'quincena': quincena,
-      'fecha': fecha.toIso8601String(), // Convertir DateTime a String
+      'fecha': Timestamp.fromDate(fecha), // Guardar como Timestamp
       'mes': mes,
       'dia': dia,
       'anio': anio,
@@ -44,10 +47,22 @@ class Egreso {
 
   // Crear una instancia de Egreso a partir de un Map (Firestore)
   static Egreso fromMap(Map<String, dynamic> map) {
+    DateTime fecha;
+
+    if (map['fecha'] is Timestamp) { // Ahora Timestamp está definido
+      // Convertir Timestamp a DateTime
+      fecha = (map['fecha'] as Timestamp).toDate();
+    } else if (map['fecha'] is String) {
+      // Parsear String a DateTime
+      fecha = DateFormat('dd/MM/yyyy').parse(map['fecha']);
+    } else {
+      fecha = DateTime.now();
+    }
+
     return Egreso(
-      id: map['id'] ?? '', // Valor predeterminado si no existe
+      id: map['id'] ?? '',
       quincena: map['quincena'] ?? '',
-      fecha: DateTime.parse(map['fecha']), // Convertir String a DateTime
+      fecha: fecha,
       mes: map['mes'] ?? '',
       dia: map['dia'] is int ? map['dia'] : 0,
       anio: map['anio'] is int ? map['anio'] : 0,

@@ -1,8 +1,7 @@
 import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/core/errors/handlers/auth_error_handler.dart';
-import 'package:finances/presentations/screens/auth/register.screen.dart';
-import 'package:finances/presentations/screens/home/home_screen.dart';
+import 'package:finances/presentations/screens/Auth/register.screen.dart';
 import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/widgets/custom_scaffold.dart';
 import 'package:finances/routes/app_routes.dart';
@@ -41,7 +40,6 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-
   String _handleError(Object error) {
     if (error is FirebaseAuthException) {
       return AuthErrorHandler.handle(error);
@@ -64,6 +62,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
           );
 
       if (mounted) {
+        // Navegar al HomeScreen si el inicio de sesión es exitoso
         Navigator.pushReplacementNamed(context, AppRoutes.home);
       }
     } catch (e) {
@@ -71,17 +70,14 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
       _showErrorFeedback(_handleError(e));
     }
   }
-  
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      // AppBar sin flechas.
       appBar: AppBar(
-        automaticallyImplyLeading: false, // Desactiva la flecha de la izquierda
+        automaticallyImplyLeading: false,
         backgroundColor: Colors.white,
         elevation: 0,
-        // Eliminamos el IconButton de 'actions' para quitar la flecha de la derecha
       ),
       body: CustomScaffold(
         child: Column(
@@ -160,31 +156,27 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                           children: [
                             Logo(Logos.facebook_f),
                             Consumer(
-                            builder: (context, ref, _) {
-                              return GestureDetector(
-                                onTap: () async {
-                                  try {
-                                    final authNotifier =
-                                        ref.read(authProvider.notifier);
-                                    await authNotifier.signInWithGoogle();
-                                    if (mounted) {
-                                      Navigator.pushAndRemoveUntil(
-                                        // ignore: use_build_context_synchronously
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) =>
-                                                const HomeScreen()),
-                                        (route) => false,
-                                      );
+                              builder: (context, ref, _) {
+                                return GestureDetector(
+                                  onTap: () async {
+                                    try {
+                                      final authNotifier =
+                                          ref.read(authProvider.notifier);
+                                      await authNotifier.signInWithGoogle();
+                                      if (mounted) {
+                                        Navigator.pushReplacementNamed(
+                                          context,
+                                          AppRoutes.home,
+                                        );
+                                      }
+                                    } catch (e) {
+                                      _showSnackBar(e.toString(), Colors.red);
                                     }
-                                  } catch (e) {
-                                    _showSnackBar(e.toString(), Colors.red);
-                                  }
-                                },
-                                child: Logo(Logos.google),
-                              );
-                            },
-                          ),
+                                  },
+                                  child: Logo(Logos.google),
+                                );
+                              },
+                            ),
                           ],
                         ),
                         const SizedBox(height: 25.0),
@@ -208,7 +200,8 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
         Expanded(
           child: Divider(
             thickness: 0.7,
-            color: Colors.grey.withOpacity(0.5),
+            	color: Colors.grey.withValues(alpha: 0.5),
+
           ),
         ),
         const Padding(
@@ -218,7 +211,8 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
         Expanded(
           child: Divider(
             thickness: 0.7,
-            color: Colors.grey.withOpacity(0.5),
+            color: Colors.grey.withValues(alpha: 0.5),
+
           ),
         ),
       ],
@@ -229,7 +223,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        const Text('No tienes cuenta? ',
+        const Text('No tienes cuenta?',
             style: TextStyle(color: Colors.black45)),
         GestureDetector(
           onTap: () => Navigator.push(

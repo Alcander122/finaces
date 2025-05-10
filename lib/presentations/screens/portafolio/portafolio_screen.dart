@@ -1,4 +1,5 @@
 import 'package:finances/presentations/screens/portafolio/portafolio_detail_screen.dart';
+import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -24,9 +25,10 @@ class PortafolioScreen extends ConsumerWidget {
     final investments = ref.watch(allInvestmentsProvider(user.uid));
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text("Mis Portafolios"),
-        centerTitle: true,
+      appBar: AppBarFinances(
+        title: 'Mis Portafolios',
+        showBackButton: true, // Muestra el botón de regreso
+        showProfileAction: false, // Oculta el botón de perfil
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.push(

@@ -1,4 +1,5 @@
 import 'package:finances/core/data/models/ingreso.model.dart';
+import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/services/ingresos_service.dart';
@@ -11,10 +12,10 @@ class IngresosScreen extends ConsumerStatefulWidget {
   const IngresosScreen({super.key});
 
   @override
-  _IngresosScreenState createState() => _IngresosScreenState();
+  IngresosScreenState createState() => IngresosScreenState();
 }
 
-class _IngresosScreenState extends ConsumerState<IngresosScreen> {
+class IngresosScreenState extends ConsumerState<IngresosScreen> {
   final _formKey = GlobalKey<FormState>();
   final _conceptoController = TextEditingController();
   final _valorController = TextEditingController();
@@ -278,8 +279,10 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider);
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ingresos'),
+      appBar: AppBarFinances(
+        title: 'Ingresos',
+        showBackButton: true, // Muestra el botón de regreso
+        showProfileAction: false, // Oculta el botón de perfil
         actions: [
           IconButton(
             icon: const Icon(Icons.view_list),
