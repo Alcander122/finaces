@@ -54,6 +54,7 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildUserProfile(AuthState authState) {
+    final nameUser = authState.user?.displayName;
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
       decoration: BoxDecoration(
@@ -87,7 +88,7 @@ class HomeScreen extends ConsumerWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Bienvenido, ${authState.user?.displayName ?? 'Sin nombre'}',
+                  'Bienvenido, ${nameUser ?? 'Sin nombre'}',
                   style: const TextStyle(
                     fontSize: 18,
                     fontWeight: FontWeight.bold,
