@@ -1,15 +1,15 @@
-// statistics_screen.dart
+import 'package:finances/core/data/models/filter.dart';
 import 'package:finances/core/data/providers/Ingreso_provider.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
-import 'package:finances/presentations/screens/Estadistica/widgets/activity_chart.dart';
-import 'package:finances/presentations/screens/Estadistica/widgets/category_summary.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:finances/presentations/screens/Estadistica/widgets/activity_chart.dart';
+import 'package:finances/presentations/screens/Estadistica/widgets/category_summary.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
-import 'package:finances/core/data/models/filter.dart';
 import 'package:finances/core/data/providers/filter_provider.dart';
 import 'package:intl/intl.dart';
 
+// Clase principal de la pantalla de estadísticas
 class StatisticsScreen extends ConsumerStatefulWidget {
   const StatisticsScreen({super.key});
 
@@ -17,14 +17,19 @@ class StatisticsScreen extends ConsumerStatefulWidget {
   StatisticsScreenState createState() => StatisticsScreenState();
 }
 
+// Estado de la pantalla de estadísticas
 class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
-  DateTimeRange? _selectedDateRange;
+  DateTimeRange? selectedDateRange;
 
-  void _selectDateRange() async {
-    final initialDate = DateTime.now().subtract(const Duration(days: 30));
-    final firstDate = DateTime.now().subtract(const Duration(days: 365));
-    final lastDate = DateTime.now();
+  // Método para seleccionar un rango de fechas
+  void selectDateRange() async {
+    final initialDate = DateTime.now().subtract(const Duration(
+        days: 30)); // Fecha inicial predeterminada (hace 30 días)
+    final firstDate = DateTime.now()
+        .subtract(const Duration(days: 365)); // Fecha mínima (hace un año)
+    final lastDate = DateTime.now(); // Fecha máxima (hoy)
 
+    // Mostrar el selector de rango de fechas
     final picked = await showDateRangePicker(
       context: context,
       initialDateRange: DateTimeRange(start: initialDate, end: DateTime.now()),
@@ -32,29 +37,41 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
       lastDate: lastDate,
     );
 
-    if (picked != null && picked.start != null && picked.end != null) {
+    // Si el usuario seleccionó un rango de fechas
+    if (picked != null) {
+      DateTime startDate = picked.start; // Fecha de inicio seleccionada
+      DateTime endDate = picked.end; // Fecha de fin seleccionada
+
+      // Ajustar endDate al final del día (23:59:59) para incluir todos los datos del último día
+      endDate = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+
+      // Actualizar el filtro con el rango de fechas seleccionado
       ref.read(filterProvider.notifier).update((state) => state.copyWith(
             type: FilterType.custom,
-            startDate: picked.start,
-            endDate: picked.end,
+            startDate: startDate,
+            endDate: endDate,
           ));
     }
   }
 
+  // Método para cambiar el tipo de filtro (anual, trimestral, etc.)
   void _changeFilter(FilterType type) {
     if (type == FilterType.monthly) {
+      // Actualizar el filtro a mensual
       ref.read(filterProvider.notifier).update((state) => state.copyWith(
             type: FilterType.monthly,
             startDate: null,
             endDate: null,
           ));
     } else if (type == FilterType.quarterly) {
+      // Actualizar el filtro a trimestral
       ref.read(filterProvider.notifier).update((state) => state.copyWith(
             type: FilterType.quarterly,
             startDate: null,
             endDate: null,
           ));
     } else if (type == FilterType.annual) {
+      // Actualizar el filtro a anual
       ref.read(filterProvider.notifier).update((state) => state.copyWith(
             type: FilterType.annual,
             startDate: null,
@@ -63,10 +80,21 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
     }
   }
 
+  // Método para formatear los valores monetarios con separadores de miles y decimales
+  String formatCurrency(double value) {
+    // Utilizamos NumberFormat para dar formato al valor según el patrón de Colombia
+    final formatter = NumberFormat.decimalPattern('es_CO');
+    // Devolvemos el valor formateado con un símbolo de dólar al inicio
+    return '\$${formatter.format(value)}';
+  }
+
   @override
   Widget build(BuildContext context) {
+    // Observar el estado del filtro actual
     final Filter filter = ref.watch(filterProvider);
+    // Observar los ingresos filtrados basados en el filtro actual
     final ingresosAsync = ref.watch(filteredIngresosProvider);
+    // Observar los gastos filtrados basados en el filtro actual
     final gastosAsync = ref.watch(filteredEgresosProvider);
 
     return Scaffold(
@@ -104,7 +132,7 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                   ),
                   const SizedBox(width: 10),
                   TextButton(
-                    onPressed: _selectDateRange,
+                    onPressed: selectDateRange,
                     child: const Text('Seleccionar rango'),
                   ),
                 ],
@@ -158,6 +186,7 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
     );
   }
 
+  // Método para construir una tarjeta de resumen (Ingresos, Gastos)
   Widget _buildSummaryCard({
     required String title,
     required AsyncValue<double> asyncValue,
@@ -166,6 +195,7 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
   }) {
     return asyncValue.when(
       data: (data) {
+        // Si hay datos, mostrar la tarjeta con el valor formateado
         return Card(
           elevation: 4,
           shape: RoundedRectangleBorder(
@@ -190,8 +220,9 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                 const SizedBox(height: 5),
                 Text(title, style: const TextStyle(fontSize: 14)),
                 const SizedBox(height: 5),
+                // Usamos formatCurrency para dar formato al valor
                 Text(
-                  '\$${data.toStringAsFixed(2)}',
+                  formatCurrency(data),
                   style: const TextStyle(
                       fontSize: 18, fontWeight: FontWeight.bold),
                 ),
@@ -201,6 +232,7 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
         );
       },
       loading: () {
+        // Si están cargando los datos, mostrar una tarjeta con valor predeterminado
         return Card(
           elevation: 4,
           shape: RoundedRectangleBorder(
@@ -235,6 +267,7 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
         );
       },
       error: (error, stackTrace) {
+        // Si hay un error, mostrar una tarjeta con valor predeterminado
         return Card(
           elevation: 4,
           shape: RoundedRectangleBorder(
@@ -271,6 +304,7 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
     );
   }
 
+  // Método para construir la tarjeta de balance
   Widget _buildBalanceCard({
     required AsyncValue<double> ingresosAsync,
     required AsyncValue<double> gastosAsync,
@@ -279,9 +313,12 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
       data: (ingresosData) {
         return gastosAsync.when(
           data: (gastosData) {
+            // Calcular el balance
             double balance = ingresosData - gastosData;
+            // Determinar el color del balance (azul para positivo, rojo para negativo)
             Color balanceColor = balance >= 0 ? Colors.blue : Colors.red;
 
+            // Mostrar la tarjeta de balance con el valor formateado
             return Card(
               elevation: 4,
               shape: RoundedRectangleBorder(
@@ -314,8 +351,9 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
                     const SizedBox(height: 5),
                     const Text('Balance', style: TextStyle(fontSize: 14)),
                     const SizedBox(height: 5),
+                    // Usamos formatCurrency para dar formato al valor del balance
                     Text(
-                      '\$${balance.toStringAsFixed(2)}',
+                      formatCurrency(balance),
                       style: const TextStyle(
                           fontSize: 18, fontWeight: FontWeight.bold),
                     ),
@@ -325,6 +363,7 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
             );
           },
           loading: () {
+            // Si están cargando los datos, mostrar una tarjeta de balance predeterminada
             return Card(
               elevation: 4,
               shape: RoundedRectangleBorder(
@@ -368,6 +407,7 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
             );
           },
           error: (error, stackTrace) {
+            // Si hay un error, mostrar una tarjeta de balance predeterminada
             return Card(
               elevation: 4,
               shape: RoundedRectangleBorder(
@@ -413,6 +453,7 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
         );
       },
       loading: () {
+        // Si están cargando los datos, mostrar una tarjeta de balance predeterminada
         return Card(
           elevation: 4,
           shape: RoundedRectangleBorder(
@@ -455,6 +496,7 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
         );
       },
       error: (error, stackTrace) {
+        // Si hay un error, mostrar una tarjeta de balance predeterminada
         return Card(
           elevation: 4,
           shape: RoundedRectangleBorder(
