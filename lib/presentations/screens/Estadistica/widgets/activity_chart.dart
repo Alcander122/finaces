@@ -35,7 +35,6 @@ class ActivityChart extends ConsumerWidget {
             );
 
             return Card(
-              margin: const EdgeInsets.symmetric(horizontal: 20),
               elevation: 4,
               shape: RoundedRectangleBorder(
                 borderRadius: BorderRadius.circular(15),
@@ -47,8 +46,8 @@ class ActivityChart extends ConsumerWidget {
                   children: [
                     _construirTituloGrafico(filtro: filtro),
                     const SizedBox(height: 15),
-                    SizedBox(
-                      height: 200,
+                    AspectRatio(
+                      aspectRatio: 1.7,
                       child: LineChart(
                         _crearDatosLineChart(
                           transacciones: transacciones,

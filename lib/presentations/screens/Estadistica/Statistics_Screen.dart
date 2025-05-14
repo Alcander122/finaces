@@ -1,4 +1,3 @@
-// Statistics_Screen.dart
 import 'package:finances/core/data/models/filter.dart';
 import 'package:finances/core/data/providers/Ingreso_provider.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
@@ -46,34 +45,25 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
   }
 
   void _changeFilter(FilterType type) {
-    if (type == FilterType.monthly) {
-      ref.read(filterProvider.notifier).update((state) => state.copyWith(
-            type: FilterType.monthly,
-            startDate: null,
-            endDate: null,
-          ));
-    } else if (type == FilterType.quarterly) {
-      ref.read(filterProvider.notifier).update((state) => state.copyWith(
-            type: FilterType.quarterly,
-            startDate: null,
-            endDate: null,
-          ));
-    } else if (type == FilterType.annual) {
-      ref.read(filterProvider.notifier).update((state) => state.copyWith(
-            type: FilterType.annual,
-            startDate: null,
-            endDate: null,
-          ));
-    }
+    ref.read(filterProvider.notifier).update((state) => state.copyWith(
+          type: type,
+          startDate: null,
+          endDate: null,
+        ));
   }
 
   String formatCurrency(double value) {
-    final formatter = NumberFormat.decimalPattern('es_CO');
-    return '\$${formatter.format(value)}';
+    final formatter = NumberFormat.currency(
+      locale: 'es_CO',
+      symbol: '\$',
+      decimalDigits: 2,
+    );
+    return formatter.format(value);
   }
 
   @override
   Widget build(BuildContext context) {
+    final theme = Theme.of(context);
     final filter = ref.watch(filterProvider);
     final ingresosAsync = ref.watch(filteredIngresosProvider);
     final gastosAsync = ref.watch(filteredEgresosProvider);
@@ -86,93 +76,20 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
       ),
       body: SafeArea(
         child: SingleChildScrollView(
-          child: ConstrainedBox(
-            constraints: BoxConstraints(
-              maxHeight: MediaQuery.of(context).size.height,
-            ),
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                const SizedBox(height: 20),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: const Text(
-                    'Balance General',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      ElevatedButton(
-                        onPressed: () => _changeFilter(FilterType.annual),
-                        child: const Text('Anual'),
-                      ),
-                      const SizedBox(width: 10),
-                      ElevatedButton(
-                        onPressed: () => _changeFilter(FilterType.quarterly),
-                        child: const Text('Trimestral'),
-                      ),
-                      const SizedBox(width: 10),
-                      TextButton(
-                        onPressed: selectDateRange,
-                        child: const Text('Seleccionar rango'),
-                      ),
-                    ],
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                  children: [
-                    _buildSummaryCard(
-                      title: 'Ingresos',
-                      asyncValue: ingresosAsync,
-                      icon: Icons.arrow_upward,
-                      color: Colors.green,
-                    ),
-                    _buildSummaryCard(
-                      title: 'Gastos',
-                      asyncValue: gastosAsync,
-                      icon: Icons.arrow_downward,
-                      color: Colors.red,
-                    ),
-                    _buildBalanceCard(
-                      ingresosAsync: ingresosAsync,
-                      gastosAsync: gastosAsync,
-                    ),
-                  ],
-                ),
-                const SizedBox(height: 30),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: const Text(
-                    'Actividad Financiera',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(height: 15),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: ActivityChart(),
-                ),
-                const SizedBox(height: 20),
-                Padding(
-                  padding: const EdgeInsets.symmetric(horizontal: 20),
-                  child: const Text(
-                    'Resumen por Categoría',
-                    style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                  ),
-                ),
-                const SizedBox(height: 15),
-                const Padding(
-                  padding: EdgeInsets.symmetric(horizontal: 20),
-                  child: CategorySummary(),
-                ),
-                const SizedBox(height: 20),
+                _buildHeaderSection(theme),
+                const SizedBox(height: 32),
+                _buildFilterChips(),
+                const SizedBox(height: 32),
+                _buildFinancialCards(ingresosAsync, gastosAsync),
+                const SizedBox(height: 40),
+                _buildFinancialActivitySection(),
+                const SizedBox(height: 40),
+                _buildCategorySection(theme),
               ],
             ),
           ),
@@ -181,300 +98,270 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
     );
   }
 
-  Widget _buildSummaryCard({
-    required String title,
-    required AsyncValue<double> asyncValue,
-    required IconData icon,
-    required Color color,
-  }) {
-    return asyncValue.when(
-      data: (data) {
-        return Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
+  Widget _buildHeaderSection(ThemeData theme) {
+    return Text(
+      'Balance General',
+      style: theme.textTheme.headlineSmall?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: Colors.blueGrey[800],
+      ),
+    );
+  }
+
+  Widget _buildFilterChips() {
+    final currentFilter = ref.watch(filterProvider).type;
+    return Wrap(
+      spacing: 12,
+      runSpacing: 12,
+      children: [
+        InputChip(
+          label: const Text('Anual'),
+          selected: currentFilter == FilterType.annual,
+          onSelected: (_) => _changeFilter(FilterType.annual),
+          backgroundColor: Colors.white,
+          selectedColor: Colors.blue[100],
+          labelStyle: TextStyle(
+            color: currentFilter == FilterType.annual
+                ? Colors.blue[800]
+                : Colors.grey[700],
           ),
-          child: Container(
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              gradient: LinearGradient(
-                colors: [
-                  color.withAlpha(50),
-                  color.withAlpha(30),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-            child: Column(
-              children: [
-                Icon(icon, color: color, size: 20),
-                const SizedBox(height: 5),
-                Text(title, style: const TextStyle(fontSize: 14)),
-                const SizedBox(height: 5),
-                Text(
-                  formatCurrency(data),
-                  style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
+        ),
+        InputChip(
+          label: const Text('Trimestral'),
+          selected: currentFilter == FilterType.quarterly,
+          onSelected: (_) => _changeFilter(FilterType.quarterly),
+          backgroundColor: Colors.white,
+          selectedColor: Colors.green[100],
+          labelStyle: TextStyle(
+            color: currentFilter == FilterType.quarterly
+                ? Colors.green[800]
+                : Colors.grey[700],
           ),
-        );
-      },
-      loading: () {
-        return Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              gradient: LinearGradient(
-                colors: [
-                  color.withAlpha(50),
-                  color.withAlpha(30),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
+        ),
+        ActionChip(
+          label: const Text('Personalizado'),
+          onPressed: selectDateRange,
+          avatar: const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
+          backgroundColor: Colors.white,
+          labelStyle: const TextStyle(color: Colors.grey),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFinancialCards(AsyncValue<double> ingresos, AsyncValue<double> gastos) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        double cardWidth = (constraints.maxWidth - 48) / 3;  // Ajustamos el espacio para 3 cards
+        return Row(  // Usamos Row para alinear los cards en una línea
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            _buildFinanceCard(
+              title: 'Ingresos',
+              value: ingresos,
+              color: Colors.green,
+              icon: Icons.trending_up,
+              width: cardWidth,
             ),
-            child: Column(
-              children: [
-                Icon(icon, color: color, size: 20),
-                const SizedBox(height: 5),
-                Text(title, style: const TextStyle(fontSize: 14)),
-                const SizedBox(height: 5),
-                const Text(
-                  '\$0.00',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
+            SizedBox(width: 16),  // Espacio entre cards
+            _buildFinanceCard(
+              title: 'Gastos',
+              value: gastos,
+              color: Colors.red,
+              icon: Icons.trending_down,
+              width: cardWidth,
             ),
-          ),
-        );
-      },
-      error: (error, stackTrace) {
-        return Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              gradient: LinearGradient(
-                colors: [
-                  color.withAlpha(50),
-                  color.withAlpha(30),
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
-            ),
-            child: Column(
-              children: [
-                Icon(icon, color: color, size: 20),
-                const SizedBox(height: 5),
-                Text(title, style: const TextStyle(fontSize: 14)),
-                const SizedBox(height: 5),
-                const Text(
-                  '\$0.00',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
-            ),
-          ),
+            SizedBox(width: 16),
+            _buildBalanceCard(width: cardWidth),
+          ],
         );
       },
     );
   }
 
-  Widget _buildBalanceCard({
-    required AsyncValue<double> ingresosAsync,
-    required AsyncValue<double> gastosAsync,
+  Widget _buildFinanceCard({
+    required String title,
+    required AsyncValue<double> value,
+    required Color color,
+    required IconData icon,
+    required double width,
   }) {
-    return ingresosAsync.when(
-      data: (ingresosData) {
-        return gastosAsync.when(
-          data: (gastosData) {
-            double balance = ingresosData - gastosData;
-            Color balanceColor = balance >= 0 ? Colors.blue : Colors.red;
+    return SizedBox(
+      width: width,
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: value.when(
+            data: (data) => _buildCardContent(title, icon, color, data),
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (_, __) => const Text("Error loading data"),
+          ),
+        ),
+      ),
+    );
+  }
 
-            return Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
-                  gradient: LinearGradient(
-                    colors: [
-                      Color.lerp(Colors.transparent, balanceColor, 0.2)!,
-                      Color.lerp(Colors.transparent, balanceColor, 0.1)!,
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Icon(Icons.trending_up, color: balanceColor, size: 20),
-                    const SizedBox(height: 5),
-                    const Text('Balance', style: TextStyle(fontSize: 14)),
-                    const SizedBox(height: 5),
-                    Text(
-                      formatCurrency(balance),
-                      style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-          loading: () {
-            return Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
-                  gradient: LinearGradient(
-                    colors: [
-                      Color.lerp(Colors.transparent, Colors.blue, 0.2)!,
-                      Color.lerp(Colors.transparent, Colors.blue, 0.1)!,
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Icon(Icons.trending_up, color: Colors.blue, size: 20),
-                    const SizedBox(height: 5),
-                    const Text('Balance', style: TextStyle(fontSize: 14)),
-                    const SizedBox(height: 5),
-                    const Text(
-                      '\$0.00',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-          error: (error, stackTrace) {
-            return Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Container(
-                padding: const EdgeInsets.all(15),
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(15),
-                  gradient: LinearGradient(
-                    colors: [
-                      Color.lerp(Colors.transparent, Colors.blue, 0.2)!,
-                      Color.lerp(Colors.transparent, Colors.blue, 0.1)!,
-                    ],
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                  ),
-                ),
-                child: Column(
-                  children: [
-                    Icon(Icons.trending_up, color: Colors.blue, size: 20),
-                    const SizedBox(height: 5),
-                    const Text('Balance', style: TextStyle(fontSize: 14)),
-                    const SizedBox(height: 5),
-                    const Text(
-                      '\$0.00',
-                      style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
-                  ],
-                ),
-              ),
-            );
-          },
-        );
-      },
-      loading: () {
-        return Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
+  Widget _buildCardContent(String title, IconData icon, Color color, double value) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
           ),
-          child: Container(
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              gradient: LinearGradient(
-                colors: [
-                  Color.lerp(Colors.transparent, Colors.blue, 0.2)!,
-                  Color.lerp(Colors.transparent, Colors.blue, 0.1)!,
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-              ),
+          child: Icon(icon, color: color, size: 32),
+        ),
+        const SizedBox(height: 16),
+        Text(
+          title,
+          style: const TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          formatCurrency(value),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+          maxLines: 1,
+          overflow: TextOverflow.fade,
+        ),
+      ],
+    );
+  }
+
+  Widget _buildBalanceCard({required double width}) {
+    return SizedBox(
+      width: width,
+      child: Card(
+        elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(16),
+          child: ref.watch(filteredIngresosProvider).when(
+            data: (ing) => ref.watch(filteredEgresosProvider).when(
+              data: (gas) => _buildBalanceContent(ing - gas),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (_, __) => const Text("Error loading expenses"),
             ),
-            child: Column(
-              children: [
-                Icon(Icons.trending_up, color: Colors.blue, size: 20),
-                const SizedBox(height: 5),
-                const Text('Balance', style: TextStyle(fontSize: 14)),
-                const SizedBox(height: 5),
-                const Text(
-                  '\$0.00',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
+            loading: () => const Center(child: CircularProgressIndicator()),
+            error: (_, __) => const Text("Error loading income"),
+          ),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildBalanceContent(double balance) {
+    final color = balance >= 0 ? Colors.blue : Colors.red;
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Container(
+          padding: const EdgeInsets.all(16),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.1),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            balance >= 0 ? Icons.account_balance_wallet : Icons.warning,
+            color: color,
+            size: 32,
+          ),
+        ),
+        const SizedBox(height: 16),
+        const Text(
+          'Balance',
+          style: TextStyle(
+            fontSize: 16,
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 8),
+        Text(
+          formatCurrency(balance),
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.bold,
+            color: color,
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildFinancialActivitySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 8.0),
+          child: Text(
+            'Actividad Financiera',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Colors.black87,
             ),
           ),
-        );
-      },
-      error: (error, stackTrace) {
-        return Card(
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(15),
-          ),
-          child: Container(
-            padding: const EdgeInsets.all(15),
-            decoration: BoxDecoration(
-              borderRadius: BorderRadius.circular(15),
-              gradient: LinearGradient(
-                colors: [
-                  Color.lerp(Colors.transparent, Colors.blue, 0.2)!,
-                  Color.lerp(Colors.transparent, Colors.blue, 0.1)!,
-                ],
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
+        ),
+        const SizedBox(height: 16),
+        Container(
+          height: 280,
+          margin: const EdgeInsets.symmetric(horizontal: 8),
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withOpacity(0.1),
+                spreadRadius: 2,
+                blurRadius: 8,
               ),
-            ),
-            child: Column(
-              children: [
-                Icon(Icons.trending_up, color: Colors.blue, size: 20),
-                const SizedBox(height: 5),
-                const Text('Balance', style: TextStyle(fontSize: 14)),
-                const SizedBox(height: 5),
-                const Text(
-                  '\$0.00',
-                  style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                ),
-              ],
+            ],
+          ),
+          child: const Padding(
+            padding: EdgeInsets.all(16.0),
+            child: ActivityChart(),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildCategorySection(ThemeData theme) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Padding(
+          padding: EdgeInsets.only(left: 8.0),
+          child: Text(
+            'Resumen por Categoría',
+            style: TextStyle(
+              fontSize: 18,
+              fontWeight: FontWeight.w700,
+              color: Colors.black87,
             ),
           ),
-        );
-      },
+        ),
+        const SizedBox(height: 16),
+        const Padding(
+          padding: EdgeInsets.symmetric(horizontal: 8.0),
+          child: CategorySummary(),
+        ),
+      ],
     );
   }
 }
