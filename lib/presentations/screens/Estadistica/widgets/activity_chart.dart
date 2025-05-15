@@ -25,50 +25,64 @@ class ActivityChart extends ConsumerWidget {
     final egresosAsync = ref.watch(filteredEgresosProvider);
 
     return ingresosAsync.when(
-      data: (ingresos) {
-        return egresosAsync.when(
-          data: (egresos) {
-            final transacciones = _prepararTransacciones(
-              ingresos: ingresos,
-              egresos: egresos,
-              filtro: filtro,
-            );
+      data: (ingresos) => egresosAsync.when(
+        data: (egresos) => _buildChartContent(ingresos, egresos, filtro),
+        loading: () => _buildLoading(),
+        error: (err, _) => _buildError('Egresos: $err'),
+      ),
+      loading: () => _buildLoading(),
+      error: (err, _) => _buildError('Ingresos: $err'),
+    );
+  }
 
-            return Card(
-              elevation: 4,
-              shape: RoundedRectangleBorder(
-                borderRadius: BorderRadius.circular(15),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.all(15),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _construirTituloGrafico(filtro: filtro),
-                    const SizedBox(height: 15),
-                    AspectRatio(
-                      aspectRatio: 1.7,
-                      child: LineChart(
-                        _crearDatosLineChart(
-                          transacciones: transacciones,
-                          ingresos: ingresos,
-                          egresos: egresos,
-                          filtro: filtro,
-                        ),
-                      ),
+  Widget _buildChartContent(double ingresos, double egresos, Filter filtro) {
+    final transacciones = _prepararTransacciones(
+      ingresos: ingresos,
+      egresos: egresos,
+      filtro: filtro,
+    );
+
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        return Card(
+          elevation: 4,
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+          child: Padding(
+            padding: const EdgeInsets.all(15),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                _construirTituloGrafico(filtro: filtro),
+                const SizedBox(height: 15),
+                SizedBox(
+                  height: 250,
+                  width: constraints.maxWidth,
+                  child: LineChart(
+                    _crearDatosLineChart(
+                      transacciones: transacciones,
+                      maxWidth: constraints.maxWidth,
+                      filtro: filtro,
                     ),
-                  ],
+                  ),
                 ),
-              ),
-            );
-          },
-          loading: () => const Center(child: CircularProgressIndicator()),
-          error: (err, stack) => Text('Error al cargar los egresos: $err'),
+              ],
+            ),
+          ),
         );
       },
-      loading: () => const Center(child: CircularProgressIndicator()),
-      error: (err, stack) => Text('Error al cargar los ingresos: $err'),
     );
+  }
+
+  double _calcularMaxY(List<Transaction> ingresos, List<Transaction> egresos) {
+    final maxIngresos = ingresos.isNotEmpty 
+        ? ingresos.map((t) => t.monto).reduce((a, b) => a > b ? a : b)
+        : 0;
+    
+    final maxEgresos = egresos.isNotEmpty
+        ? egresos.map((t) => t.monto).reduce((a, b) => a > b ? a : b)
+        : 0;
+
+    return (maxIngresos > maxEgresos ? maxIngresos : maxEgresos) * 1.1;
   }
 
   List<Transaction> _prepararTransacciones({
@@ -77,17 +91,16 @@ class ActivityChart extends ConsumerWidget {
     required Filter filtro,
   }) {
     List<Transaction> transacciones = [];
-    DateTime fechaActual = filtro.startDate ?? DateTime.now().subtract(const Duration(days: 30));
-    DateTime fechaFinal = filtro.endDate ?? DateTime.now();
+    DateTime fechaInicio = filtro.startDate ?? DateTime.now().subtract(const Duration(days: 30));
+    DateTime fechaFin = filtro.endDate ?? DateTime.now();
 
-    while (fechaActual.isBefore(fechaFinal)) {
-      double montoIngreso = ingresos * (fechaActual.day / fechaFinal.day);
-      double montoEgreso = egresos * (fechaActual.day / fechaFinal.day);
+    for (var fecha = fechaInicio; fecha.isBefore(fechaFin); fecha = fecha.add(const Duration(days: 1))) {
+      final dia = fecha.difference(fechaInicio).inDays;
+      final montoIngreso = (ingresos * (dia + 1) / fechaFin.difference(fechaInicio).inDays);
+      final montoEgreso = (egresos * (dia + 1) / fechaFin.difference(fechaInicio).inDays);
 
-      transacciones.add(Transaction(dia: fechaActual.difference(filtro.startDate ?? DateTime.now()).inDays, monto: montoIngreso));
-      transacciones.add(Transaction(dia: fechaActual.difference(filtro.startDate ?? DateTime.now()).inDays, monto: -montoEgreso));
-
-      fechaActual = fechaActual.add(const Duration(days: 1));
+      transacciones.add(Transaction(dia: dia, monto: montoIngreso));
+      transacciones.add(Transaction(dia: dia, monto: -montoEgreso));
     }
 
     return transacciones;
@@ -95,89 +108,84 @@ class ActivityChart extends ConsumerWidget {
 
   LineChartData _crearDatosLineChart({
     required List<Transaction> transacciones,
-    required double ingresos,
-    required double egresos,
+    required double maxWidth,
     required Filter filtro,
   }) {
-    final fechaInicio = filtro.startDate ?? DateTime.now().subtract(const Duration(days: 30));
-    final fechaFin = filtro.endDate ?? DateTime.now();
-
     final ingresosData = transacciones.where((t) => t.monto >= 0).toList();
-    final egresosData = transacciones.where((t) => t.monto < 0).map((t) => Transaction(dia: t.dia, monto: -t.monto)).toList();
-
-    double maximoY = 0;
-    double maxX = 0;
-    if (transacciones.isNotEmpty) {
-      maximoY = ingresosData.isNotEmpty ? ingresosData.map((t) => t.monto).fold(0.0, (previous, current) => previous > current ? previous : current) * 1.1 : 0;
-      maximoY = maximoY > (egresosData.isNotEmpty ? egresosData.map((t) => t.monto).fold(0.0, (previous, current) => previous > current ? previous : current) * 1.1 : 0) ? maximoY : egresosData.isNotEmpty ? egresosData.map((t) => t.monto).fold(0.0, (previous, current) => previous > current ? previous : current) * 1.1 : 0;
-      maxX = transacciones.map((t) => t.dia).reduce((max, current) => current > max ? current : max).toDouble();
-    }
+    final egresosData = transacciones.where((t) => t.monto < 0)
+      .map((t) => Transaction(dia: t.dia, monto: -t.monto)).toList();
 
     return LineChartData(
-      gridData: FlGridData(show: false),
+      gridData: const FlGridData(show: false),
       borderData: FlBorderData(show: true),
       titlesData: FlTitlesData(
-        bottomTitles: _crearTitulosFechas(fechaInicio, fechaFin, filtro, maxX),
+        bottomTitles: _crearTitulosFechas(filtro, maxWidth, transacciones),
         leftTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        topTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
-        rightTitles: const AxisTitles(sideTitles: SideTitles(showTitles: false)),
       ),
       lineBarsData: [
-        LineChartBarData(
-          spots: ingresosData.map((t) => FlSpot(t.dia.toDouble(), t.monto)).toList(),
-          isCurved: true,
-          barWidth: 3,
-          color: Colors.green,
-          belowBarData: BarAreaData(show: true, color: Colors.green.withAlpha(50)),
-          dotData: FlDotData(show: true),
-        ),
-        LineChartBarData(
-          spots: egresosData.map((t) => FlSpot(t.dia.toDouble(), t.monto)).toList(),
-          isCurved: true,
-          barWidth: 3,
-          color: Colors.red,
-          belowBarData: BarAreaData(show: true, color: Colors.red.withAlpha(50)),
-          dotData: FlDotData(show: true),
-        ),
+        _crearLinea(ingresosData, Colors.green),
+        _crearLinea(egresosData, Colors.red),
       ],
-      maxX: maxX,
-      maxY: maximoY,
+      minX: 0,
+      maxX: transacciones.isNotEmpty ? transacciones.last.dia.toDouble() : 0,
+      maxY: _calcularMaxY(ingresosData, egresosData),
     );
   }
 
-  AxisTitles _crearTitulosFechas(DateTime fechaInicio, DateTime fechaFin, Filter filter, double maxX) {
+  AxisTitles _crearTitulosFechas(Filter filtro, double maxWidth, List<Transaction> transacciones) {
+    final fechaInicio = filtro.startDate ?? DateTime.now().subtract(const Duration(days: 30));
+    final totalDias = transacciones.isNotEmpty 
+        ? transacciones.last.dia 
+        : fechaInicio.difference(DateTime.now()).inDays.abs();
+
     return AxisTitles(
       sideTitles: SideTitles(
         showTitles: true,
         reservedSize: 30,
-        getTitlesWidget: (valor, meta) {
-          if (maxX == 0) return const Text('');
-          final diaEnElRango = (fechaFin.difference(fechaInicio).inDays * valor / maxX).round();
-          final fecha = fechaInicio.add(Duration(days: diaEnElRango));
-          return Text(
-            DateFormat.d().format(fecha),
-            style: const TextStyle(fontSize: 10),
-          );
-        },
+        interval: _calcularIntervalo(totalDias).toDouble(),
+        getTitlesWidget: (value, _) => _buildFechaLabel(value, fechaInicio, maxWidth, totalDias),
       ),
     );
   }
 
+  int _calcularIntervalo(int totalDias) {
+    if (totalDias > 60) return 15;
+    if (totalDias > 30) return 7;
+    if (totalDias > 7) return 3;
+    return 1;
+  }
+
+  Widget _buildFechaLabel(double value, DateTime fechaInicio, double maxWidth, int totalDias) {
+    final fecha = fechaInicio.add(Duration(days: value.toInt()));
+    return SizedBox(
+      width: maxWidth / totalDias,
+      child: Text(
+        DateFormat.MMMd().format(fecha),
+        style: TextStyle(fontSize: totalDias > 30 ? 8 : 10),
+      ),
+    );
+  }
+
+  LineChartBarData _crearLinea(List<Transaction> datos, Color color) {
+    return LineChartBarData(
+      spots: datos.map((t) => FlSpot(t.dia.toDouble(), t.monto)).toList(),
+      isCurved: true,
+      color: color,
+      barWidth: 2,
+      belowBarData: BarAreaData(show: true, color: color.withValues(alpha:0.1)),
+      dotData: const FlDotData(show: false),
+    );
+  }
+
   Widget _construirTituloGrafico({required Filter filtro}) {
-    String titulo;
-    if (filtro.type == FilterType.annual) {
-      titulo = 'Actividad Financiera ${DateTime.now().year}';
-    } else if (filtro.type == FilterType.quarterly) {
-      final trimestre = ((DateTime.now().month - 1) / 3).floor() + 1;
-      titulo = 'Trimestre Q$trimestre ${DateTime.now().year}';
-    } else {
-      final startDate = filtro.startDate?.toLocal() ?? DateTime.now().subtract(const Duration(days: 30));
-      final endDate = filtro.endDate?.toLocal() ?? DateTime.now();
-      titulo = '${DateFormat.yMd().format(startDate)} - ${DateFormat.yMd().format(endDate)}';
-    }
+    final fechaInicio = filtro.startDate ?? DateTime.now().subtract(const Duration(days: 30));
+    final fechaFin = filtro.endDate ?? DateTime.now();
     return Text(
-      titulo,
+      '${DateFormat.yMd().format(fechaInicio)} - ${DateFormat.yMd().format(fechaFin)}',
       style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
     );
   }
+
+  Widget _buildLoading() => const Center(child: CircularProgressIndicator());
+  Widget _buildError(String message) => Center(child: Text(message, style: const TextStyle(color: Colors.red)));
 }

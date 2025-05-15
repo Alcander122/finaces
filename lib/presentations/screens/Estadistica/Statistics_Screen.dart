@@ -1,3 +1,4 @@
+// statistics_screen.dart
 import 'package:finances/core/data/models/filter.dart';
 import 'package:finances/core/data/providers/Ingreso_provider.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
@@ -19,6 +20,7 @@ class StatisticsScreen extends ConsumerStatefulWidget {
 class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
   DateTimeRange? selectedDateRange;
 
+  // Selección de rango de fechas personalizado
   void selectDateRange() async {
     final initialDate = DateTime.now().subtract(const Duration(days: 30));
     final firstDate = DateTime.now().subtract(const Duration(days: 365));
@@ -44,6 +46,7 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
     }
   }
 
+  // Cambiar tipo de filtro
   void _changeFilter(FilterType type) {
     ref.read(filterProvider.notifier).update((state) => state.copyWith(
           type: type,
@@ -52,19 +55,23 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
         ));
   }
 
-  String formatCurrency(double value) {
+  // Formatear valores monetarios
+  /*String formatCurrency(double value) {
     final formatter = NumberFormat.currency(
       locale: 'es_CO',
       symbol: '\$',
       decimalDigits: 2,
     );
     return formatter.format(value);
-  }
+  }*/
+  String formatCurrency(double value) {
+      final formatter = NumberFormat.decimalPattern('es_CO');
+      return '\$${formatter.format(value)}';
+    }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final filter = ref.watch(filterProvider);
     final ingresosAsync = ref.watch(filteredIngresosProvider);
     final gastosAsync = ref.watch(filteredEgresosProvider);
 
@@ -80,11 +87,12 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.max,
               children: [
                 _buildHeaderSection(theme),
-                const SizedBox(height: 32),
-                _buildFilterChips(),
-                const SizedBox(height: 32),
+                const SizedBox(height: 24),
+                _buildFilterRow(),
+                const SizedBox(height: 24),
                 _buildFinancialCards(ingresosAsync, gastosAsync),
                 const SizedBox(height: 40),
                 _buildFinancialActivitySection(),
@@ -108,72 +116,78 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
     );
   }
 
-  Widget _buildFilterChips() {
+  Widget _buildFilterRow() {
     final currentFilter = ref.watch(filterProvider).type;
-    return Wrap(
-      spacing: 12,
-      runSpacing: 12,
-      children: [
-        InputChip(
-          label: const Text('Anual'),
-          selected: currentFilter == FilterType.annual,
-          onSelected: (_) => _changeFilter(FilterType.annual),
-          backgroundColor: Colors.white,
-          selectedColor: Colors.blue[100],
-          labelStyle: TextStyle(
-            color: currentFilter == FilterType.annual
-                ? Colors.blue[800]
-                : Colors.grey[700],
-          ),
-        ),
-        InputChip(
-          label: const Text('Trimestral'),
-          selected: currentFilter == FilterType.quarterly,
-          onSelected: (_) => _changeFilter(FilterType.quarterly),
-          backgroundColor: Colors.white,
-          selectedColor: Colors.green[100],
-          labelStyle: TextStyle(
-            color: currentFilter == FilterType.quarterly
-                ? Colors.green[800]
-                : Colors.grey[700],
-          ),
-        ),
-        ActionChip(
-          label: const Text('Personalizado'),
-          onPressed: selectDateRange,
-          avatar: const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
-          backgroundColor: Colors.white,
-          labelStyle: const TextStyle(color: Colors.grey),
-        ),
-      ],
+    return SizedBox(
+      height: 50,
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return Wrap(
+            spacing: 8,
+            runSpacing: 8,
+            alignment: WrapAlignment.start,
+            children: [
+              FilterChip(
+                label: const Text('Anual'),
+                selected: currentFilter == FilterType.annual,
+                onSelected: (value) => _changeFilter(FilterType.annual),
+                selectedColor: Colors.blue[100],
+                labelStyle: TextStyle(
+                  color: currentFilter == FilterType.annual
+                      ? Colors.blue[800]
+                      : Colors.grey[700],
+                ),
+              ),
+              FilterChip(
+                label: const Text('Trimestral'),
+                selected: currentFilter == FilterType.quarterly,
+                onSelected: (value) => _changeFilter(FilterType.quarterly),
+                selectedColor: Colors.green[100],
+                labelStyle: TextStyle(
+                  color: currentFilter == FilterType.quarterly
+                      ? Colors.green[800]
+                      : Colors.grey[700],
+                ),
+              ),
+              FilterChip(
+                label: const Text('Personalizado'),
+                onSelected: (value) => selectDateRange(),
+                avatar: const Icon(Icons.calendar_today, size: 18, color: Colors.grey),
+                labelStyle: const TextStyle(color: Colors.grey),
+              ),
+            ],
+          );
+        },
+      ),
     );
   }
 
   Widget _buildFinancialCards(AsyncValue<double> ingresos, AsyncValue<double> gastos) {
     return LayoutBuilder(
       builder: (context, constraints) {
-        double cardWidth = (constraints.maxWidth - 48) / 3;  // Ajustamos el espacio para 3 cards
-        return Row(  // Usamos Row para alinear los cards en una línea
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            _buildFinanceCard(
-              title: 'Ingresos',
-              value: ingresos,
-              color: Colors.green,
-              icon: Icons.trending_up,
-              width: cardWidth,
-            ),
-            SizedBox(width: 16),  // Espacio entre cards
-            _buildFinanceCard(
-              title: 'Gastos',
-              value: gastos,
-              color: Colors.red,
-              icon: Icons.trending_down,
-              width: cardWidth,
-            ),
-            SizedBox(width: 16),
-            _buildBalanceCard(width: cardWidth),
-          ],
+        double cardWidth = (constraints.maxWidth - 16) / 3;
+        return SizedBox(
+          height: 120,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+            children: [
+              _buildFinanceCard(
+                title: 'Ingresos',
+                value: ingresos,
+                color: Colors.green,
+                icon: Icons.trending_up,
+                width: cardWidth,
+              ),
+              _buildFinanceCard(
+                title: 'Gastos',
+                value: gastos,
+                color: Colors.red,
+                icon: Icons.trending_down,
+                width: cardWidth,
+              ),
+              _buildBalanceCard(width: cardWidth),
+            ],
+          ),
         );
       },
     );
@@ -190,15 +204,13 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
       width: width,
       child: Card(
         elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: value.when(
             data: (data) => _buildCardContent(title, icon, color, data),
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => const Text("Error loading data"),
+            error: (_, __) => const Text("Error al cargar datos"),
           ),
         ),
       ),
@@ -207,34 +219,35 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
 
   Widget _buildCardContent(String title, IconData icon, Color color, double value) {
     return Column(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(icon, color: color, size: 32),
-        ),
-        const SizedBox(height: 16),
-        Text(
-          title,
-          style: const TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
+        Flexible(
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha:0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icon, color: color, size: 20),
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          formatCurrency(value),
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: color,
+        Flexible(
+          child: Text(
+            title,
+            style: const TextStyle(fontSize: 12),
+            textAlign: TextAlign.center,
           ),
-          maxLines: 1,
-          overflow: TextOverflow.fade,
+        ),
+        Flexible(
+          child: Text(
+            formatCurrency(value),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+            textAlign: TextAlign.center,
+          ),
         ),
       ],
     );
@@ -245,19 +258,17 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
       width: width,
       child: Card(
         elevation: 4,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(12),
           child: ref.watch(filteredIngresosProvider).when(
             data: (ing) => ref.watch(filteredEgresosProvider).when(
               data: (gas) => _buildBalanceContent(ing - gas),
               loading: () => const Center(child: CircularProgressIndicator()),
-              error: (_, __) => const Text("Error loading expenses"),
+              error: (_, __) => const Text("Error en gastos"),
             ),
             loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => const Text("Error loading income"),
+            error: (_, __) => const Text("Error en ingresos"),
           ),
         ),
       ),
@@ -267,35 +278,38 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
   Widget _buildBalanceContent(double balance) {
     final color = balance >= 0 ? Colors.blue : Colors.red;
     return Column(
-      mainAxisSize: MainAxisSize.min,
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        Container(
-          padding: const EdgeInsets.all(16),
-          decoration: BoxDecoration(
-            color: color.withOpacity(0.1),
-            shape: BoxShape.circle,
-          ),
-          child: Icon(
-            balance >= 0 ? Icons.account_balance_wallet : Icons.warning,
-            color: color,
-            size: 32,
-          ),
-        ),
-        const SizedBox(height: 16),
-        const Text(
-          'Balance',
-          style: TextStyle(
-            fontSize: 16,
-            fontWeight: FontWeight.bold,
+        Flexible(
+          child: Container(
+            padding: const EdgeInsets.all(8),
+            decoration: BoxDecoration(
+              color: color.withValues(alpha:0.1),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              balance >= 0 ? Icons.account_balance_wallet : Icons.warning,
+              color: color,
+              size: 20,
+            ),
           ),
         ),
-        const SizedBox(height: 8),
-        Text(
-          formatCurrency(balance),
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.bold,
-            color: color,
+        Flexible(
+          child: const Text(
+            'Balance',
+            style: TextStyle(fontSize: 12),
+            textAlign: TextAlign.center,
+          ),
+        ),
+        Flexible(
+          child: Text(
+            formatCurrency(balance),
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: color,
+            ),
+            textAlign: TextAlign.center,
           ),
         ),
       ],
@@ -306,34 +320,29 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 8.0),
-          child: Text(
-            'Actividad Financiera',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Colors.black87,
-            ),
+        const Text(
+          'Actividad Financiera',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: Colors.black87,
           ),
         ),
         const SizedBox(height: 16),
         Container(
-          height: 280,
-          margin: const EdgeInsets.symmetric(horizontal: 8),
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withOpacity(0.1),
+                color: Colors.grey.withValues(alpha:0.1),
                 spreadRadius: 2,
                 blurRadius: 8,
               ),
             ],
           ),
           child: const Padding(
-            padding: EdgeInsets.all(16.0),
+            padding: EdgeInsets.all(16),
             child: ActivityChart(),
           ),
         ),
@@ -345,23 +354,38 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.only(left: 8.0),
-          child: Text(
-            'Resumen por Categoría',
-            style: TextStyle(
-              fontSize: 18,
-              fontWeight: FontWeight.w700,
-              color: Colors.black87,
-            ),
+        const Text(
+          'Resumen por Categoría',
+          style: TextStyle(
+            fontSize: 18,
+            fontWeight: FontWeight.w700,
+            color: Colors.black87,
           ),
         ),
         const SizedBox(height: 16),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 8.0),
-          child: CategorySummary(),
+        Container(
+          decoration: BoxDecoration(
+            color: Colors.white,
+            borderRadius: BorderRadius.circular(12),
+            boxShadow: [
+              BoxShadow(
+                color: Colors.grey.withValues(alpha:0.1),
+                spreadRadius: 2,
+                blurRadius: 8,
+              ),
+            ],
+          ),
+          padding: const EdgeInsets.all(16),
+          child: const CategorySummary(),
         ),
       ],
     );
+  }
+}
+
+extension DateTimeExtensions on DateTime? {
+  String format(String pattern) {
+    if (this == null) return '';
+    return DateFormat(pattern).format(this!);
   }
 }
