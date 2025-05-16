@@ -58,3 +58,35 @@ final filteredEgresosProvider = StreamProvider.autoDispose<double>((ref) {
       );
   }
 });
+final egresosFiltradosProvider = StreamProvider.autoDispose<List<Egreso>>((ref) {
+  final authState = ref.watch(authProvider);
+  final filter = ref.watch(filterProvider);
+
+  if (authState.user == null) return Stream.value([]);
+
+  return ref.watch(egresoServiceProvider).obtenerEgresosFiltrados(
+        authState.user!.uid,
+        filter.startDate,
+        filter.endDate,
+      );
+});
+
+// En Egreso_provider.dart
+final egresosPorCategoriaProvider = Provider.family<AsyncValue<List<Egreso>>, String>(
+  (ref, categoria) => ref.watch(egresosFiltradosProvider).whenData(
+    (egresos) => egresos.where((e) => e.categoria == categoria).toList(),
+  ),
+);
+
+final totalEgresosProvider = StreamProvider.autoDispose<double>((ref) {
+  final authState = ref.watch(authProvider);
+  final filter = ref.watch(filterProvider);
+
+  if (authState.user == null) return Stream.value(0.0);
+
+  return Stream.value(
+    ref.watch(egresoServiceProvider).calcularTotalEgresos(
+      ref.watch(egresosFiltradosProvider).value ?? [],
+    ),
+  );
+});

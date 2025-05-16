@@ -1,26 +1,26 @@
-// statistics_screen.dart
+// lib/presentations/screens/Estadistica/Statistics_Screen.dart
 import 'package:finances/core/data/models/filter.dart';
 import 'package:finances/core/data/providers/Ingreso_provider.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:finances/core/data/providers/filter_provider.dart';
 import 'package:finances/presentations/screens/Estadistica/widgets/activity_chart.dart';
 import 'package:finances/presentations/screens/Estadistica/widgets/category_summary.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
-import 'package:finances/core/data/providers/filter_provider.dart';
+import 'package:finances/routes/app_routes.dart';
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
-class StatisticsScreen extends ConsumerStatefulWidget {
-  const StatisticsScreen({super.key});
+class StatisticScreen extends ConsumerStatefulWidget {
+  const StatisticScreen({super.key});
 
   @override
   StatisticsScreenState createState() => StatisticsScreenState();
 }
 
-class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
+class StatisticsScreenState extends ConsumerState<StatisticScreen> {
   DateTimeRange? selectedDateRange;
 
-  // Selección de rango de fechas personalizado
   void selectDateRange() async {
     final initialDate = DateTime.now().subtract(const Duration(days: 30));
     final firstDate = DateTime.now().subtract(const Duration(days: 365));
@@ -46,7 +46,6 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
     }
   }
 
-  // Cambiar tipo de filtro
   void _changeFilter(FilterType type) {
     ref.read(filterProvider.notifier).update((state) => state.copyWith(
           type: type,
@@ -55,25 +54,20 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
         ));
   }
 
-  // Formatear valores monetarios
-  /*String formatCurrency(double value) {
+  String formatCurrency(double value) {
     final formatter = NumberFormat.currency(
       locale: 'es_CO',
       symbol: '\$',
       decimalDigits: 2,
     );
     return formatter.format(value);
-  }*/
-  String formatCurrency(double value) {
-      final formatter = NumberFormat.decimalPattern('es_CO');
-      return '\$${formatter.format(value)}';
-    }
+  }
 
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    final ingresosAsync = ref.watch(filteredIngresosProvider);
-    final gastosAsync = ref.watch(filteredEgresosProvider);
+    final ingresosAsync = ref.watch(totalIngresosProvider);
+    final egresosAsync = ref.watch(totalEgresosProvider);
 
     return Scaffold(
       appBar: AppBarFinances(
@@ -87,13 +81,12 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
             padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.max,
               children: [
                 _buildHeaderSection(theme),
                 const SizedBox(height: 24),
                 _buildFilterRow(),
                 const SizedBox(height: 24),
-                _buildFinancialCards(ingresosAsync, gastosAsync),
+                _buildFinancialCards(ingresosAsync, egresosAsync),
                 const SizedBox(height: 40),
                 _buildFinancialActivitySection(),
                 const SizedBox(height: 40),
@@ -225,7 +218,7 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
           child: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withValues(alpha:0.1),
+              color: color.withAlpha(30),
               shape: BoxShape.circle,
             ),
             child: Icon(icon, color: color, size: 20),
@@ -261,8 +254,8 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         child: Padding(
           padding: const EdgeInsets.all(12),
-          child: ref.watch(filteredIngresosProvider).when(
-            data: (ing) => ref.watch(filteredEgresosProvider).when(
+          child: ref.watch(totalIngresosProvider).when(
+            data: (ing) => ref.watch(totalEgresosProvider).when(
               data: (gas) => _buildBalanceContent(ing - gas),
               loading: () => const Center(child: CircularProgressIndicator()),
               error: (_, __) => const Text("Error en gastos"),
@@ -284,7 +277,7 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
           child: Container(
             padding: const EdgeInsets.all(8),
             decoration: BoxDecoration(
-              color: color.withValues(alpha:0.1),
+              color: color.withAlpha(30),
               shape: BoxShape.circle,
             ),
             child: Icon(
@@ -335,7 +328,7 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withValues(alpha:0.1),
+                color: Colors.grey.withAlpha(50),
                 spreadRadius: 2,
                 blurRadius: 8,
               ),
@@ -369,23 +362,28 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withValues(alpha:0.1),
+                color: Colors.grey.withAlpha(50),
                 spreadRadius: 2,
                 blurRadius: 8,
               ),
             ],
           ),
           padding: const EdgeInsets.all(16),
-          child: const CategorySummary(),
+          child: CategorySummary(
+            onCategoryTap: (category, isExpense) {
+              Navigator.pushNamed(
+                context,
+                AppRoutes.categoryDetails,
+                arguments: {
+                  'category': category,
+                  'filter': ref.read(filterProvider),
+                  'isExpense': isExpense,
+                },
+              );
+            },
+          ),
         ),
       ],
     );
-  }
-}
-
-extension DateTimeExtensions on DateTime? {
-  String format(String pattern) {
-    if (this == null) return '';
-    return DateFormat(pattern).format(this!);
   }
 }

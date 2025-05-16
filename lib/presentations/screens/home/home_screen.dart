@@ -277,7 +277,7 @@ class HomeScreen extends ConsumerWidget {
         _actionButton(
             context, 'Gasto', Icons.remove_circle, Colors.red, EgresosScreen()),
         _actionButton(
-            context, 'Estadisticas', Icons.bar_chart, Colors.purple, StatisticsScreen()),
+            context, 'Estadisticas', Icons.bar_chart, Colors.purple, StatisticScreen()),
       ],
     );
   }
