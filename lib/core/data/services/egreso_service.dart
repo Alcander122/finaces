@@ -6,7 +6,7 @@ class EgresoService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // 🔹 Generar un ID aleatorio
-  String _generarIdAleatorio() {
+  String generarIdAleatorio() {
     const caracteres =
         'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     final random = Random();

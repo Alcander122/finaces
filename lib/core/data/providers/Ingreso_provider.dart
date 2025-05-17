@@ -12,19 +12,15 @@ final ingresosServiceProvider = Provider<IngresosService>((ref) {
 
 // Proveedor para ingresos filtrados
 final filteredIngresosProvider = StreamProvider.autoDispose<double>((ref) {
-  final authState =
-      ref.watch(authProvider); // Observar el estado de autenticación
+  final authState =ref.watch(authProvider); // Observar el estado de autenticación
   final filter = ref.watch(filterProvider); // Observar el filtro actual
-
-  if (authState.user == null)
-    return Stream.value(0.0); // Si no hay usuario, devolver 0.0
+  if (authState.user == null)return Stream.value(0.0); // Si no hay usuario, devolver 0.0
 
   // Según el tipo de filtro, devolver el proveedor de ingresos correspondiente
   switch (filter.type) {
     case FilterType.monthly:
       // Devolver el total de ingresos del mes actual
-      return IngresosService()
-          .streamTotalIngresosMesActual(authState.user!.uid);
+      return IngresosService().streamTotalIngresosMesActual(authState.user!.uid);
     case FilterType.quarterly:
     case FilterType.annual:
       // Devolver el total de ingresos (anuales o trimestrales)
@@ -44,8 +40,7 @@ final totalIngresosMesActualProvider =
     StreamProvider.autoDispose<double>((ref) {
   final authState =
       ref.watch(authProvider); // Observar el estado de autenticación
-  if (authState.user == null)
-    return Stream.value(0.0); // Si no hay usuario, devolver 0.0
+  if (authState.user == null)return Stream.value(0.0); // Si no hay usuario, devolver 0.0
   // Devolver el total de ingresos del mes actual
   return IngresosService().streamTotalIngresosMesActual(authState.user!.uid);
 });
