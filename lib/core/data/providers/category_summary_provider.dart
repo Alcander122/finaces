@@ -1,7 +1,4 @@
 // category_summary_provider.dart
-
-import 'dart:async';
-import 'package:async/async.dart';
 import 'package:finances/core/data/models/filter.dart';
 import 'package:finances/core/data/models/egreso_model.dart';
 import 'package:finances/core/data/models/ingreso.model.dart';
@@ -9,72 +6,52 @@ import 'package:finances/core/data/providers/Ingreso_provider.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
 import 'package:finances/core/data/providers/filter_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:rxdart/rxdart.dart';
 
+/// Proveedor principal que combina ingresos y egresos filtrados por categoría
 final ingresosEgresosCategoryStreamProvider = StreamProvider<Map<String, Map<String, double>>>((ref) {
-  final filter = ref.watch(filterProvider);
+  final ingresosStream = ref.watch(ingresosFiltradosProvider.stream);
+  final egresosStream = ref.watch(egresosFiltradosProvider.stream);
 
-  final ingresosStream = _getCategoryDataStream(
-    isExpense: false,
-    ref: ref,
-  );
-
-  final egresosStream = _getCategoryDataStream(
-    isExpense: true,
-    ref: ref,
-  );
-
-  return StreamZip([
+  // Usa Rx.combineLatest2 de rxdart
+  return Rx.combineLatest2(
     ingresosStream,
     egresosStream,
-  ]).map((values) => {
-        'ingresos': values[0],
-        'egresos': values[1],
-      });
+    (List<Ingreso> ingresos, List<Egreso> egresos) {
+      return {
+        'ingresos': _groupByCategory(ingresos, false),
+        'egresos': _groupByCategory(egresos, true),
+      };
+    },
+  );
 });
 
-Stream<Map<String, double>> _getCategoryDataStream({
-  required bool isExpense,
-  required Ref ref,
-}) {
-  final controller = StreamController<Map<String, double>>();
-  late Timer timer;
+/// Función auxiliar para agrupar transacciones por categoría
+Map<String, double> _groupByCategory(List<dynamic> transactions, bool isExpense) {
+  final categoryMap = <String, double>{};
 
-  void tick() async {
-    if (controller.isClosed) return;
-
-    Map<String, double> categoryData = {};
-
-    final List<dynamic> data = isExpense
-        ? ref.read(egresosFiltradosProvider).value ?? []
-        : ref.read(ingresosFiltradosProvider).value ?? [];
-
-    for (var item in data) {
-      if (isExpense) {
-        final egreso = item as Egreso;
-        categoryData.update(
-          egreso.categoria,
-          (value) => value + egreso.valor,
-          ifAbsent: () => egreso.valor.toDouble(),
-        );
-      } else {
-        final ingreso = item as Ingreso;
-        categoryData.update(
-          ingreso.categoria,
-          (value) => value + ingreso.valor,
-          ifAbsent: () => ingreso.valor.toDouble(),
-        );
-      }
+  for (final transaction in transactions) {
+    // Extraer datos según el tipo de transacción
+    final String category;
+    final double amount;
+    
+    if (isExpense) {
+      final egreso = transaction as Egreso;
+      category = egreso.categoria;
+      amount = egreso.valor.toDouble();
+    } else {
+      final ingreso = transaction as Ingreso;
+      category = ingreso.categoria;
+      amount = ingreso.valor.toDouble();
     }
 
-    controller.add(categoryData);
-    timer = Timer(const Duration(seconds: 1), tick);
+    // Actualizar sumatorio por categoría
+    categoryMap.update(
+      category,
+      (existing) => existing + amount,
+      ifAbsent: () => amount,
+    );
   }
-
-  timer = Timer(const Duration(milliseconds: 0), tick);
-
-  controller.onCancel = () {
-    timer.cancel();
-  };
-
-  return controller.stream;
+  
+  return categoryMap;
 }

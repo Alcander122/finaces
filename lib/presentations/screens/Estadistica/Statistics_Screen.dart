@@ -156,7 +156,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
         label: Text(label),
         selected: isSelected,
         onSelected: (_) => onTap(),
-        selectedColor: color.withOpacity(0.2),
+        selectedColor: color.withValues(alpha: 0.2),
         checkmarkColor: color,
         labelStyle: TextStyle(
           color: isSelected ? color : Colors.grey[700],
@@ -186,7 +186,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
         ),
         selected: isCustomSelected,
         onSelected: (_) => selectDateRange(),
-        selectedColor: Colors.orange.withOpacity(0.2),
+        selectedColor: Colors.orange.withValues(alpha: 0.2),
         checkmarkColor: Colors.orange,
         labelStyle: TextStyle(
           color: isCustomSelected ? Colors.orange : Colors.grey[700],

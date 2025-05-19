@@ -3,7 +3,7 @@
 import 'package:finances/presentations/screens/Ahorro/ahorro_screen.dart';
 import 'package:finances/presentations/screens/Auth/LoginScreen.dart';
 import 'package:finances/presentations/screens/Auth/register.screen.dart';
-import 'package:finances/presentations/screens/Estadistica/Statistics_Screen.dart';
+import 'package:finances/presentations/screens/Estadistica/statistics_screen.dart';
 import 'package:finances/presentations/screens/Profile/profile_screen.dart';
 import 'package:finances/presentations/screens/Portafolio/portafolio_screen.dart';
 import 'package:finances/presentations/screens/Auth/welcome_screen.dart';
@@ -24,7 +24,7 @@ class AppRoutes {
   static const String ingresos = '/ingresos';
   static const String portafolio = '/portafolio';
   static const String ahorro = '/ahorro';
-  static const String Estadistica = '/Estadistica';
+  static const String estadistica = '/Estadistica';
   // Nueva ruta para detalles de categoría
   static const String categoryDetails = '/category-details';
 
@@ -40,7 +40,7 @@ class AppRoutes {
       register: (context) => const RegisterScreen(),
       portafolio: (context) => const PortafolioScreen(),
       ahorro: (context) => const AhorroScreen(),
-      Estadistica: (context) => const StatisticScreen(),
+      estadistica: (context) => const StatisticScreen(),
       categoryDetails: (context) {
         final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
         return CategoryDetailsScreen(

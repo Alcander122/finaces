@@ -174,19 +174,13 @@ class ActivityChart extends ConsumerWidget {
   BarChartData _crearDatosChart(List<PeriodData> periodosData, Filter filtro) {
     if (periodosData.isEmpty) return BarChartData(barGroups: []);
 
-    // Formateador de valores para los ejes
-    final moneyFormat = NumberFormat.currency(
-      locale: 'es_CO',
-      symbol: '\$',
-      decimalDigits: 0,
-    );
 
     return BarChartData(
       barTouchData: BarTouchData(
         enabled: true,
         touchTooltipData: BarTouchTooltipData(
           getTooltipItem: (group, _, rod, __) {
-            final index = group.x!.toInt();
+            final index = group.x.toInt();
             final pd = periodosData[index];
             final isIncome = group.barRods.indexOf(rod) == 0;
             return BarTooltipItem(
@@ -215,10 +209,10 @@ class ActivityChart extends ConsumerWidget {
             showTitles: true,
             getTitlesWidget: (value, meta) => Padding(
               padding: const EdgeInsets.only(right: 10),
-              child: Text(
-                moneyFormat.format(value.toInt()),
-                style: const TextStyle(fontSize: 10),
-              ),
+             /* child: Text(
+                //formatCurrency(value),
+                //style: const TextStyle(fontSize: 10),
+              ),*/
             ),
             reservedSize: 40,
           ),
@@ -277,8 +271,6 @@ class ActivityChart extends ConsumerWidget {
         return 'T${((fecha.month - 1) ~/ 3) + 1}';
       case FilterType.custom:
         return DateFormat('dd/MM').format(fecha);
-      default:
-        return DateFormat('dd/MM/yy').format(fecha);
     }
   }
 
@@ -325,11 +317,6 @@ class ActivityChart extends ConsumerWidget {
           end: DateTime(hoy.year, 12, 31),
         );
       case FilterType.custom:
-        return DateTimeRange(
-          start: filtro.startDate ?? hoy.subtract(const Duration(days: 30)),
-          end: filtro.endDate ?? hoy,
-        );
-      default:
         return DateTimeRange(
           start: filtro.startDate ?? hoy.subtract(const Duration(days: 30)),
           end: filtro.endDate ?? hoy,
