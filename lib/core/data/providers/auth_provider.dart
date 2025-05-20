@@ -168,6 +168,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> signOut() async {
     try {
       state = const AuthState.loading();
+      // Este método también es invocado automáticamente por el InactivityService
       await _storage.setLoggedOut(true);
       await _auth.signOut();
       await _storage.deleteToken();

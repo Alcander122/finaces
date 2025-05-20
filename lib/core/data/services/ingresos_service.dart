@@ -115,6 +115,38 @@ class IngresosService {
     });
   }
 
+  Stream<List<Ingreso>> obtenerIngresosFiltrados(
+    String userId,
+    DateTime? startDate,
+    DateTime? endDate,
+  ) {
+    Query query =
+        _firestore.collection('users').doc(userId).collection('ingresos');
+
+    if (startDate != null && endDate != null) {
+      query = query
+          .where('fecha', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('fecha', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
+    }
+
+    return query.snapshots().map((snapshot) {
+      return snapshot.docs.map((doc) {
+        final data = doc.data();
+        if (data == null || data is! Map) {
+          return Ingreso.fromMap({'id': doc.id});
+        }
+        return Ingreso.fromMap({
+          ...data as Map<String, dynamic>,
+          'id': doc.id,
+        });
+      }).toList();
+    });
+  }
+
+  double calcularTotalIngresos(List<Ingreso> ingresos) {
+    return ingresos.fold(0.0, (sum, ingreso) => sum + ingreso.valor);
+  }
+
   Stream<double> streamTotalIngresosMesActual(String userId) {
     final now = DateTime.now();
     final anioActual = now.year;
