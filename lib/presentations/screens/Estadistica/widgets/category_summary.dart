@@ -101,7 +101,7 @@ class CategorySummary extends ConsumerWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
-            color: isSelected ? color.withOpacity(0.15) : Colors.grey[100],
+            color: isSelected ? color.withValues(alpha:0.15) : Colors.grey[100],
             border: Border(
               bottom: BorderSide(
                 color: isSelected ? color : Colors.transparent,
