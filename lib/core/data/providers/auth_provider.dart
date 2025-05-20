@@ -117,33 +117,35 @@ class AuthNotifier extends StateNotifier<AuthState> {
     });
   }
 
- Future<void> signIn(String email, String password) async {
-  try {
-    state = const AuthState.loading();
-    await _storage.clearLoggedOut();
+  Future<void> signIn(String email, String password) async {
+    try {
+      state = const AuthState.loading();
+      await _storage.clearLoggedOut();
 
-    // Añadir esta línea para evitar llamar a setPersistence() en plataformas no web
-    if (kIsWeb) {
-      await _auth.setPersistence(Persistence.LOCAL);
-    }
+      // Añadir esta línea para evitar llamar a setPersistence() en plataformas no web
+      if (kIsWeb) {
+        await _auth.setPersistence(Persistence.LOCAL);
+      }
 
-    await _auth.signInWithEmailAndPassword(email: email, password: password);
-    User? user = _auth.currentUser;
-    if (user != null) {
-      await user.reload();
+      await _auth.signInWithEmailAndPassword(email: email, password: password);
+      User? user = _auth.currentUser;
+      if (user != null) {
+        await user.reload();
+      }
+      //logger.i('Inicio de sesión exitoso: $email');
+    } on FirebaseAuthException catch (e) {
+      final message = AuthErrorHandler.handle(e);
+      state = AuthState.error(message);
+      throw message;
+    } catch (e) {
+      //logger.e('Error general en signIn', error: e, stackTrace: stack);
+      state = AuthState.error(ErrorStrings.unexpectedError);
+      throw ErrorStrings.unexpectedError;
     }
-    //logger.i('Inicio de sesión exitoso: $email');
-  } on FirebaseAuthException catch (e) {
-    final message = AuthErrorHandler.handle(e);
-    state = AuthState.error(message);
-    throw message;
-  } catch (e) {
-    //logger.e('Error general en signIn', error: e, stackTrace: stack);
-    state = AuthState.error(ErrorStrings.unexpectedError);
-    throw ErrorStrings.unexpectedError;
   }
-}
-  Future<void> signUp(String name, String displayName, String email, String password) async {
+
+  Future<void> signUp(
+      String name, String displayName, String email, String password) async {
     try {
       state = const AuthState.loading();
       await _storage.clearLoggedOut();
@@ -166,6 +168,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> signOut() async {
     try {
       state = const AuthState.loading();
+      // Este método también es invocado automáticamente por el InactivityService
       await _storage.setLoggedOut(true);
       await _auth.signOut();
       await _storage.deleteToken();
@@ -264,7 +267,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   Future<void> _handleNewGoogleUser(User user) async {
     try {
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
-      
+
       if (!userDoc.exists) {
         await _firestore.collection('users').doc(user.uid).set({
           'uid': user.uid,
