@@ -93,10 +93,8 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
     final egresosAsync = ref.watch(egresosProvider);
 
     return Scaffold(
-      appBar: AppBarFinances(
-        title: 'Egresos',
-        showBackButton: true, // Muestra el botón de regreso
-        showProfileAction: false, // Oculta el botón de perfil
+      appBar: AppBar(
+        title: const Text('Egresos'),
         actions: [
           IconButton(
             icon: const Icon(Icons.view_column),

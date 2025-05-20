@@ -176,6 +176,12 @@
       "languageVersion": "3.7"
     },
     {
+      "name": "font_awesome_flutter",
+      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/font_awesome_flutter-10.8.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "google_identity_services_web",
       "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/google_identity_services_web-0.3.3+1",
       "packageUri": "lib/",
@@ -441,15 +447,15 @@
     },
     {
       "name": "syncfusion_flutter_charts",
-      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/syncfusion_flutter_charts-29.1.39",
+      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/syncfusion_flutter_charts-29.1.38",
       "packageUri": "lib/",
-      "languageVersion": "3.7"
+      "languageVersion": "3.4"
     },
     {
       "name": "syncfusion_flutter_core",
-      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/syncfusion_flutter_core-29.1.39",
+      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/syncfusion_flutter_core-29.1.38",
       "packageUri": "lib/",
-      "languageVersion": "3.7"
+      "languageVersion": "3.4"
     },
     {
       "name": "term_glyph",
@@ -536,7 +542,7 @@
       "languageVersion": "3.6"
     }
   ],
-  "generated": "2025-05-19T20:58:46.264456Z",
+  "generated": "2025-05-20T21:46:30.169368Z",
   "generator": "pub",
   "generatorVersion": "3.7.2",
   "flutterRoot": "file:///C:/Users/ANDRES%20AYALA/dev/flutter",

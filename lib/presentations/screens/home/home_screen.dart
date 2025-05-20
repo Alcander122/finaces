@@ -7,7 +7,7 @@ import 'package:finances/presentations/screens/Estadistica/Statistics_Screen.dar
 import 'package:finances/presentations/screens/portafolio/portafolio_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:finances/presentations/widgets/menu_option.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import '../ingresos/ingresos_screen.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
@@ -24,8 +24,9 @@ class HomeScreen extends ConsumerWidget {
     }
 
     if (!authState.isAuthenticated) {
-      return const LoginScreen(); // Asegúrate de redirigir al login
+      return const LoginScreen();
     }
+
     final totalIngresosMesAsync = ref.watch(totalIngresosMesActualProvider);
     final totalGastosAsync = ref.watch(totalEgresoMesActualProvider);
 
@@ -40,227 +41,214 @@ class HomeScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: const AppBarFinances(
-        title: 'Panel Principal',
-        showProfileAction: true, // Habilitamos el botón
-      ),
-      backgroundColor: Color(0xFFd6eaf8),
+      appBar: const AppBarFinances(),
+      backgroundColor: const Color(0xFFd6eaf8),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(0.0),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            const SizedBox(height: 5),
-            _buildUserProfile(authState),
-            const SizedBox(height: 5),
+            Container(
+              width: double.infinity,
+              decoration: const BoxDecoration(
+                gradient: LinearGradient(
+                  colors: [Color(0xFF3A59D1), Color(0xFF3A59D1)],
+                  begin: Alignment.topLeft,
+                  end: Alignment.bottomRight,
+                ),
+                borderRadius: BorderRadius.only(
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(24),
+                ),
+              ),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(
+                    horizontal: 16.0, vertical: 32.0),
+                child: _buildUserProfile(context, authState),
+              ),
+            ),
+            const SizedBox(height: 25),
             _buildFinancialSummary(totalIngresos, totalGastos),
-            const SizedBox(height: 5),
+            const SizedBox(height: 25),
+            const Text(
+              'Acciones rápidas',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 10),
             _buildQuickActions(context),
-            const SizedBox(height: 5),
-            _buildMainMenu(context),
+            const SizedBox(height: 20),
+            _buildMenuCardsSeccion(context),
           ],
         ),
       ),
     );
   }
 
-  Widget _buildUserProfile(AuthState authState) {
+  Widget _buildUserProfile(BuildContext context, AuthState authState) {
     return authState.user == null
         ? const CircularProgressIndicator()
-        : Container(
-            padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
-            decoration: BoxDecoration(
-              gradient: LinearGradient(
-                colors: [
-                  Color(0xFF3A57E8),
-                  Color(0xFF0C1F6F),
-                  Color(0xFF050A30),
-                ],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
+        : Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              GestureDetector(
+                onTap: () {
+                  Navigator.pushNamed(context, '/profile');
+                },
+                child: CircleAvatar(
+                  radius: 30,
+                  backgroundColor: Colors.white,
+                  child: Icon(Icons.person, color: Color(0xFF3674B5), size: 32),
+                ),
               ),
-              borderRadius: BorderRadius.circular(20),
-            ),
-            child: Row(
-              crossAxisAlignment: CrossAxisAlignment.center,
-              children: [
-                CircleAvatar(
-                  radius: 28,
-                  backgroundColor: const Color(0xFF1B263B),
-                  child: const Icon(
-                    Icons.person,
-                    color: Colors.white,
-                    size: 32,
-                  ),
-                ),
-                const SizedBox(width: 16),
-                Expanded(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text(
-                        'Bienvenido, ${authState.user?.displayName ?? 'Sin nombre'}',
-                        style: const TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                          color: Colors.white,
-                        ),
+              const SizedBox(width: 16),
+              Expanded(
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Bienvenido, ${authState.user?.displayName ?? 'Usuario'}',
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontSize: 18,
+                        fontWeight: FontWeight.bold,
                       ),
-                      const SizedBox(height: 4),
-                      const Text(
-                        'Resumen de este mes',
-                        style: TextStyle(
-                          fontSize: 14,
-                          color: Color(0xFF9BAEC8),
-                        ),
-                      ),
-                    ],
-                  ),
+                    ),
+                    const SizedBox(height: 4),
+                    const Text(
+                      'Resumen del mes',
+                      style: TextStyle(color: Colors.white70, fontSize: 14),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           );
   }
 
-  Widget _buildFinancialSummary(double totalIngresos, double totalGastos) {
-    final saldo = totalIngresos - totalGastos;
+  Widget _buildFinancialSummary(double ingresos, double gastos) {
+    final saldo = ingresos - gastos;
     final isPositive = saldo >= 0;
-
-    String formatCurrency(double value) {
-      final formatter = NumberFormat.decimalPattern('es_CO');
-      return '\$${formatter.format(value)}';
-    }
+    final formatter = NumberFormat.currency(locale: 'es_CO', symbol: '\$');
 
     return Container(
+      width: double.infinity,
       decoration: BoxDecoration(
-        gradient: LinearGradient(
-          colors: [
-            Color(0xFF050A30),
-            Color(0xFF08124D),
-            Color(0xFF0C1F6F),
-            Color(0xFF2045C6),
-            Color(0xFF3A57E8),
-          ],
-          stops: [0.0, 0.25, 0.5, 0.75, 1.0],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
+        color: const Color(0xFFEAF6FF),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.blueGrey.shade100, width: 1),
+        boxShadow: const [
           BoxShadow(
-            color: Colors.white.withValues(alpha: 0.3),
-            blurRadius: 10,
-            offset: Offset(0, 6),
+            color: Colors.black12,
+            blurRadius: 6,
+            offset: Offset(0, 4),
           ),
         ],
       ),
       padding: const EdgeInsets.all(20),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.center,
+      child: Stack(
         children: [
-          Text(
-            "Resumen financiero",
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-              letterSpacing: 1.2,
+          Positioned(
+            bottom: -70,
+            right: -25,
+            child: Opacity(
+              opacity: 0.5,
+              child: Image.asset(
+                'assets/images/logobill.png',
+                width: 180,
+              ),
             ),
           ),
-          const SizedBox(height: 20),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.spaceAround,
+          Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _customStatCard(
-                title: "Ingresos",
-                amount: totalIngresos,
-                icon: Icons.arrow_upward,
-                color: Colors.greenAccent,
-              ),
-              _customStatCard(
-                title: "Gastos",
-                amount: totalGastos,
-                icon: Icons.arrow_downward,
-                color: Colors.redAccent,
-              ),
-            ],
-          ),
-          const SizedBox(height: 30),
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(
-                isPositive ? Icons.trending_up : Icons.trending_down,
-                color: isPositive ? Colors.greenAccent : Colors.redAccent,
-                size: 34,
-              ),
-              const SizedBox(width: 10),
               Text(
-                formatCurrency(saldo),
+                'Resumen financiero',
                 style: TextStyle(
-                  fontSize: 28,
+                  fontSize: 20,
                   fontWeight: FontWeight.bold,
-                  color: isPositive ? Colors.greenAccent : Colors.redAccent,
+                  color: Colors.grey[800],
+                ),
+              ),
+              const SizedBox(height: 16),
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  _customStatCard(
+                      'Ingresos', ingresos, Icons.arrow_upward, Colors.green),
+                  _customStatCard(
+                      'Gastos', gastos, Icons.arrow_downward, Colors.red),
+                ],
+              ),
+              const SizedBox(height: 24),
+              Center(
+                child: Column(
+                  children: [
+                    Icon(
+                      isPositive ? Icons.trending_up : Icons.trending_down,
+                      color: isPositive ? Colors.green : Colors.red,
+                      size: 30,
+                    ),
+                    const SizedBox(height: 8),
+                    Text(
+                      'Saldo disponible',
+                      style: TextStyle(
+                        fontSize: 14,
+                        color: Colors.grey[700],
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      formatter.format(saldo),
+                      style: TextStyle(
+                        fontSize: 22,
+                        fontWeight: FontWeight.bold,
+                        color: isPositive ? Colors.green : Colors.red,
+                      ),
+                    ),
+                  ],
                 ),
               ),
             ],
-          ),
-          const SizedBox(height: 10),
-          Text(
-            isPositive ? '¡Estás en positivo!' : 'Atención: saldo negativo',
-            style: TextStyle(
-              color: isPositive ? Colors.greenAccent : Colors.redAccent,
-              fontSize: 16,
-              fontWeight: FontWeight.w500,
-            ),
           ),
         ],
       ),
     );
   }
 
-  Widget _customStatCard({
-    required String title,
-    required double amount,
-    required IconData icon,
-    required Color color,
-  }) {
-    String formatCurrency(double value) {
-      final formatter = NumberFormat.decimalPattern('es_CO');
-      return '\$${formatter.format(value)}';
-    }
-
+// Subcomponente reutilizable
+  Widget _customStatCard(
+      String label, double amount, IconData icon, Color iconColor) {
+    final formatter = NumberFormat.currency(locale: 'es_CO', symbol: '\$');
     return Container(
-      width: 130,
+      width: 140,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white.withValues(alpha: 0.05),
-        borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.white10),
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.grey.shade300),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black12,
+            blurRadius: 4,
+            offset: Offset(0, 2),
+          ),
+        ],
       ),
       child: Column(
         children: [
-          Icon(icon, color: color, size: 24),
+          Icon(icon, color: iconColor, size: 28),
           const SizedBox(height: 8),
           Text(
-            title,
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 13,
-              fontWeight: FontWeight.w600,
-            ),
+            label,
+            style: TextStyle(fontSize: 16, color: Colors.grey[800]),
           ),
-          const SizedBox(height: 6),
-          FittedBox(
-            fit: BoxFit.scaleDown,
-            child: Text(
-              formatCurrency(amount),
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-                fontSize: 16,
-              ),
+          const SizedBox(height: 4),
+          Text(
+            formatter.format(amount),
+            style: TextStyle(
+              fontSize: 16,
+              fontWeight: FontWeight.bold,
+              color: iconColor,
             ),
           ),
         ],
@@ -270,114 +258,134 @@ class HomeScreen extends ConsumerWidget {
 
   Widget _buildQuickActions(BuildContext context) {
     return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceAround,
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         _actionButton(context, 'Ingreso', Icons.add_circle, Colors.green,
             IngresosScreen()),
         _actionButton(
             context, 'Gasto', Icons.remove_circle, Colors.red, EgresosScreen()),
-        _actionButton(
-            context, 'Estadisticas', Icons.bar_chart, Colors.purple, StatisticScreen()),
+        _actionButton(context, 'Estadísticas', Icons.bar_chart, Colors.purple,
+            StatisticScreen()),
       ],
     );
   }
 
   Widget _actionButton(BuildContext context, String label, IconData icon,
-      Color color, Widget? screen) {
+      Color color, Widget screen) {
     return Column(
       children: [
         InkWell(
-          onTap: () {
-            if (screen != null) {
-              Navigator.push(
-                  context, MaterialPageRoute(builder: (context) => screen));
-            }
-          },
+          onTap: () => Navigator.push(
+              context, MaterialPageRoute(builder: (_) => screen)),
           child: CircleAvatar(
-            radius: 26,
-            backgroundColor: color.withValues(alpha: 0.3),
+            radius: 28,
+            backgroundColor: color.withOpacity(0.2),
             child: Icon(icon, color: color, size: 28),
           ),
         ),
         const SizedBox(height: 6),
-        Text(label, style: const TextStyle(color: Color(0xFF0B0D39))),
+        Text(label,
+            style: const TextStyle(color: Colors.black87, fontSize: 14)),
       ],
     );
   }
 
-  Widget _buildMainMenu(BuildContext context) {
+  Widget _buildMenuCardsSeccion(BuildContext context) {
+    final List<Map<String, dynamic>> tips = [
+      {
+        'icon': const Icon(FontAwesomeIcons.piggyBank, color: Colors.orange),
+        'title': 'Ahorros',
+        'description': 'Controla tus ahorros.',
+        'screen': AhorroScreen(),
+      },
+      {
+        'icon': const Icon(FontAwesomeIcons.buildingColumns, color: Colors.red),
+        'title': 'Mis Bancos',
+        'description': 'Accede a tus cuentas.',
+        'screen': AhorroScreen(),
+      },
+      {
+        'icon': const Icon(FontAwesomeIcons.chartLine,
+            color: Color.fromARGB(255, 77, 235, 103)),
+        'title': 'Portafolio',
+        'description': 'Visualiza tu portafolio.',
+        'screen': PortafolioScreen(),
+      },
+      {
+        'icon':
+            const Icon(FontAwesomeIcons.calendarCheck, color: Colors.orange),
+        'title': 'Pagos',
+        'description': 'Pagos agendados.',
+        'screen': AhorroScreen(),
+      },
+      {
+        'icon': const Icon(FontAwesomeIcons.clockRotateLeft, color: Colors.red),
+        'title': 'Historial',
+        'description': 'Historial de movimientos.',
+        'screen': AhorroScreen(),
+      },
+    ];
+
     return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
-          'Menú Principal',
-          style: TextStyle(
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-            color: Colors.black87,
-          ),
+        const Padding(
+          padding: EdgeInsets.symmetric(vertical: 10),
+          child: Text('Accesos rápidos',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         ),
-        const SizedBox(height: 15),
-        GridView.count(
-          crossAxisCount: 2,
-          childAspectRatio: 2.5,
-          physics: const NeverScrollableScrollPhysics(),
-          shrinkWrap: true,
-          children: [
-            MenuOption(
-              icon: Icons.savings,
-              title: 'Ahorros', // Acortado
-              color: Colors.blue,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => AhorroScreen()),
-                );
-              },
-            ),
-            MenuOption(
-              icon: Icons.trending_up,
-              title: 'Portafolio', // Acortado
-              color: Colors.purple,
-              onTap: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(builder: (context) => PortafolioScreen()),
-                );
-              },
-            ),
-            MenuOption(
-              icon: Icons.schedule,
-              title: 'Pagos Programados', // Acortado
-              color: Colors.orange,
-              onTap: () {
-                // Navegar a la pantalla de Pagos Programados
-              },
-            ),
-            MenuOption(
-              icon: Icons.pending_actions,
-              title: 'Pagos Pendientes', // Acortado
-              color: Colors.teal,
-              onTap: () {
-                // Navegar a la pantalla de Pagos Pendientes
-              },
-            ),
-            MenuOption(
-              icon: Icons.account_balance,
-              title: 'Mis Bancos', // Acortado
-              color: Colors.brown,
-              onTap: () {
-                // Navegar a la pantalla de Neo Bank
-              },
-            ),
-            MenuOption(
-              icon: Icons.history,
-              title: 'Historial', // Acortado
-              color: Colors.grey,
-              onTap: () {
-                // Navegar a la pantalla de Historial
-              },
-            ),
-          ],
+        SizedBox(
+          height: 150,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: tips.length,
+            itemBuilder: (context, index) {
+              final item = tips[index];
+              return GestureDetector(
+                onTap: () => Navigator.push(
+                    context, MaterialPageRoute(builder: (_) => item['screen'])),
+                child: Container(
+                  width: 180,
+                  margin: const EdgeInsets.only(right: 12),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF578FCA), Color(0xFF3A59D1)],
+                      begin: Alignment.topLeft,
+                      end: Alignment.bottomRight,
+                    ),
+                    borderRadius: BorderRadius.circular(20),
+                    boxShadow: [
+                      BoxShadow(
+                          color: Colors.black26,
+                          blurRadius: 4,
+                          offset: Offset(0, 2))
+                    ],
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      item['icon'] as Widget,
+                      const SizedBox(height: 8),
+                      Text(
+                        item['title'],
+                        style: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            color: Colors.white),
+                      ),
+                      const SizedBox(height: 4),
+                      Text(
+                        item['description'],
+                        style: const TextStyle(
+                            fontSize: 13, color: Colors.white70),
+                      ),
+                    ],
+                  ),
+                ),
+              );
+            },
+          ),
         ),
       ],
     );

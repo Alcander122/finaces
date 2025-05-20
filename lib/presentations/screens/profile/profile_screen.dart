@@ -36,10 +36,14 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     return Scaffold(
-      appBar: AppBarFinances(
-        title: 'Editar Perfil',
-        showBackButton: true, // Muestra el botón de regreso
-        showProfileAction: false, // Oculta el botón de perfil
+      appBar: AppBar(
+        title: const Text('Editar Perfil'),
+        leading: IconButton(
+          icon: const Icon(Icons.arrow_back),
+          onPressed: () {
+            Navigator.pushReplacementNamed(context, AppRoutes.home);
+          },
+        ),
       ),
       //backgroundColor: Colors.white,
 
