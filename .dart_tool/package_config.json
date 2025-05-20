@@ -176,6 +176,12 @@
       "languageVersion": "3.2"
     },
     {
+      "name": "font_awesome_flutter",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/font_awesome_flutter-10.8.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "google_identity_services_web",
       "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/google_identity_services_web-0.3.3+1",
       "packageUri": "lib/",
@@ -536,7 +542,7 @@
       "languageVersion": "3.6"
     }
   ],
-  "generated": "2025-05-10T03:30:15.657229Z",
+  "generated": "2025-05-12T22:06:30.464214Z",
   "generator": "pub",
   "generatorVersion": "3.6.0",
   "flutterRoot": "file:///C:/Users/andre/dev/flutter",

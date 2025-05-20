@@ -98,11 +98,7 @@ class StatisticsScreenState extends ConsumerState<StatisticsScreen> {
     final gastosAsync = ref.watch(filteredEgresosProvider);
 
     return Scaffold(
-      appBar: AppBarFinances(
-        title: 'Estadísticas Financieras',
-        showBackButton: true,
-        showProfileAction: false,
-      ),
+      appBar: const AppBarFinances(),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,

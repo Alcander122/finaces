@@ -279,10 +279,8 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider);
     return Scaffold(
-      appBar: AppBarFinances(
-        title: 'Ingresos',
-        showBackButton: true, // Muestra el botón de regreso
-        showProfileAction: false, // Oculta el botón de perfil
+      appBar: AppBar(
+        title: const Text('Ingresos'),
         actions: [
           IconButton(
             icon: const Icon(Icons.view_list),

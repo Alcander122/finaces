@@ -25,10 +25,9 @@ class PortafolioScreen extends ConsumerWidget {
     final investments = ref.watch(allInvestmentsProvider(user.uid));
 
     return Scaffold(
-      appBar: AppBarFinances(
-        title: 'Mis Portafolios',
-        showBackButton: true, // Muestra el botón de regreso
-        showProfileAction: false, // Oculta el botón de perfil
+      appBar: AppBar(
+        title: const Text("Mis Portafolios"),
+        centerTitle: true,
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.push(

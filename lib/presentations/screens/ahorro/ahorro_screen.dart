@@ -23,10 +23,8 @@ class AhorroScreenState extends State<AhorroScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBarFinances(
-        title: 'Mis Metas de Ahorro',
-        showBackButton: true, // Muestra el botón de regreso
-        showProfileAction: false, // Oculta el botón de perfil
+      appBar: AppBar(
+        title: const Text('Mis Ahorros'),
       ),
       // Permite que el contenido se ajuste cuando aparece el teclado
       resizeToAvoidBottomInset: true,
