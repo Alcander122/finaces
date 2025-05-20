@@ -1,9 +1,10 @@
 import 'package:finances/core/data/models/egreso_model.dart';
-import 'package:finances/presentations/screens/egreso/egreso_form.dart';
+import 'package:finances/presentations/screens/Egreso/egreso_form.dart';
+import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
-import 'package:finances/presentations/widgets/egreso_chart.dart';
+import 'package:finances/presentations/screens/Egreso/widgets/egreso_chart.dart';
 import 'package:finances/presentations/widgets/column_selection_dialog.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -12,10 +13,10 @@ class EgresosScreen extends ConsumerStatefulWidget {
   const EgresosScreen({super.key});
 
   @override
-  _EgresosScreenState createState() => _EgresosScreenState();
+  EgresosScreenState createState() => EgresosScreenState();
 }
 
-class _EgresosScreenState extends ConsumerState<EgresosScreen> {
+class EgresosScreenState extends ConsumerState<EgresosScreen> {
   final _allColumns = [
     'Quincena',
     'Fecha',

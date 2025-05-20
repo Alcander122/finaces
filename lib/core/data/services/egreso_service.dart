@@ -6,7 +6,7 @@ class EgresoService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
   // 🔹 Generar un ID aleatorio
-  String _generarIdAleatorio() {
+  String generarIdAleatorio() {
     const caracteres =
         'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     final random = Random();
@@ -15,7 +15,7 @@ class EgresoService {
   }
 
   // 🔹 Agregar un nuevo egreso
-  Future<void> addEgreso(String uid, Egreso egreso) async {
+  /*Future<void> addEgreso(String uid, Egreso egreso) async {
     final id = _generarIdAleatorio(); // Generar un ID aleatorio
     await _firestore
         .collection('users')
@@ -23,26 +23,52 @@ class EgresoService {
         .collection('egreso')
         .doc(id) // Usar el ID generado
         .set(egreso.toMap());
+  }*/
+  Future<void> addEgreso(String uid, Egreso egreso) async {
+    try {
+      final docRef = await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('egreso')
+          .add(egreso.toMap());
+
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('egreso')
+          .doc(docRef.id)
+          .update({'id': docRef.id});
+    } catch (e) {
+      throw Exception("No se pudo guardar el egreso");
+    }
   }
 
   // 🔹 Actualizar un egreso
   Future<void> actualizarEgreso(String uid, Egreso egreso) async {
-    await _firestore
-        .collection('users')
-        .doc(uid)
-        .collection('egreso')
-        .doc(egreso.id)
-        .update(egreso.toMap());
+    try {
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('egreso')
+          .doc(egreso.id)
+          .update(egreso.toMap());
+    } catch (e) {
+      throw Exception("No se pudo actualizar el egreso");
+    }
   }
 
   // 🔹 Eliminar un egreso
   Future<void> eliminarEgreso(String uid, String id) async {
-    await _firestore
-        .collection('users')
-        .doc(uid)
-        .collection('egreso')
-        .doc(id)
-        .delete();
+    try {
+      await _firestore
+          .collection('users')
+          .doc(uid)
+          .collection('egreso')
+          .doc(id)
+          .delete();
+    } catch (e) {
+      throw Exception("No se pudo eliminar el egreso");
+    }
   }
 
   // 🔹 Obtener egresos ordenados por año y mes
@@ -107,6 +133,78 @@ class EgresoService {
       }
       return totalIngresos;
     });
+  }
+
+  Stream<double> streamTotalGastosMesActual(String userId) {
+    final now = DateTime.now();
+    final mesActual = _obtenerNombreMes(now.month);
+    final anioActual = now.year;
+
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('egreso')
+        .where('mes', isEqualTo: mesActual)
+        .where('anio', isEqualTo: anioActual)
+        /*.where('estado', isEqualTo: 'Pendiente')*/
+        .snapshots()
+        .map((snapshot) {
+      double total = 0.0;
+      for (var doc in snapshot.docs) {
+        final valor = doc.data()['valor'];
+        total += valor is num ? valor.toDouble() : 0.0;
+      }
+      return total;
+    });
+  }
+
+  // Método para obtener el total de gastos en un rango de fechas
+  Stream<double> streamTotalGastosInRange(
+      String userId, DateTime start, DateTime end) {
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('egreso')
+        .where('fecha', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('fecha', isLessThanOrEqualTo: Timestamp.fromDate(end))
+        /*.where('estado', isEqualTo: 'Pendiente')*/
+        .snapshots()
+        .map((snapshot) {
+      double total = 0.0;
+      for (var doc in snapshot.docs) {
+        final valor = doc.data()['valor'];
+        total += valor is num ? valor.toDouble() : 0.0;
+      }
+      return total;
+    });
+  }
+
+  Stream<List<Egreso>> obtenerEgresosFiltrados(
+    String userId,
+    DateTime? startDate,
+    DateTime? endDate,
+  ) {
+    Query query =
+        _firestore.collection('users').doc(userId).collection('egreso');
+
+    if (startDate != null && endDate != null) {
+      query = query
+          .where('fecha', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('fecha', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
+    }
+
+    return query.snapshots().map((snapshot) {
+      return snapshot.docs
+          .map((doc) => Egreso.fromMap({
+                ...(doc.data() as Map<String, dynamic>? ?? {}),
+                'id': doc.id,
+              }))
+          .toList();
+    });
+  }
+
+  double calcularTotalEgresos(List<Egreso> egresos) {
+    return egresos.fold(0.0, (sum, egreso) => sum + egreso.valor);
   }
 
   // Función auxiliar para convertir número de mes a nombre

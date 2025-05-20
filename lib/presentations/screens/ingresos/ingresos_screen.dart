@@ -1,20 +1,21 @@
 import 'package:finances/core/data/models/ingreso.model.dart';
+import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/services/ingresos_service.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/core/data/utils/ingreso_validator.dart';
-import 'package:finances/presentations/widgets/ingreso_table.dart';
-import 'package:finances/presentations/widgets/Ingreso_chart.dart';
+import 'package:finances/presentations/screens/ingresos/widgets/ingreso_table.dart';
+import 'package:finances/presentations/screens/ingresos/widgets/Ingreso_chart.dart';
 
 class IngresosScreen extends ConsumerStatefulWidget {
   const IngresosScreen({super.key});
 
   @override
-  _IngresosScreenState createState() => _IngresosScreenState();
+  IngresosScreenState createState() => IngresosScreenState();
 }
 
-class _IngresosScreenState extends ConsumerState<IngresosScreen> {
+class IngresosScreenState extends ConsumerState<IngresosScreen> {
   final _formKey = GlobalKey<FormState>();
   final _conceptoController = TextEditingController();
   final _valorController = TextEditingController();
@@ -28,7 +29,7 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
   final IngresosService _ingresosService = IngresosService();
   final IngresoValidator _validator = IngresoValidator();
 
-  List<String> _camposVisibles = [
+  final List<String> _camposVisibles = [
     'fecha',
     'mes',
     'anio',
@@ -57,7 +58,7 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
         await _ingresosService.obtenerIngresos(authState.user!.uid);
     ingresos.sort((a, b) {
       if (a.anio != b.anio) {
-        return a.anio!.compareTo(b.anio!);
+        return a.anio.compareTo(b.anio);
       }
       return a.getMesNumero().compareTo(b.getMesNumero());
     });
@@ -303,7 +304,7 @@ class _IngresosScreenState extends ConsumerState<IngresosScreen> {
             SingleChildScrollView(
               scrollDirection: Axis.horizontal,
               child: IngresoTable(
-                userID: user?.uid ?? '',
+                userID: user.uid ?? '',
                 ingresos: _ingresos,
                 onEdit: (ingreso) => _mostrarDialogo(context, ingreso),
                 onDelete: (id) => _eliminarIngreso(id),

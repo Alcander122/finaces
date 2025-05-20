@@ -1,0 +1,1 @@
+ D:\\OTROS\\finaces\\.dart_tool\\flutter_build\\54e89c13f142862ad2ef498ba782f8b7\\native_assets.yaml: 

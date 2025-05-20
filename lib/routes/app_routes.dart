@@ -1,13 +1,17 @@
 // lib/routes/app_routes.dart
-import 'package:finances/presentations/screens/ahorro/ahorro_screen.dart';
-import 'package:finances/presentations/screens/auth/LoginScreen.dart';
-import 'package:finances/presentations/screens/auth/register.screen.dart';
-import 'package:finances/presentations/screens/profile/ProfileScreen.dart';
-import 'package:finances/presentations/screens/portafolio/portafolio_screen.dart';
-import 'package:finances/presentations/screens/auth/welcome_screen.dart';
+
+import 'package:finances/presentations/screens/Ahorro/ahorro_screen.dart';
+import 'package:finances/presentations/screens/Auth/LoginScreen.dart';
+import 'package:finances/presentations/screens/Auth/register.screen.dart';
+import 'package:finances/presentations/screens/Estadistica/statistics_screen.dart';
+import 'package:finances/presentations/screens/Profile/profile_screen.dart';
+import 'package:finances/presentations/screens/Portafolio/portafolio_screen.dart';
+import 'package:finances/presentations/screens/Auth/welcome_screen.dart';
 import 'package:flutter/material.dart';
-import 'package:finances/presentations/screens/home/home_screen.dart';
+import 'package:finances/presentations/screens/Home/home_screen.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
+import 'package:finances/presentations/screens/Estadistica/category_details.dart';
+import 'package:finances/core/data/models/filter.dart';
 
 class AppRoutes {
   // Ruta exclusiva para la pantalla de bienvenida.
@@ -20,6 +24,9 @@ class AppRoutes {
   static const String ingresos = '/ingresos';
   static const String portafolio = '/portafolio';
   static const String ahorro = '/ahorro';
+  static const String estadistica = '/Estadistica';
+  // Nueva ruta para detalles de categoría
+  static const String categoryDetails = '/category-details';
 
   // Aquí se decide qué pantalla mostrar según el estado de autenticación.
   // En lugar de verificar si authState es null, se comprueba si authState.user es null.
@@ -33,6 +40,15 @@ class AppRoutes {
       register: (context) => const RegisterScreen(),
       portafolio: (context) => const PortafolioScreen(),
       ahorro: (context) => const AhorroScreen(),
+      estadistica: (context) => const StatisticScreen(),
+      categoryDetails: (context) {
+        final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+        return CategoryDetailsScreen(
+          category: args?['category'] ?? '',
+          filter: args?['filter'] ?? const Filter(type: FilterType.monthly),
+          isExpense: args?['isExpense'] ?? false,
+        );
+      },
     };
   }
 }

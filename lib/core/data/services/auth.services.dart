@@ -10,9 +10,9 @@ class Authservices {
     try {
       return await _auth.createUserWithEmailAndPassword(
           email: email, password: password);
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException {
       //print("Error en el registro: ${e.code} - ${e.message}");
-      rethrow; // Lanza la excepción para que pueda ser capturada en LoginScreen
+      rethrow;
     }
   }
 
@@ -21,9 +21,9 @@ class Authservices {
     try {
       return await _auth.signInWithEmailAndPassword(
           email: email, password: password);
-    } on FirebaseAuthException catch (e) {
+    } on FirebaseAuthException {
       //print("Error en login: ${e.code} - ${e.message}");
-      rethrow; // Lanza la excepción para que pueda ser capturada en LoginScreen
+      rethrow;
     }
   }
 
