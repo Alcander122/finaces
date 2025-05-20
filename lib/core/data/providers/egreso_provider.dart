@@ -80,7 +80,6 @@ final egresosPorCategoriaProvider = Provider.family<AsyncValue<List<Egreso>>, St
 
 final totalEgresosProvider = StreamProvider.autoDispose<double>((ref) {
   final authState = ref.watch(authProvider);
-  final filter = ref.watch(filterProvider);
 
   if (authState.user == null) return Stream.value(0.0);
 

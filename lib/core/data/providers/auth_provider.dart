@@ -137,7 +137,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     final message = AuthErrorHandler.handle(e);
     state = AuthState.error(message);
     throw message;
-  } catch (e, stack) {
+  } catch (e) {
     //logger.e('Error general en signIn', error: e, stackTrace: stack);
     state = AuthState.error(ErrorStrings.unexpectedError);
     throw ErrorStrings.unexpectedError;
@@ -156,7 +156,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final message = AuthErrorHandler.handle(e);
       state = AuthState.error(message);
       throw message;
-    } catch (e, stack) {
+    } catch (e) {
       //logger.e('Error general en signUp', error: e, stackTrace: stack);
       state = AuthState.error(ErrorStrings.unexpectedError);
       throw ErrorStrings.unexpectedError;
@@ -179,7 +179,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       } else {
         throw ErrorStrings.unexpectedError;
       }
-    } catch (e, stack) {
+    } catch (e) {
       //logger.e('Error crítico en signOut', error: e, stackTrace: stack);
       await _storage.deleteToken();
       state = AuthState.error(ErrorStrings.unexpectedError);
@@ -198,7 +198,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         state = AuthState.authenticated(_auth.currentUser!);
         //logger.i('Nombre actualizado: $displayName');
       }
-    } catch (e, stack) {
+    } catch (e) {
       //logger.e('Error en updateDisplayName', error: e, stackTrace: stack);
       state = AuthState.error(ErrorStrings.unexpectedError);
       throw ErrorStrings.unexpectedError;
@@ -211,7 +211,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
         'displayName': displayName,
       });
       //logger.i('Firestore actualizado para usuario: $userId');
-    } catch (e, stack) {
+    } catch (e) {
       //logger.e('Error en updateUserInFirestore', error: e, stackTrace: stack);
       throw ErrorStrings.unexpectedError;
     }
@@ -254,7 +254,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final message = AuthErrorHandler.handle(e);
       state = AuthState.error(message);
       throw message;
-    } catch (e, stack) {
+    } catch (e) {
       //logger.e('Error in Google sign-in', error: e, stackTrace: stack);
       state = AuthState.error(ErrorStrings.unexpectedError);
       throw ErrorStrings.unexpectedError;

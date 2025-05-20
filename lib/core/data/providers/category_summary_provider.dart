@@ -1,10 +1,8 @@
 // category_summary_provider.dart
-import 'package:finances/core/data/models/filter.dart';
 import 'package:finances/core/data/models/egreso_model.dart';
 import 'package:finances/core/data/models/ingreso.model.dart';
 import 'package:finances/core/data/providers/Ingreso_provider.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
-import 'package:finances/core/data/providers/filter_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rxdart/rxdart.dart';
 
