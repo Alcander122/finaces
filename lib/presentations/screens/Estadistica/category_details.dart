@@ -32,11 +32,7 @@ class CategoryDetailsScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: AppBarFinances(
-        title: 'Detalles de $category',
-        showBackButton: true,
-        showProfileAction: false,
-      ),
+      appBar: const AppBarFinances(),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: isExpense
@@ -57,13 +53,14 @@ class CategoryDetailsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
           ...ingresos.map((ingreso) => Card(
-            elevation: 2,
-            child: ListTile(
-              title: Text(ingreso.concepto),
-              subtitle: Text(DateFormat('dd/MM/yyyy').format(ingreso.fecha)),
-              trailing: Text('\$${ingreso.valor.toStringAsFixed(2)}'),
-            ),
-          )),
+                elevation: 2,
+                child: ListTile(
+                  title: Text(ingreso.concepto),
+                  subtitle:
+                      Text(DateFormat('dd/MM/yyyy').format(ingreso.fecha)),
+                  trailing: Text('\$${ingreso.valor.toStringAsFixed(2)}'),
+                ),
+              )),
         ],
       ),
       loading: () => const Center(child: CircularProgressIndicator()),
@@ -82,13 +79,13 @@ class CategoryDetailsScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 20),
           ...egresos.map((egreso) => Card(
-            elevation: 2,
-            child: ListTile(
-              title: Text(egreso.descripcion),
-              subtitle: Text(DateFormat('dd/MM/yyyy').format(egreso.fecha)),
-              trailing: Text('\$${egreso.valor.toStringAsFixed(2)}'),
-            ),
-          )),
+                elevation: 2,
+                child: ListTile(
+                  title: Text(egreso.descripcion),
+                  subtitle: Text(DateFormat('dd/MM/yyyy').format(egreso.fecha)),
+                  trailing: Text('\$${egreso.valor.toStringAsFixed(2)}'),
+                ),
+              )),
         ],
       ),
       loading: () => const Center(child: CircularProgressIndicator()),
