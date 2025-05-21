@@ -279,7 +279,7 @@ class HomeScreen extends ConsumerWidget {
               context, MaterialPageRoute(builder: (_) => screen)),
           child: CircleAvatar(
             radius: 28,
-            backgroundColor: color.withOpacity(0.2),
+            backgroundColor: color.withValues(alpha:0.2),
             child: Icon(icon, color: color, size: 28),
           ),
         ),

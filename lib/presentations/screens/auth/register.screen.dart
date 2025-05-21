@@ -105,7 +105,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         style: TextStyle(
                           fontSize: 30.0,
                           fontWeight: FontWeight.w900,
-                          color: lightColorScheme.primary,
+                          /*color: lightColorScheme.primary,*/
                         ),
                       ),
                       const SizedBox(height: 40.0),

@@ -1,3 +1,4 @@
+// Importaciones necesarias para la pantalla de ingresos
 import 'package:finances/core/data/models/ingreso.model.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:flutter/material.dart';
@@ -8,37 +9,45 @@ import 'package:finances/core/data/utils/ingreso_validator.dart';
 import 'package:finances/presentations/screens/ingresos/widgets/ingreso_table.dart';
 import 'package:finances/presentations/screens/ingresos/widgets/Ingreso_chart.dart';
 
+// Definición de la clase IngresosScreen que extiende ConsumerStatefulWidget
 class IngresosScreen extends ConsumerStatefulWidget {
   const IngresosScreen({super.key});
 
+  // Método que crea el estado de la pantalla
   @override
   IngresosScreenState createState() => IngresosScreenState();
 }
 
+// Clase que maneja el estado de la pantalla de ingresos
 class IngresosScreenState extends ConsumerState<IngresosScreen> {
+  // Controladores para los campos del formulario
   final _formKey = GlobalKey<FormState>();
   final _conceptoController = TextEditingController();
   final _valorController = TextEditingController();
   final _notaController = TextEditingController();
 
+  // Variables para almacenar los ingresos y los filtros
   List<Map<String, dynamic>> _ingresos = [];
   String? _mes, _quincena, _categoria;
   int? _anio, _dia;
   String? _editId;
 
+  // Instancias de servicios y validadores
   final IngresosService _ingresosService = IngresosService();
   final IngresoValidator _validator = IngresoValidator();
 
+  // Lista de campos visibles en la tabla
   final List<String> _camposVisibles = [
     'fecha',
     'mes',
-    'anio',
+    'anio', // Nombre del campo en los datos
     'quincena',
     'categoria',
     'concepto',
     'valor',
   ];
 
+  // Método que se ejecuta al inicializar la pantalla
   @override
   void initState() {
     super.initState();
@@ -50,12 +59,15 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
     _cargarIngresos();
   }
 
+  // Método para cargar los ingresos desde el servicio
   Future<void> _cargarIngresos() async {
     final authState = ref.read(authProvider);
     if (authState.user == null) return;
 
+    // Obtener los ingresos del servicio
     List<Ingreso> ingresos =
         await _ingresosService.obtenerIngresos(authState.user!.uid);
+    // Ordenar los ingresos
     ingresos.sort((a, b) {
       if (a.anio != b.anio) {
         return a.anio.compareTo(b.anio);
@@ -63,17 +75,21 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
       return a.getMesNumero().compareTo(b.getMesNumero());
     });
 
+    // Convertir los ingresos a un formato compatible con la tabla
     _ingresos = ingresos.map((ingreso) => ingreso.toMap()).toList();
 
+    // Actualizar el estado para reflejar los cambios
     setState(() {});
   }
 
+  // Método para guardar un ingreso
   Future<void> _guardarIngreso(BuildContext context) async {
     if (!_formKey.currentState!.validate()) return;
 
     final authState = ref.read(authProvider);
     if (authState.user == null) return;
 
+    // Crear el objeto Ingreso con los datos del formulario
     final ingreso = Ingreso(
       id: _editId == null
           ? DateTime.now().millisecondsSinceEpoch.toString()
@@ -88,6 +104,7 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
     );
 
     try {
+      // Guardar o actualizar el ingreso en el servicio
       if (_editId == null) {
         await _ingresosService.guardarIngreso(authState.user!.uid, ingreso);
       } else {
@@ -96,21 +113,25 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
         _editId = null;
       }
 
+      // Recargar los ingresos y mostrar un mensaje
       _cargarIngresos();
       Navigator.pop(context);
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Ingreso guardado correctamente')),
       );
     } catch (e) {
+      // Mostrar un mensaje de error si ocurre algún problema
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Error al guardar el ingreso')),
       );
     }
   }
 
+  // Método para mostrar el diálogo de edición de ingresos
   void _mostrarDialogo(BuildContext context,
       [Map<String, dynamic>? ingresoMap]) {
     if (ingresoMap != null) {
+      // Poblar los campos del formulario con los datos del ingreso
       _editId = ingresoMap['id'].toString();
       _mes = ingresoMap['mes'];
       _dia = ingresoMap['dia'];
@@ -120,13 +141,14 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
       _conceptoController.text = ingresoMap['concepto'];
       _valorController.text = ingresoMap['valor'].toString();
     } else {
+      // Limpiar los campos del formulario
       _editId = null;
       _conceptoController.clear();
       _valorController.clear();
       _notaController.clear();
     }
 
-    // Agregar un pequeño delay para la apertura del diálogo
+    // Mostrar el diálogo después de un pequeño delay
     Future.delayed(const Duration(milliseconds: 300), () {
       showDialog(
         context: context,
@@ -148,12 +170,14 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
     });
   }
 
+  // Método para construir el formulario de ingresos
   Widget _buildFormulario() {
     return Form(
       key: _formKey,
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
+          // Campo para seleccionar el mes
           DropdownButtonFormField<String>(
             value: _mes,
             hint: const Text('Selecciona un mes'),
@@ -177,6 +201,7 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
             decoration: const InputDecoration(labelText: 'Mes'),
             validator: (value) => _validator.validateMes(value),
           ),
+          // Campo para seleccionar el día
           DropdownButtonFormField<int>(
             value: _dia,
             hint: const Text('Selecciona un día'),
@@ -188,6 +213,7 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
             decoration: const InputDecoration(labelText: 'Día'),
             validator: (value) => _validator.validateDia(value),
           ),
+          // Campo para seleccionar la quincena
           DropdownButtonFormField<String>(
             value: _quincena,
             hint: const Text('Selecciona una quincena'),
@@ -198,6 +224,18 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
             decoration: const InputDecoration(labelText: 'Quincena'),
             validator: (value) => _validator.validateQuincena(value),
           ),
+          // Campo para seleccionar el año
+          DropdownButtonFormField<int>(
+            value: _anio,
+            hint: const Text('Selecciona un año'),
+            items: List.generate(10, (index) => DateTime.now().year - 5 + index)
+                .map((anio) => DropdownMenuItem(value: anio, child: Text(anio.toString())))
+                .toList(),
+            onChanged: (value) => setState(() => _anio = value),
+            decoration: const InputDecoration(labelText: 'Año'), // Cambiar labelText a 'Año'
+            validator: (value) => _validator.validateAnio(value),
+          ),
+          // Campo para seleccionar la categoría
           DropdownButtonFormField<String>(
             value: _categoria,
             hint: const Text('Selecciona una categoría'),
@@ -213,11 +251,13 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
             decoration: const InputDecoration(labelText: 'Categoría'),
             validator: (value) => _validator.validateCategoria(value),
           ),
+          // Campo para ingresar el concepto
           TextFormField(
             controller: _conceptoController,
             decoration: const InputDecoration(labelText: 'Concepto'),
             validator: (value) => _validator.validateConcepto(value),
           ),
+          // Campo para ingresar el valor
           TextFormField(
             controller: _valorController,
             keyboardType: TextInputType.number,
@@ -229,6 +269,7 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
     );
   }
 
+  // Método para eliminar un ingreso
   Future<void> _eliminarIngreso(String id) async {
     final authState = ref.read(authProvider);
     if (authState.user == null) return;
@@ -236,6 +277,7 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
     _cargarIngresos();
   }
 
+  // Método para mostrar el diálogo de selección de columnas
   void _mostrarDialogoSeleccionColumnas(BuildContext context) {
     Set<String> camposDisponibles = {};
     if (_ingresos.isNotEmpty) {
@@ -244,37 +286,45 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Seleccionar Columnas'),
-        content: SingleChildScrollView(
-          child: Column(
-            children: camposDisponibles
-                .map((campo) => CheckboxListTile(
-                      title: Text(campo),
-                      value: _camposVisibles.contains(campo),
-                      onChanged: (value) {
-                        setState(() {
-                          if (value!) {
-                            _camposVisibles.add(campo);
-                          } else {
-                            _camposVisibles.remove(campo);
-                          }
-                        });
-                      },
-                    ))
-                .toList(),
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cerrar'),
-          ),
-        ],
-      ),
+      builder: (context) {
+        return StatefulBuilder(
+          builder: (context, setStateDialog) {
+            return AlertDialog(
+              title: const Text('Seleccionar Columnas'),
+              content: SingleChildScrollView(
+                child: Column(
+                  children: camposDisponibles
+                      .map((campo) => CheckboxListTile(
+                            title: Text(campo == 'anio' ? 'año' : campo), // Mostrar 'año' en lugar de 'anio'
+                            value: _camposVisibles.contains(campo),
+                            onChanged: (value) {
+                              setStateDialog(() {
+                                if (value!) {
+                                  _camposVisibles.add(campo);
+                                } else {
+                                  _camposVisibles.remove(campo);
+                                }
+                              });
+                              setState(() {});
+                            },
+                          ))
+                      .toList(),
+                ),
+              ),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cerrar'),
+                ),
+              ],
+            );
+          },
+        );
+      },
     );
   }
 
+  // Método que construye la interfaz de la pantalla
   @override
   Widget build(BuildContext context) {
     final user = ref.watch(authProvider);
@@ -291,7 +341,7 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
       body: SingleChildScrollView(
         child: Column(
           children: [
-            // Gráfico de Dona para mostrar la distribución de ingresos por categoría
+            // Gráfico de distribución de ingresos por categoría
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: IncomeChart(
