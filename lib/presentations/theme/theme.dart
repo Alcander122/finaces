@@ -1,5 +1,19 @@
 import 'package:flutter/material.dart';
 
+const ColorSchemeMain = ColorScheme(
+  brightness: Brightness.light,
+  primary: Color(0xFF003366),
+  onPrimary: Color(0xFFFFFFFF),
+  secondary: Color(0xFF6EAEE7),
+  onSecondary: Color(0xFFFFFFFF),
+  error: Color(0xFFBA1A1A),
+  onError: Color(0xFFFFFFFF),
+  shadow: Color(0xFF000000),
+  outlineVariant: Color(0xFFC2C8BC),
+  surface: Color(0xFFF9FAF3),
+  onSurface: Color(0xFF1A1C18),
+);
+
 const lightColorScheme = ColorScheme(
   brightness: Brightness.light,
   primary: Color(0xFF416FDF),
@@ -37,7 +51,8 @@ ThemeData lightMode = ThemeData(
       backgroundColor: WidgetStateProperty.all<Color>(lightColorScheme.primary),
       foregroundColor: WidgetStateProperty.all<Color>(Colors.white),
       elevation: WidgetStateProperty.all<double>(5.0),
-      padding: WidgetStateProperty.all<EdgeInsets>(const EdgeInsets.symmetric(horizontal: 20, vertical: 18)),
+      padding: WidgetStateProperty.all<EdgeInsets>(
+          const EdgeInsets.symmetric(horizontal: 20, vertical: 18)),
       shape: WidgetStateProperty.all<RoundedRectangleBorder>(
         RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       ),

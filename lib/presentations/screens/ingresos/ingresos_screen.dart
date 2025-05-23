@@ -7,6 +7,8 @@ import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/core/data/utils/ingreso_validator.dart';
 import 'package:finances/presentations/screens/ingresos/widgets/ingreso_table.dart';
 import 'package:finances/presentations/screens/ingresos/widgets/Ingreso_chart.dart';
+import 'package:finances/presentations/theme/themes.dart';
+import 'package:intl/intl.dart';
 
 class IngresosScreen extends ConsumerStatefulWidget {
   const IngresosScreen({super.key});
@@ -48,6 +50,85 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
     _categoria = 'Salario';
     _dia = 1;
     _cargarIngresos();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final user = ref.watch(authProvider);
+
+    return Scaffold(
+      backgroundColor: Themes.light,
+      appBar: AppBarFinances(
+        title: 'Ingresos',
+        showProfileIcon: false,
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.view_list),
+            color: Colors.white,
+            onPressed: () => _mostrarDialogoSeleccionColumnas(context),
+          ),
+        ],
+      ),
+      body: SingleChildScrollView(
+        child: Padding(
+          padding: const EdgeInsets.all(16.0),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // Gráfico de dona
+              IncomeChart(
+                ingresos: _ingresos
+                    .map((ingreso) => Ingreso.fromMap(ingreso))
+                    .toList(),
+              ),
+              const SizedBox(height: 16),
+              Card(
+                elevation: 4,
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Padding(
+                  padding: const EdgeInsets.all(16.0),
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: IngresoTable(
+                      userID: user.uid ?? '',
+                      ingresos: _ingresos,
+                      onEdit: (ingreso) => _mostrarDialogo(context, ingreso),
+                      onDelete: (id) => _eliminarIngreso(id),
+                      camposVisibles: _camposVisibles,
+                    ),
+                  ),
+                ),
+              ),
+              // Botón debajo del contenido
+              const SizedBox(height: 24),
+              Center(
+                child: ElevatedButton.icon(
+                  icon: const Icon(Icons.add, color: Colors.white),
+                  label: const Text(
+                    'Nueva Transacción',
+                    style: TextStyle(color: Colors.white),
+                  ),
+                  onPressed: () => _mostrarDialogo(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Themes.primary,
+                    padding: const EdgeInsets.symmetric(
+                        vertical: 16, horizontal: 20),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                    elevation: 4,
+                  ),
+                ),
+              ),
+
+              const SizedBox(height: 10),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   Future<void> _cargarIngresos() async {
@@ -271,61 +352,6 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
             child: const Text('Cerrar'),
           ),
         ],
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final user = ref.watch(authProvider);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Ingresos'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.view_list),
-            onPressed: () => _mostrarDialogoSeleccionColumnas(context),
-          ),
-        ],
-      ),
-      body: SingleChildScrollView(
-        child: Column(
-          children: [
-            // Gráfico de Dona para mostrar la distribución de ingresos por categoría
-            Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: IncomeChart(
-                ingresos: _ingresos
-                    .map((ingreso) => Ingreso.fromMap(ingreso))
-                    .toList(),
-              ),
-            ),
-            // Tabla de ingresos
-            SingleChildScrollView(
-              scrollDirection: Axis.horizontal,
-              child: IngresoTable(
-                userID: user.uid ?? '',
-                ingresos: _ingresos,
-                onEdit: (ingreso) => _mostrarDialogo(context, ingreso),
-                onDelete: (id) => _eliminarIngreso(id),
-                camposVisibles: _camposVisibles,
-              ),
-            ),
-          ],
-        ),
-      ),
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 30.0, right: 30.0),
-        child: FloatingActionButton.extended(
-          icon: const Icon(Icons.add),
-          label: const Text('Nueva Transacción'),
-          onPressed: () => _mostrarDialogo(context),
-          backgroundColor: Colors.green,
-          elevation: 4,
-          shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
-        ),
       ),
     );
   }

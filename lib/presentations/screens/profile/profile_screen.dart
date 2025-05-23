@@ -4,6 +4,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/routes/app_routes.dart';
+import 'package:finances/presentations/theme/themes.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -35,95 +36,123 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('Editar Perfil'),
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back),
-          onPressed: () {
-            Navigator.pushReplacementNamed(context, AppRoutes.home);
-          },
-        ),
-      ),
-      //backgroundColor: Colors.white,
 
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              _buildProfileInfo(authState.user),
-              const SizedBox(height: 24),
-              TextFormField(
-                controller: _nameController,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre',
-                  prefixIcon: Icon(Icons.person),
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => value?.isEmpty ?? true
-                    ? 'Por favor, ingresa un nombre'
-                    : null,
-                onSaved: (value) => _nameController.text = value ?? '',
-              ),
-              const SizedBox(height: 24),
-              ElevatedButton(
-                onPressed: _isSaving
-                    ? null
-                    : () async {
-                        if (_formKey.currentState?.validate() ?? false) {
-                          setState(() => _isSaving = true);
-                          try {
-                            await ref
-                                .read(authProvider.notifier)
-                                .updateDisplayName(_nameController.text);
-                            ScaffoldMessenger.of(context).showSnackBar(
-                              const SnackBar(
-                                content:
-                                    Text('Perfil actualizado exitosamente'),
-                              ),
-                            );
-                            Navigator.pop(context);
-                          } finally {
-                            setState(() => _isSaving = false);
-                          }
-                        }
-                      },
-                style: ElevatedButton.styleFrom(
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
-                ),
-                child: _isSaving
-                    ? const SizedBox(
-                        width: 24,
-                        height: 24,
-                        child: CircularProgressIndicator(
-                          color: Colors.white,
-                          strokeWidth: 2,
+    return Scaffold(
+      backgroundColor: Themes.light,
+      appBar: const AppBarFinances(
+        title: 'Editar Perfil',
+        showProfileIcon: false,
+      ),
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: ConstrainedBox(
+          constraints: BoxConstraints(
+            minHeight: MediaQuery.of(context).size.height -
+                kToolbarHeight -
+                MediaQuery.of(context).padding.top -
+                32,
+          ),
+          child: IntrinsicHeight(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                _buildProfileInfo(authState.user),
+                const SizedBox(height: 32),
+                Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      TextFormField(
+                        controller: _nameController,
+                        decoration: InputDecoration(
+                          labelText: 'Nombre',
+                          prefixIcon:
+                              const Icon(Icons.person, color: Themes.iconColor),
+                          filled: true,
+                          fillColor: Colors.white,
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
                         ),
-                      )
-                    : const Text(
-                        'Guardar Cambios',
-                        style: TextStyle(fontSize: 16),
+                        validator: (value) => (value?.isEmpty ?? true)
+                            ? 'Por favor, ingresa un nombre'
+                            : null,
                       ),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton.icon(
-                icon: const Icon(Icons.logout),
-                label: const Text('Cerrar sesión'),
-                onPressed: () => _showLogoutDialog(context),
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: Colors.red,
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(8),
+                      const SizedBox(height: 24),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _isSaving
+                              ? null
+                              : () async {
+                                  if (_formKey.currentState?.validate() ??
+                                      false) {
+                                    setState(() => _isSaving = true);
+                                    try {
+                                      await ref
+                                          .read(authProvider.notifier)
+                                          .updateDisplayName(
+                                              _nameController.text);
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              'Perfil actualizado exitosamente'),
+                                        ),
+                                      );
+                                      Navigator.pop(context);
+                                    } finally {
+                                      setState(() => _isSaving = false);
+                                    }
+                                  }
+                                },
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Themes.primary,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: _isSaving
+                              ? const CircularProgressIndicator(
+                                  color: Colors.white,
+                                  strokeWidth: 2,
+                                )
+                              : const Text(
+                                  'Guardar Cambios',
+                                  style: TextStyle(
+                                    fontSize: 16,
+                                    color: Themes.white,
+                                  ),
+                                ),
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton.icon(
+                          icon: const Icon(Icons.logout, color: Themes.white),
+                          label: const Text(
+                            'Cerrar sesión',
+                            style: TextStyle(
+                              color: Themes.white,
+                            ),
+                          ),
+                          onPressed: () => _showLogoutDialog(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.red.shade700,
+                            padding: const EdgeInsets.symmetric(vertical: 16),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ],
                   ),
-                  padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
@@ -132,22 +161,19 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   Widget _buildProfileInfo(User? user) {
     return Container(
+      width: double.infinity,
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
         gradient: const LinearGradient(
-          colors: [
-            Color(0xFF3A57E8),
-            Color(0xFF0C1F6F),
-            Color(0xFF050A30),
-          ],
+          colors: [Themes.degradientDark, Themes.degradientLight],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
         ),
         borderRadius: BorderRadius.circular(20),
         boxShadow: [
           BoxShadow(
-            color: Colors.white.withValues(alpha: 0.2),
-            blurRadius: 10,
+            color: Colors.black26,
+            blurRadius: 8,
             offset: const Offset(0, 4),
           ),
         ],
@@ -156,33 +182,26 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
         children: [
           const CircleAvatar(
             radius: 36,
-            backgroundColor: Color(0xFF1B263B),
-            child: Icon(
-              Icons.person,
-              color: Colors.white,
-              size: 48,
-            ),
+            backgroundColor: Themes.iconsButton,
+            child: Icon(Icons.person, color: Colors.white, size: 40),
           ),
-          const SizedBox(width: 20),
+          const SizedBox(width: 16),
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Bienvenido, ${user?.displayName ?? 'Sin nombre'}',
+                  'Hola, ${user?.displayName ?? 'Sin nombre'}',
                   style: const TextStyle(
-                    fontSize: 22,
+                    fontSize: 20,
                     fontWeight: FontWeight.bold,
                     color: Colors.white,
                   ),
                 ),
-                const SizedBox(height: 8),
+                const SizedBox(height: 6),
                 Text(
-                  user?.email ?? 'Sin email asociado',
-                  style: const TextStyle(
-                    fontSize: 16,
-                    color: Color(0xFF9BAEC8),
-                  ),
+                  user?.email ?? 'Sin email',
+                  style: const TextStyle(fontSize: 14, color: Colors.white70),
                 ),
               ],
             ),
