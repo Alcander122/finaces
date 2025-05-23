@@ -3,6 +3,7 @@ import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/core/errors/handlers/auth_error_handler.dart';
 import 'package:finances/presentations/screens/Auth/register.screen.dart';
 import 'package:finances/presentations/theme/theme.dart';
+import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/presentations/widgets/custom_scaffold.dart';
 import 'package:finances/routes/app_routes.dart';
 import 'package:finances/utils/ui_helpers.dart';
@@ -105,7 +106,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                           style: TextStyle(
                             fontSize: 30.0,
                             fontWeight: FontWeight.w900,
-                            color: lightColorScheme.primary,
+                            color: Themes.degradientLight,
                           ),
                         ),
                         const SizedBox(height: 40.0),
@@ -200,8 +201,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
         Expanded(
           child: Divider(
             thickness: 0.7,
-            	color: Colors.grey.withValues(alpha: 0.5),
-
+            color: Colors.grey.withValues(alpha: 0.5),
           ),
         ),
         const Padding(
@@ -212,7 +212,6 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
           child: Divider(
             thickness: 0.7,
             color: Colors.grey.withValues(alpha: 0.5),
-
           ),
         ),
       ],
@@ -234,7 +233,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
             'Registrarse',
             style: TextStyle(
               fontWeight: FontWeight.bold,
-              color: lightColorScheme.primary,
+              color: Themes.degradientLight,
             ),
           ),
         ),

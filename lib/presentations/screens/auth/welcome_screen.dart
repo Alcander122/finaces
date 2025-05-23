@@ -1,4 +1,5 @@
 import 'package:finances/core/data/providers/auth_provider.dart';
+import 'package:finances/presentations/theme/themes.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/presentations/screens/home/home_screen.dart';
 import 'package:flutter/material.dart';
@@ -12,7 +13,7 @@ class WelcomeScreen extends ConsumerWidget {
   const WelcomeScreen({super.key});
 
   @override
-  Widget build(BuildContext context,WidgetRef ref) {
+  Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
 
     if (authState.isLoading) {
@@ -36,13 +37,11 @@ class WelcomeScreen extends ConsumerWidget {
                 child: Column(
                   mainAxisSize: MainAxisSize.min,
                   children: [
-                    // Logo temporal
                     Image.asset(
-                      'assets/images/Logo1.png',
-                      height: 80, // Ajusta el tamaño según necesites
+                      'assets/images/logobill.png',
+                      height: 80,
                     ),
-                    const SizedBox(
-                        height: 10), // Espacio entre el logo y el título
+                    const SizedBox(height: 10),
                     RichText(
                       textAlign: TextAlign.center,
                       text: const TextSpan(
@@ -86,7 +85,7 @@ class WelcomeScreen extends ConsumerWidget {
                     buttonText: 'Register',
                     onTap: const RegisterScreen(),
                     color: Colors.white,
-                    textColor: lightColorScheme.primary,
+                    textColor: Themes.primary,
                   ),
                 ),
               ],

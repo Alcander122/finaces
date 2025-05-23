@@ -93,12 +93,14 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
     final egresosAsync = ref.watch(egresosProvider);
 
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Egresos'),
+      appBar: AppBarFinances(
+        title: 'Egresos',
+        showProfileIcon: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.view_column),
-            onPressed: _showColumnSelectionDialog,
+            color: Colors.white,
+            onPressed: () => _showColumnSelectionDialog(),
           ),
         ],
       ),

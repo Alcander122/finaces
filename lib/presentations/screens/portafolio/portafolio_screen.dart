@@ -1,5 +1,4 @@
 import 'package:finances/presentations/screens/portafolio/portafolio_detail_screen.dart';
-import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';

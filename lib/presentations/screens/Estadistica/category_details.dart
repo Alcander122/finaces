@@ -32,7 +32,7 @@ class CategoryDetailsScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: const AppBarFinances(),
+      appBar: const AppBarFinances(title: 'Categoria'),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: isExpense
