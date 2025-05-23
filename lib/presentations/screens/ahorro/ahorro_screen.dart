@@ -23,8 +23,9 @@ class AhorroScreenState extends State<AhorroScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: const Text('Mis Ahorros'),
+      appBar: const AppBarFinances(
+        useLogoAsTitle: true,
+        showProfileIcon: false,
       ),
       // Permite que el contenido se ajuste cuando aparece el teclado
       resizeToAvoidBottomInset: true,

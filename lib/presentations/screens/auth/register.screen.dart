@@ -3,6 +3,7 @@ import 'package:finances/core/data/services/user_service.dart';
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/core/errors/handlers/auth_error_handler.dart';
 import 'package:finances/presentations/screens/home/home_screen.dart';
+import 'package:finances/presentations/theme/themes.dart';
 import 'package:flutter/material.dart';
 import 'LoginScreen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -105,7 +106,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         style: TextStyle(
                           fontSize: 30.0,
                           fontWeight: FontWeight.w900,
-                          color: lightColorScheme.primary,
+                          color: Themes.degradientLight,
                         ),
                       ),
                       const SizedBox(height: 40.0),
@@ -205,13 +206,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             value: agreePersonalData,
                             onChanged: (value) => setState(
                                 () => agreePersonalData = value ?? false),
-                            activeColor: lightColorScheme.primary,
+                            activeColor: Themes.degradientLight,
                           ),
                           const Text('Acepto el procesamiento de ',
                               style: TextStyle(color: Colors.black45)),
                           Text('Datos personales.',
                               style: TextStyle(
-                                  color: lightColorScheme.primary,
+                                  color: Themes.degradientLight,
                                   fontWeight: FontWeight.bold)),
                         ],
                       ),
@@ -303,7 +304,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                     builder: (e) => const LoginScreen())),
                             child: Text('Inicia sesión',
                                 style: TextStyle(
-                                    color: lightColorScheme.primary,
+                                    color: Themes.degradientLight,
                                     fontWeight: FontWeight.bold)),
                           ),
                         ],

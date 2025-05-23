@@ -11,6 +11,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import '../ingresos/ingresos_screen.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
+import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/presentations/widgets/background_container.dart';
 import 'package:intl/intl.dart';
 
 class HomeScreen extends ConsumerWidget {
@@ -19,6 +21,7 @@ class HomeScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
+
     if (authState.isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
@@ -41,43 +44,80 @@ class HomeScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      appBar: const AppBarFinances(),
-      backgroundColor: const Color(0xFFd6eaf8),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(0.0),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Container(
-              width: double.infinity,
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF3A59D1), Color(0xFF3A59D1)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(24),
-                  bottomRight: Radius.circular(24),
-                ),
-              ),
-              child: Padding(
-                padding: const EdgeInsets.symmetric(
-                    horizontal: 16.0, vertical: 32.0),
-                child: _buildUserProfile(context, authState),
+      backgroundColor: Colors.transparent, // El fondo lo pone el contenedor
+      body: BackgroundContainer(
+        backgroundImagePath:
+            'assets/images/bg3.jpg', // Cambia el path si es otro
+        child: CustomScrollView(
+          slivers: [
+            SliverPersistentHeader(
+              pinned: true,
+              delegate: _AppBarDelegate(
+                minHeight: 100,
+                maxHeight: 100,
+                onBuildTitle: (shrinkOffset) {
+                  final showTitle = shrinkOffset > 0;
+                  return AppBarFinances(
+                    useLogoAsTitle: !showTitle,
+                    title: showTitle ? 'BillNance' : null,
+                    showProfileIcon: true,
+                    onProfilePressed: () {
+                      Navigator.pushNamed(context, '/profile');
+                    },
+                  );
+                },
               ),
             ),
-            const SizedBox(height: 25),
-            _buildFinancialSummary(totalIngresos, totalGastos),
-            const SizedBox(height: 25),
-            const Text(
-              'Acciones rápidas',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            SliverToBoxAdapter(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Container(
+                    width: double.infinity,
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Themes.degradientDark, Themes.degradientLight],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(24),
+                        bottomRight: Radius.circular(24),
+                      ),
+                    ),
+                    child: Padding(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 16.0, vertical: 32.0),
+                      child: _buildUserProfile(context, authState),
+                    ),
+                  ),
+                  const SizedBox(height: 25),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: _buildFinancialSummary(totalIngresos, totalGastos),
+                  ),
+                  const SizedBox(height: 25),
+                  const Padding(
+                    padding: EdgeInsets.symmetric(horizontal: 16.0),
+                    child: Text(
+                      'Acciones rápidas',
+                      style:
+                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+                    ),
+                  ),
+                  const SizedBox(height: 10),
+                  Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                    child: _buildQuickActions(context),
+                  ),
+                  const SizedBox(height: 20),
+                  Padding(
+                    padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 32.0),
+                    child: _buildMenuCardsSeccion(context),
+                  ),
+                ],
+              ),
             ),
-            const SizedBox(height: 10),
-            _buildQuickActions(context),
-            const SizedBox(height: 20),
-            _buildMenuCardsSeccion(context),
           ],
         ),
       ),
@@ -108,7 +148,7 @@ class HomeScreen extends ConsumerWidget {
                     Text(
                       'Bienvenido, ${authState.user?.displayName ?? 'Usuario'}',
                       style: const TextStyle(
-                        color: Colors.white,
+                        color: Themes.white,
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
                       ),
@@ -133,7 +173,7 @@ class HomeScreen extends ConsumerWidget {
     return Container(
       width: double.infinity,
       decoration: BoxDecoration(
-        color: const Color(0xFFEAF6FF),
+        color: Themes.infoBlue,
         borderRadius: BorderRadius.circular(16),
         border: Border.all(color: Colors.blueGrey.shade100, width: 1),
         boxShadow: const [
@@ -148,13 +188,14 @@ class HomeScreen extends ConsumerWidget {
       child: Stack(
         children: [
           Positioned(
-            bottom: -70,
-            right: -25,
+            bottom: -50,
+            right: -15,
             child: Opacity(
-              opacity: 0.5,
+              opacity: 0.2,
               child: Image.asset(
                 'assets/images/logobill.png',
-                width: 180,
+                width: 150,
+                color: Color(0xFF1A2B63),
               ),
             ),
           ),
@@ -215,7 +256,6 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-// Subcomponente reutilizable
   Widget _customStatCard(
       String label, double amount, IconData icon, Color iconColor) {
     final formatter = NumberFormat.currency(locale: 'es_CO', symbol: '\$');
@@ -260,10 +300,10 @@ class HomeScreen extends ConsumerWidget {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
-        _actionButton(context, 'Ingreso', Icons.add_circle, Colors.green,
+        _actionButton(context, 'Ingresos', Icons.add_circle, Colors.green,
             IngresosScreen()),
-        _actionButton(
-            context, 'Gasto', Icons.remove_circle, Colors.red, EgresosScreen()),
+        _actionButton(context, 'Gastos', Icons.remove_circle, Colors.red,
+            EgresosScreen()),
         _actionButton(context, 'Estadísticas', Icons.bar_chart, Colors.purple,
             StatisticScreen()),
       ],
@@ -279,13 +319,19 @@ class HomeScreen extends ConsumerWidget {
               context, MaterialPageRoute(builder: (_) => screen)),
           child: CircleAvatar(
             radius: 28,
-            backgroundColor: color.withOpacity(0.2),
+            backgroundColor: color.withValues(alpha:0.2),
             child: Icon(icon, color: color, size: 28),
           ),
         ),
         const SizedBox(height: 6),
-        Text(label,
-            style: const TextStyle(color: Colors.black87, fontSize: 14)),
+        Text(
+          label,
+          style: const TextStyle(
+            color: Colors.black87,
+            fontSize: 14,
+            fontWeight: FontWeight.bold, // <-- Negrita aquí
+          ),
+        ),
       ],
     );
   }
@@ -350,7 +396,7 @@ class HomeScreen extends ConsumerWidget {
                   padding: const EdgeInsets.all(12),
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
-                      colors: [Color(0xFF578FCA), Color(0xFF3A59D1)],
+                      colors: [Themes.degradientLight, Themes.degradientDark],
                       begin: Alignment.topLeft,
                       end: Alignment.bottomRight,
                     ),
@@ -372,7 +418,7 @@ class HomeScreen extends ConsumerWidget {
                         style: const TextStyle(
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white),
+                            color: Themes.white),
                       ),
                       const SizedBox(height: 4),
                       Text(
@@ -389,5 +435,41 @@ class HomeScreen extends ConsumerWidget {
         ),
       ],
     );
+  }
+}
+
+typedef BuildTitle = Widget Function(double shrinkOffset);
+
+class _AppBarDelegate extends SliverPersistentHeaderDelegate {
+  final double minHeight;
+  final double maxHeight;
+  final BuildTitle onBuildTitle;
+
+  _AppBarDelegate({
+    required this.minHeight,
+    required this.maxHeight,
+    required this.onBuildTitle,
+  });
+
+  @override
+  Widget build(
+      BuildContext context, double shrinkOffset, bool overlapsContent) {
+    return Container(
+      color: Themes.white,
+      child: onBuildTitle(shrinkOffset),
+    );
+  }
+
+  @override
+  double get maxExtent => maxHeight;
+
+  @override
+  double get minExtent => minHeight;
+
+  @override
+  bool shouldRebuild(covariant _AppBarDelegate oldDelegate) {
+    return maxHeight != oldDelegate.maxHeight ||
+        minHeight != oldDelegate.minHeight ||
+        onBuildTitle != oldDelegate.onBuildTitle;
   }
 }
