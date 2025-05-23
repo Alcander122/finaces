@@ -229,10 +229,12 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
             value: _anio,
             hint: const Text('Selecciona un año'),
             items: List.generate(10, (index) => DateTime.now().year - 5 + index)
-                .map((anio) => DropdownMenuItem(value: anio, child: Text(anio.toString())))
+                .map((anio) =>
+                    DropdownMenuItem(value: anio, child: Text(anio.toString())))
                 .toList(),
             onChanged: (value) => setState(() => _anio = value),
-            decoration: const InputDecoration(labelText: 'Año'), // Cambiar labelText a 'Año'
+            decoration: const InputDecoration(
+                labelText: 'Año'), // Cambiar labelText a 'Año'
             validator: (value) => _validator.validateAnio(value),
           ),
           // Campo para seleccionar la categoría
@@ -283,6 +285,8 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
     if (_ingresos.isNotEmpty) {
       camposDisponibles = _ingresos.first.keys.toSet();
     }
+    // Excluir 'id' de los campos disponibles
+    camposDisponibles.remove('id');
 
     showDialog(
       context: context,
@@ -295,7 +299,9 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
                 child: Column(
                   children: camposDisponibles
                       .map((campo) => CheckboxListTile(
-                            title: Text(campo == 'anio' ? 'año' : campo), // Mostrar 'año' en lugar de 'anio'
+                            title: Text(campo == 'anio'
+                                ? 'año'
+                                : campo), // Mostrar 'año' en lugar de 'anio'
                             value: _camposVisibles.contains(campo),
                             onChanged: (value) {
                               setStateDialog(() {
