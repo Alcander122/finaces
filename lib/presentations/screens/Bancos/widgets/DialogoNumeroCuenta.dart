@@ -1,4 +1,3 @@
-// Diálogo para ingresar el número de cuenta
 import 'package:flutter/material.dart';
 import 'package:finances/core/data/models/bank_model.dart';
 

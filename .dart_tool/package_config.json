@@ -62,6 +62,12 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "cross_file",
+      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/cross_file-0.3.4+2",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
+    },
+    {
       "name": "crypto",
       "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/crypto-3.0.6",
       "packageUri": "lib/",
@@ -290,6 +296,12 @@
       "languageVersion": "2.12"
     },
     {
+      "name": "mime",
+      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/mime-2.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.2"
+    },
+    {
       "name": "nested",
       "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/nested-1.0.0",
       "packageUri": "lib/",
@@ -304,6 +316,24 @@
     {
       "name": "path_parsing",
       "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/path_parsing-1.1.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
+    },
+    {
+      "name": "path_provider",
+      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/path_provider-2.1.5",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
+      "name": "path_provider_android",
+      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/path_provider_android-2.2.17",
+      "packageUri": "lib/",
+      "languageVersion": "3.6"
+    },
+    {
+      "name": "path_provider_foundation",
+      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/path_provider_foundation-2.4.1",
       "packageUri": "lib/",
       "languageVersion": "3.3"
     },
@@ -366,6 +396,18 @@
       "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/rxdart-0.28.0",
       "packageUri": "lib/",
       "languageVersion": "2.12"
+    },
+    {
+      "name": "share_plus",
+      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/share_plus-11.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
+      "name": "share_plus_platform_interface",
+      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/share_plus_platform_interface-6.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.18"
     },
     {
       "name": "shared_preferences",
@@ -482,6 +524,30 @@
       "languageVersion": "3.5"
     },
     {
+      "name": "url_launcher_linux",
+      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/url_launcher_linux-3.2.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
+    },
+    {
+      "name": "url_launcher_platform_interface",
+      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/url_launcher_platform_interface-2.3.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.1"
+    },
+    {
+      "name": "url_launcher_web",
+      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/url_launcher_web-2.4.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.6"
+    },
+    {
+      "name": "url_launcher_windows",
+      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/url_launcher_windows-3.1.4",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
       "name": "uuid",
       "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/uuid-3.0.7",
       "packageUri": "lib/",
@@ -524,6 +590,12 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "win32",
+      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/win32-5.13.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.7"
+    },
+    {
       "name": "xdg_directories",
       "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/xdg_directories-1.1.0",
       "packageUri": "lib/",
@@ -542,7 +614,7 @@
       "languageVersion": "3.6"
     }
   ],
-  "generated": "2025-05-23T20:48:54.854122Z",
+  "generated": "2025-05-26T06:52:38.685080Z",
   "generator": "pub",
   "generatorVersion": "3.7.2",
   "flutterRoot": "file:///C:/Users/ANDRES%20AYALA/dev/flutter",

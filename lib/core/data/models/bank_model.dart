@@ -1,46 +1,48 @@
-// Modelo para representar un banco en la aplicación
 class BancoModelo {
-  final String id; // Identificador único del banco
-  final String nombre; // Nombre del banco
-  final double tasaInteres; // Tasa de interés del banco
-  final double comisionMensual; // Comisión mensual del banco
-  final int beneficios; // Número de beneficios asociados
-  final String numeroCuenta; // Número de cuenta del usuario
+  final String id;
+  final String nombre;
+  final String numeroCuenta;
+  final String userId;
 
   BancoModelo({
     required this.id,
     required this.nombre,
-    this.tasaInteres = 0.0,
-    this.comisionMensual = 0.0,
-    this.beneficios = 0,
-    required this.numeroCuenta, // Campo obligatorio
+    required this.numeroCuenta,
+    required this.userId,
   });
 
-  // Devuelve el número de cuenta enmascarado (ej: ********7890)
-  String get numeroCuentaEnmascarado {
-    if (numeroCuenta.length <= 4) return numeroCuenta;
-    final int visibleDigits = 4;
-    final int maskedLength = numeroCuenta.length - visibleDigits;
-    return '*' * maskedLength + numeroCuenta.substring(maskedLength);
+  // Crea un banco sin ID (útil para nuevos registros donde Firestore genera el ID)
+  factory BancoModelo.sinId({
+    required String nombre,
+    required String numeroCuenta,
+    required String userId,
+  }) {
+    return BancoModelo(
+      id: '',
+      nombre: nombre,
+      numeroCuenta: numeroCuenta,
+      userId: userId,
+    );
   }
 
-  // Convertir JSON a objeto BancoModelo
-  factory BancoModelo.fromJson(Map<String, dynamic> json) => BancoModelo(
-        id: json['id'],
-        nombre: json['nombre'],
-        tasaInteres: json['tasa_interes']?.toDouble() ?? 0.0,
-        comisionMensual: json['comision_mensual']?.toDouble() ?? 0.0,
-        beneficios: json['beneficios'] ?? 0,
-        numeroCuenta: json['numero_cuenta'] ?? '',
-      );
+  // Convierte el objeto a formato JSON para almacenarlo en Firestore
+  Map<String, dynamic> toJson() {
+    return {
+      'id': id,
+      'nombre': nombre,
+      'numeroCuenta': numeroCuenta,
+      'userId': userId,
+    };
+  }
 
-  // Convertir objeto BancoModelo a JSON
-  Map<String, dynamic> toJson() => {
-        'id': id,
-        'nombre': nombre,
-        'tasa_interes': tasaInteres,
-        'comision_mensual': comisionMensual,
-        'beneficios': beneficios,
-        'numero_cuenta': numeroCuenta,
-      };
+  // Convierte datos desde JSON (Firestore) a un objeto BancoModelo
+  // Maneja campos nulos con valores por defecto (evita errores de tipo Null)
+  factory BancoModelo.fromJson(Map<String, dynamic> json) {
+    return BancoModelo(
+      id: json['id'] as String? ?? '',
+      nombre: (json['nombre'] as String?)?.isNotEmpty == true ? json['nombre'] as String : '',
+      numeroCuenta: (json['numeroCuenta'] as String?)?.isNotEmpty == true ? json['numeroCuenta'] as String : '',
+      userId: (json['userId'] as String?)?.isNotEmpty == true ? json['userId'] as String : '',
+    );
+  }
 }

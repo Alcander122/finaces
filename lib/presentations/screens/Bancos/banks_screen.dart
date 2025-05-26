@@ -1,4 +1,3 @@
-// Pantalla principal para gestionar bancos
 import 'package:finances/presentations/screens/Bancos/widgets/DialogoNumeroCuenta.dart';
 import 'package:finances/presentations/screens/Bancos/widgets/DialogoSeleccionarBanco.dart';
 import 'package:finances/presentations/screens/Bancos/widgets/TarjetaBanco.dart';
@@ -34,9 +33,12 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
 
   @override
   Widget build(BuildContext context) {
+    // Obtenemos el estado de autenticación
     final authState = ref.watch(authProvider);
     final userId = authState.user?.uid ?? '';
-    final bancos = ref.watch(proveedorBancos);
+    
+    // Usamos el StreamProvider con el userId como parámetro
+    final bancosAsync = ref.watch(proveedorBancos(userId)); 
 
     return Scaffold(
       appBar: AppBarFinances(
@@ -45,6 +47,7 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
+            // Mostramos diálogo para agregar banco
             onPressed: () => _mostrarDialogoAgregarBanco(context, userId),
           ),
         ],
@@ -67,25 +70,8 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
             child: TabBarView(
               controller: _controladorTabs,
               children: [
-                // Pestaña: Lista de bancos
-                ListView.builder(
-                  itemCount: bancos.length,
-                  itemBuilder: (context, indice) {
-                    final banco = bancos[indice];
-                    return TarjetaBanco(banco: banco);
-                  },
-                ),
-                // Pestaña: Tasa de interés
-                ListView.builder(
-                  itemCount: bancos.length,
-                  itemBuilder: (context, indice) {
-                    final banco = bancos[indice];
-                    return ListTile(
-                      title: Text(banco.nombre),
-                      subtitle: Text('${banco.tasaInteres}%'),
-                    );
-                  },
-                ),
+                _buildBancosTab(bancosAsync),
+                _buildTasaTab(bancosAsync),
               ],
             ),
           ),
@@ -94,7 +80,44 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
     );
   }
 
-  // Mostrar diálogo para seleccionar un banco
+  // Construye la pestaña de bancos
+  Widget _buildBancosTab(AsyncValue<List<BancoModelo>> bancosAsync) {
+    return bancosAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Text('Error: $err'),
+      data: (bancos) {
+        return ListView.builder(
+          itemCount: bancos.length,
+          itemBuilder: (context, index) {
+            final banco = bancos[index];
+            return TarjetaBanco(banco: banco);
+          },
+        );
+      },
+    );
+  }
+
+  // Construye la pestaña de tasa
+  Widget _buildTasaTab(AsyncValue<List<BancoModelo>> bancosAsync) {
+    return bancosAsync.when(
+      loading: () => const Center(child: CircularProgressIndicator()),
+      error: (err, stack) => Text('Error: $err'),
+      data: (bancos) {
+        return ListView.builder(
+          itemCount: bancos.length,
+          itemBuilder: (context, index) {
+           // final banco = bancos[index];
+            return ListTile(
+             // title: Text(banco.nombre),
+              //subtitle: Text('${banco.tasaInteres}%'),
+            );
+          },
+        );
+      },
+    );
+  }
+
+  // Muestra diálogo para agregar banco
   void _mostrarDialogoAgregarBanco(BuildContext context, String userId) {
     showDialog(
       context: context,
@@ -105,27 +128,24 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
     );
   }
 
-  // Mostrar diálogo para ingresar número de cuenta
+  // Muestra diálogo para ingresar número de cuenta
   void _mostrarDialogoNumeroCuenta(
       BuildContext context, BancoModelo banco, String userId) {
     final controladorCuenta = TextEditingController();
-
     showDialog(
       context: context,
       builder: (context) => DialogoNumeroCuenta(
         banco: banco,
         controladorCuenta: controladorCuenta,
         onGuardar: () {
-          final bancoActualizado = BancoModelo(
-            id: banco.id,
+          final nuevoBanco = BancoModelo(
+            id: '', // Firestore generará el ID
             nombre: banco.nombre,
-            tasaInteres: banco.tasaInteres,
             numeroCuenta: controladorCuenta.text,
-            // agrega aquí otros campos si existen en BancoModelo
+            userId: userId,
           );
-          ref
-              .read(proveedorBancos.notifier)
-              .agregarBanco(bancoActualizado, userId);
+          // Usamos el StateNotifierProvider para crear el banco
+          ref.read(bancoNotifierProvider.notifier).crearBanco(nuevoBanco);
         },
       ),
     );

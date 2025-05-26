@@ -1,188 +1,62 @@
 import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart'; // Para usar ref
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/models/bank_model.dart';
 import 'package:finances/core/data/providers/bank_provider.dart';
-import 'package:finances/presentations/theme/themes.dart';
+import 'package:share_plus/share_plus.dart';
 
-class TarjetaBanco extends ConsumerWidget { // ✅ Usa ConsumerWidget
+// Utility Function
+String maskAccountNumber(String accountNumber) {
+  if (accountNumber.length <= 4) return accountNumber;
+  return '*' * (accountNumber.length - 4) + accountNumber.substring(accountNumber.length - 4);
+}
+
+class TarjetaBanco extends ConsumerWidget {
   final BancoModelo banco;
-
   const TarjetaBanco({super.key, required this.banco});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     return Card(
-      margin: const EdgeInsets.all(8),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _crearEncabezadoBanco(context),
-            const Divider(),
-            _crearNumeroCuenta(context),
-            const SizedBox(height: 16),
-            _crearBotonesAccion(context),
-            const SizedBox(height: 16),
-            _crearAccionesBanco(context, ref), // ✅ Pasa ref
-          ],
-        ),
-      ),
-    );
-  }
-
-  // Encabezado con nombre del banco y calificación
-  Row _crearEncabezadoBanco(BuildContext context) {
-    return Row(
-      children: [
-        CircleAvatar(
-          backgroundColor: Colors.blue,
-          child: Icon(Icons.account_balance), // ✅ Icono válido
-        ),
-        const SizedBox(width: 16),
-        Expanded(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(
-                banco.nombre,
-                style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 8),
-              Row(
-                children: [
-                  const Icon(Icons.star, size: 14),
-                  Text('4.5', style: TextStyle(color: Colors.grey[600])),
-                ],
-              ),
-            ],
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Campo de número de cuenta (enmascarado)
-  Widget _crearNumeroCuenta(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(
-          'Número de Cuenta',
-          style: TextStyle(color: Colors.grey[600]),
-        ),
-        const SizedBox(height: 8),
-        Container(
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-          decoration: BoxDecoration(
-            border: Border.all(color: Colors.grey[300]!),
-            borderRadius: BorderRadius.circular(4),
-          ),
-          child: Text(
-            banco.numeroCuentaEnmascarado,
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Botones de acción (Copiar y Compartir)
-  Row _crearBotonesAccion(BuildContext context) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-      children: [
-        ElevatedButton(
-          onPressed: () => _copiarNumeroCuenta(context),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Theme.of(context).primaryColor, // ✅ primaryColor obtenido del contexto
-          ),
-          child: const Text('Copiar'),
-        ),
-        ElevatedButton(
-          onPressed: () => _mostrarDialogoCompartir(context),
-          style: ElevatedButton.styleFrom(
-            backgroundColor: Theme.of(context).primaryColor,
-          ),
-          child: const Text('Compartir'),
-        ),
-      ],
-    );
-  }
-
-  // Acciones adicionales (Editar y Eliminar)
-  Row _crearAccionesBanco(BuildContext context, WidgetRef ref) {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.end,
-      children: [
-        IconButton(
-          icon: const Icon(Icons.edit),
-          onPressed: () => _editarBanco(context),
-        ),
-        IconButton(
-          icon: const Icon(Icons.delete),
-          onPressed: () => _eliminarBanco(context, ref), // ✅ Pasa ref
-        ),
-      ],
-    );
-  }
-
-  // Diálogo para compartir información del banco
-  void _mostrarDialogoCompartir(BuildContext context) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(banco.nombre),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Text('Número de cuenta: ${banco.numeroCuenta}'), // Mostrar número completo
-            const SizedBox(height: 16),
+            // Display masked account number
+            Text(
+              '${banco.nombre} ${maskAccountNumber(banco.numeroCuenta)}',
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            const SizedBox(height: 12),
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                IconButton(
-                  icon: Icon(Icons.add_call), // ✅ Icono de WhatsApp
-                  onPressed: () {},
+                // Delete Button
+                ElevatedButton(
+                  onPressed: () => _mostrarDialogoEliminarBanco(context, ref),
+                  child: const Text('Eliminar'),
                 ),
-                IconButton(
-                  icon: Icon(Icons.email),
-                  onPressed: () {},
-                ),
-                IconButton(
-                  icon: Icon(Icons.message),
-                  onPressed: () {},
-                ),
-                IconButton(
-                  icon: Icon(Icons.copy),
-                  onPressed: () {},
+                const SizedBox(width: 8),
+                // Share Button
+                ElevatedButton.icon(
+                  onPressed: () => _compartirCuenta(context, banco),
+                  icon: const Icon(Icons.share, size: 18),
+                  label: const Text('Compartir'),
                 ),
               ],
             ),
           ],
         ),
-        actions: [
-          TextButton(
-            onPressed: Navigator.of(context).pop,
-            child: const Text('Cancelar'),
-          ),
-        ],
       ),
     );
   }
 
-  // Copiar número de cuenta al portapapeles
-  void _copiarNumeroCuenta(BuildContext context) {
-    // Implementar lógica con paquete clipboard o flutter_clipboard_manager
+  void _compartirCuenta(BuildContext context, BancoModelo banco) {
+    final message = 'Banco: ${banco.nombre}\nNúmero de cuenta: ${banco.numeroCuenta}';
+    Share.share(message);
   }
 
-  // Editar información del banco
-  void _editarBanco(BuildContext context) {
-    // Implementar lógica de edición
-  }
-
-  // Eliminar un banco
-  void _eliminarBanco(BuildContext context, WidgetRef ref) {
+  void _mostrarDialogoEliminarBanco(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -195,7 +69,7 @@ class TarjetaBanco extends ConsumerWidget { // ✅ Usa ConsumerWidget
           ),
           ElevatedButton(
             onPressed: () {
-              ref.read(proveedorBancos.notifier).eliminarBanco(banco.id);
+              ref.read(bancoNotifierProvider.notifier).eliminarBanco(banco.id, banco.userId);
               Navigator.of(context).pop();
             },
             child: const Text('Eliminar'),
