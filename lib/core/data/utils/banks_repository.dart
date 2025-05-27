@@ -4,29 +4,39 @@ import 'package:finances/core/data/models/bank_model.dart';
 class BanksRepository {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Método para obtener la subcolección de bancos de un usuario
+  // Obtiene referencia a la subcolección de bancos del usuario
   CollectionReference _userBanks(String userId) {
     return _firestore.collection('users').doc(userId).collection('bancos');
   }
 
-  // Obtiene un flujo de bancos asociados a un userId
+  // Stream de bancos con datos en tiempo real
   Stream<List<BancoModelo>> getBanksByUserId(String userId) {
     return _userBanks(userId).snapshots().map((snapshot) => 
-      snapshot.docs.map((doc) => BancoModelo.fromJson(doc.data() as Map<String, dynamic>)).toList()
+      snapshot.docs.map((doc) {
+        // Combina datos del documento con su ID
+        final data = doc.data() as Map<String, dynamic>;
+        return BancoModelo.fromJson({
+          ...data,
+          'id': doc.id, // Agrega ID del documento
+        });
+      }).toList()
     );
   }
 
-  // Crea un nuevo banco en Firestore
-  Future<void> crearBanco(BancoModelo banco) {
-    return _userBanks(banco.userId).add(banco.toJson()..remove('id'));
+  // Crea nuevo banco y devuelve su ID generado
+  Future<String> crearBanco(BancoModelo banco) async {
+    final docRef = await _userBanks(banco.userId).add(banco.toJson());
+    return docRef.id; // Retorna ID generado por Firestore
   }
 
-  // Actualiza un banco existente en Firestore
+  // Actualiza banco existente
   Future<void> actualizarBanco(BancoModelo banco) {
-    return _userBanks(banco.userId).doc(banco.id).update(banco.toJson());
+    return _userBanks(banco.userId)
+        .doc(banco.id)
+        .update(banco.toJson());
   }
 
-  // Elimina un banco por ID y userId
+  // Elimina banco
   Future<void> eliminarBanco(String bancoId, String userId) {
     return _userBanks(userId).doc(bancoId).delete();
   }

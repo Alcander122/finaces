@@ -1,47 +1,55 @@
-import 'package:finances/core/data/providers/auth_provider.dart';
-import 'package:finances/core/data/utils/banks_repository.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/models/bank_model.dart';
+import 'package:finances/core/data/utils/banks_repository.dart';
 
-// Proveedor singleton para el repositorio de bancos
 final banksRepositoryProvider = Provider<BanksRepository>((ref) => BanksRepository());
 
-// Proveedor reactivo para obtener bancos filtrados por userId usando Stream
-final proveedorBancos = StreamProvider.family<List<BancoModelo>, String>((ref, userId) {
-  final repo = ref.watch(banksRepositoryProvider);
-  return repo.getBanksByUserId(userId);
+// Proveedor para el estado de los bancos
+final bancoNotifierProvider = StateNotifierProvider.family<BancoNotifier, AsyncValue<List<BancoModelo>>, String>((ref, userId) {
+  return BancoNotifier(ref.watch(banksRepositoryProvider), userId);
 });
 
-// Proveedor para operaciones de creación/actualización/eliminación usando StateNotifier
-class BancoNotifier extends StateNotifier<List<BancoModelo>> {
+class BancoNotifier extends StateNotifier<AsyncValue<List<BancoModelo>>> {
   final BanksRepository _repo;
-  final Ref _ref;
+  final String _userId;
 
-  // Constructor que recibe el repositorio y elRef
-  BancoNotifier(this._repo, this._ref) : super([]);
-
-  // Método para eliminar un banco
-  Future<void> eliminarBanco(String bancoId, String userId) async {
-    // Obtiene userId del authProvider
-    final authState = _ref.watch(authProvider); 
-    final userIdAuth = authState.user?.uid ?? userId; // Usamos userId proporcionado o del auth
-    
-    await _repo.eliminarBanco(bancoId, userIdAuth);
+  BancoNotifier(this._repo, this._userId) : super(const AsyncValue.loading()) {
+    // Cargar bancos al inicializar
+    _cargarBancos();
   }
 
-  // Método para crear un banco
+  // Cargar bancos desde Firebase
+  void _cargarBancos() async {
+    state = await AsyncValue.guard(() async {
+      return await _repo.getBanksByUserId(_userId).first;
+    });
+  }
+
+  // Crear banco y actualizar estado con ID real
   Future<void> crearBanco(BancoModelo banco) async {
-    await _repo.crearBanco(banco);
+    state = await AsyncValue.guard(() async {
+      final nuevoId = await _repo.crearBanco(banco);
+      final bancoActualizado = banco.copyWith(id: nuevoId);
+      final List<BancoModelo> currentState = state.value ?? [];
+      return [...currentState, bancoActualizado];
+    });
   }
 
-  // Método para actualizar un banco
+  // Actualizar banco existente
   Future<void> actualizarBanco(BancoModelo banco) async {
-    await _repo.actualizarBanco(banco);
+    state = await AsyncValue.guard(() async {
+      await _repo.actualizarBanco(banco);
+      final List<BancoModelo> currentState = state.value ?? [];
+      return currentState.map((b) => b.id == banco.id ? banco : b).toList();
+    });
+  }
+
+  // Eliminar banco
+  Future<void> eliminarBanco(String bancoId, String userId) async {
+    state = await AsyncValue.guard(() async {
+      await _repo.eliminarBanco(bancoId, userId);
+      final List<BancoModelo> currentState = state.value ?? [];
+      return currentState.where((banco) => banco.id != bancoId).toList();
+    });
   }
 }
-
-// Declaramos el StateNotifierProvider
-final bancoNotifierProvider = StateNotifierProvider<BancoNotifier, List<BancoModelo>>((ref) {
-  final repo = ref.watch(banksRepositoryProvider);
-  return BancoNotifier(repo, ref);
-});

@@ -1,3 +1,4 @@
+// bank_model.dart
 class BancoModelo {
   final String id;
   final String nombre;
@@ -11,38 +12,51 @@ class BancoModelo {
     required this.userId,
   });
 
-  // Crea un banco sin ID (útil para nuevos registros donde Firestore genera el ID)
+  // Factory para crear banco sin ID (para nuevos registros)
   factory BancoModelo.sinId({
     required String nombre,
     required String numeroCuenta,
     required String userId,
   }) {
     return BancoModelo(
-      id: '',
+      id: '', // Firestore generará el ID
       nombre: nombre,
       numeroCuenta: numeroCuenta,
       userId: userId,
     );
   }
 
-  // Convierte el objeto a formato JSON para almacenarlo en Firestore
+  // Conversión a mapa para Firestore (excluye el ID)
   Map<String, dynamic> toJson() {
     return {
-      'id': id,
       'nombre': nombre,
       'numeroCuenta': numeroCuenta,
       'userId': userId,
     };
   }
 
-  // Convierte datos desde JSON (Firestore) a un objeto BancoModelo
-  // Maneja campos nulos con valores por defecto (evita errores de tipo Null)
+  // Factory para crear desde Firestore (incluye ID del documento)
   factory BancoModelo.fromJson(Map<String, dynamic> json) {
     return BancoModelo(
-      id: json['id'] as String? ?? '',
-      nombre: (json['nombre'] as String?)?.isNotEmpty == true ? json['nombre'] as String : '',
-      numeroCuenta: (json['numeroCuenta'] as String?)?.isNotEmpty == true ? json['numeroCuenta'] as String : '',
-      userId: (json['userId'] as String?)?.isNotEmpty == true ? json['userId'] as String : '',
+      id: json['id'] ?? '', // ID ahora viene de Firestore
+      nombre: json['nombre'] ?? '',
+      numeroCuenta: json['numeroCuenta'] ?? '',
+      userId: json['userId'] ?? '',
+    );
+  }
+
+  // Método para clonar con nuevos valores
+  BancoModelo copyWith({
+    String? id,
+    String? nombre,
+    String? numeroCuenta,
+    String? userId,
+  }) {
+    return BancoModelo(
+      id: id ?? this.id,
+      nombre: nombre ?? this.nombre,
+      numeroCuenta: numeroCuenta ?? this.numeroCuenta,
+      userId: userId ?? this.userId,
     );
   }
 }

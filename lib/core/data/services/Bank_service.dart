@@ -1,11 +1,7 @@
-// bank_service.dart
-// Servicio para operaciones CRUD con Firestore
-
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finances/core/data/models/bank_model.dart';
 
 class BancoService {
-  // Acceso a la subcolección 'bancos' del usuario actual
   CollectionReference _userBanks(String userId) {
     return FirebaseFirestore.instance
         .collection('users')
@@ -13,17 +9,26 @@ class BancoService {
         .collection('bancos');
   }
 
-  // Obtiene todos los bancos de un usuario (método síncrono)
   Future<List<BancoModelo>> obtenerBancos(String userId) async {
     try {
       final QuerySnapshot snapshot = await _userBanks(userId).get();
-      return snapshot.docs.map((doc) => BancoModelo.fromJson(doc.data() as Map<String, dynamic>)).toList();
+      return snapshot.docs
+          .map((doc) {
+            final data = doc.data() as Map<String, dynamic>;
+            final banco = BancoModelo.fromJson(data);
+            // Omite bancos con id o userId vacíos
+            return banco.id.isNotEmpty && banco.userId.isNotEmpty
+                ? banco
+                : null;
+          })
+          .where((banco) => banco != null)
+          .cast<BancoModelo>()
+          .toList();
     } catch (e) {
       throw Exception('Error al obtener bancos: $e');
     }
   }
 
-  // Elimina un banco específico
   Future<void> eliminarBanco(String bancoId, String userId) async {
     try {
       await _userBanks(userId).doc(bancoId).delete();

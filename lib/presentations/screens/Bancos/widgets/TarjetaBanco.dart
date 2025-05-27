@@ -4,12 +4,14 @@ import 'package:finances/core/data/models/bank_model.dart';
 import 'package:finances/core/data/providers/bank_provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-// Utility Function
+// Función auxiliar para enmascarar el número de cuenta
 String maskAccountNumber(String accountNumber) {
   if (accountNumber.length <= 4) return accountNumber;
-  return '*' * (accountNumber.length - 4) + accountNumber.substring(accountNumber.length - 4);
+  return '*' * (accountNumber.length - 4) +
+      accountNumber.substring(accountNumber.length - 4);
 }
 
+// Widget que muestra un banco como una tarjeta con opciones de acción
 class TarjetaBanco extends ConsumerWidget {
   final BancoModelo banco;
   const TarjetaBanco({super.key, required this.banco});
@@ -22,7 +24,7 @@ class TarjetaBanco extends ConsumerWidget {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Display masked account number
+            // Mostrar nombre del banco y número de cuenta enmascarado
             Text(
               '${banco.nombre} ${maskAccountNumber(banco.numeroCuenta)}',
               style: const TextStyle(fontWeight: FontWeight.bold),
@@ -31,13 +33,15 @@ class TarjetaBanco extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                // Delete Button
-                ElevatedButton(
-                  onPressed: () => _mostrarDialogoEliminarBanco(context, ref),
-                  child: const Text('Eliminar'),
-                ),
-                const SizedBox(width: 8),
-                // Share Button
+                // Botón para eliminar el banco (solo si tiene ID válido)
+                if (banco.id.isNotEmpty && banco.userId.isNotEmpty)
+                  ElevatedButton(
+                    onPressed: () => _mostrarDialogoEliminarBanco(context, ref),
+                    child: const Text('Eliminar'),
+                  ),
+                if (banco.id.isNotEmpty && banco.userId.isNotEmpty)
+                  const SizedBox(width: 8),
+                // Botón para compartir la información del banco
                 ElevatedButton.icon(
                   onPressed: () => _compartirCuenta(context, banco),
                   icon: const Icon(Icons.share, size: 18),
@@ -51,11 +55,14 @@ class TarjetaBanco extends ConsumerWidget {
     );
   }
 
+  // Función para compartir la información del banco
   void _compartirCuenta(BuildContext context, BancoModelo banco) {
-    final message = 'Banco: ${banco.nombre}\nNúmero de cuenta: ${banco.numeroCuenta}';
+    final message =
+        'Banco: ${banco.nombre}\nNúmero de cuenta: ${banco.numeroCuenta}';
     Share.share(message);
   }
 
+  // Diálogo para confirmar la eliminación del banco
   void _mostrarDialogoEliminarBanco(BuildContext context, WidgetRef ref) {
     showDialog(
       context: context,
@@ -68,9 +75,20 @@ class TarjetaBanco extends ConsumerWidget {
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            onPressed: () {
-              ref.read(bancoNotifierProvider.notifier).eliminarBanco(banco.id, banco.userId);
-              Navigator.of(context).pop();
+            onPressed: () async {
+              try {
+                if (banco.id.isNotEmpty && banco.userId.isNotEmpty) {
+                  // Acceder al notifier del provider familiar con el userId
+                  await ref
+                      .read(bancoNotifierProvider(banco.userId).notifier)
+                      .eliminarBanco(banco.id, banco.userId);
+                  Navigator.of(context).pop();
+                }
+              } catch (e) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(content: Text('Error al eliminar: $e')),
+                );
+              }
             },
             child: const Text('Eliminar'),
           ),
