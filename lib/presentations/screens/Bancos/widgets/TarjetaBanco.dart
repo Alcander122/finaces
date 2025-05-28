@@ -3,48 +3,68 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/models/bank_model.dart';
 import 'package:finances/core/data/providers/bank_provider.dart';
 import 'package:share_plus/share_plus.dart';
+import 'qr_screen.dart'; // Importa la pantalla para mostrar el código QR
 
-// Función auxiliar para enmascarar el número de cuenta
+// Función para enmascarar el número de cuenta, dejando visibles solo los últimos 4 dígitos
 String maskAccountNumber(String accountNumber) {
   if (accountNumber.length <= 4) return accountNumber;
   return '*' * (accountNumber.length - 4) +
       accountNumber.substring(accountNumber.length - 4);
 }
 
-// Widget que muestra un banco como una tarjeta con opciones de acción
+// Widget que representa una tarjeta con la información del banco
 class TarjetaBanco extends ConsumerWidget {
-  final BancoModelo banco;
+  final BancoModelo banco; // Modelo con la información del banco
+
   const TarjetaBanco({super.key, required this.banco});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    final theme = Theme.of(context); // Obtiene el tema actual de la app
+
     return Card(
+      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Mostrar nombre del banco y número de cuenta enmascarado
+            // Nombre del banco en texto grande y en negrita
             Text(
-              '${banco.nombre} ${maskAccountNumber(banco.numeroCuenta)}',
-              style: const TextStyle(fontWeight: FontWeight.bold),
+              banco.nombre,
+              style: theme.textTheme.titleLarge
+                  ?.copyWith(fontWeight: FontWeight.bold),
             ),
+            const SizedBox(height: 8),
+
+            // Muestra el número de cuenta enmascarado
+            Text(
+              maskAccountNumber(banco.numeroCuenta),
+              style: theme.textTheme.bodyMedium
+                  ?.copyWith(color: theme.colorScheme.primary),
+            ),
+
             const SizedBox(height: 12),
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
+
+            // Botones para ver el QR y compartir la cuenta
+            Wrap(
+              spacing: 8,
+              runSpacing: 8,
+              alignment: WrapAlignment.start,
               children: [
-                // Botón para eliminar el banco (solo si tiene ID válido)
-                if (banco.id.isNotEmpty && banco.userId.isNotEmpty)
-                  ElevatedButton(
-                    onPressed: () => _mostrarDialogoEliminarBanco(context, ref),
-                    child: const Text('Eliminar'),
-                  ),
-                if (banco.id.isNotEmpty && banco.userId.isNotEmpty)
-                  const SizedBox(width: 8),
-                // Botón para compartir la información del banco
+                // Botón para ver el código QR
+                ElevatedButton.icon(
+                  onPressed: () => _mostrarQR(context),
+                  icon: const Icon(Icons.qr_code),
+                  label: const Text('Ver QR'),
+                ),
+
+                // Botón para compartir los datos de la cuenta
                 ElevatedButton.icon(
                   onPressed: () => _compartirCuenta(context, banco),
-                  icon: const Icon(Icons.share, size: 18),
+                  icon: const Icon(Icons.share),
                   label: const Text('Compartir'),
                 ),
               ],
@@ -55,44 +75,22 @@ class TarjetaBanco extends ConsumerWidget {
     );
   }
 
-  // Función para compartir la información del banco
+  // Función para compartir los datos del banco usando share_plus
   void _compartirCuenta(BuildContext context, BancoModelo banco) {
-    final message =
+    final mensaje =
         'Banco: ${banco.nombre}\nNúmero de cuenta: ${banco.numeroCuenta}';
-    Share.share(message);
+    Share.share(mensaje); // Llama al plugin para compartir texto
   }
 
-  // Diálogo para confirmar la eliminación del banco
-  void _mostrarDialogoEliminarBanco(BuildContext context, WidgetRef ref) {
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('Confirmar eliminación'),
-        content: const Text('¿Estás seguro de querer eliminar este banco?'),
-        actions: [
-          TextButton(
-            onPressed: Navigator.of(context).pop,
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () async {
-              try {
-                if (banco.id.isNotEmpty && banco.userId.isNotEmpty) {
-                  // Acceder al notifier del provider familiar con el userId
-                  await ref
-                      .read(bancoNotifierProvider(banco.userId).notifier)
-                      .eliminarBanco(banco.id, banco.userId);
-                  Navigator.of(context).pop();
-                }
-              } catch (e) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  SnackBar(content: Text('Error al eliminar: $e')),
-                );
-              }
-            },
-            child: const Text('Eliminar'),
-          ),
-        ],
+  // Navega a la pantalla del QR pasando los datos del banco
+  void _mostrarQR(BuildContext context) {
+    final dataQR =
+        'Banco: ${banco.nombre}\nNúmero de cuenta: ${banco.numeroCuenta}';
+
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => QRScreen(data: dataQR), // Construye la pantalla QR
       ),
     );
   }
