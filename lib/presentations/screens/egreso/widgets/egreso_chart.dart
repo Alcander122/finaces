@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:finances/core/data/models/egreso_model.dart';
+import 'package:intl/intl.dart'; // ✅ Importado para el formato de millares
 
 class EgresoChart extends StatelessWidget {
   final List<Egreso> egresos;
@@ -40,10 +41,16 @@ class EgresoChart extends StatelessWidget {
       );
     }
 
+    // ✅ Formato de miles para los valores
+    final formatoMoneda = NumberFormat('#,##0', 'es_CO');
+
     return SizedBox(
       height: 300,
       child: SfCircularChart(
-        title: ChartTitle(text: 'Distribución de Egresos por Categoría'),
+        title: ChartTitle(
+          text: 'Egresos Categorizados',
+          textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+        ),
         legend: Legend(
           isVisible: true,
           position: LegendPosition.bottom,
@@ -54,6 +61,9 @@ class EgresoChart extends StatelessWidget {
             xValueMapper: (ChartData data, _) => data.categoria,
             yValueMapper: (ChartData data, _) => data.valor,
             pointColorMapper: (ChartData data, _) => data.color,
+            // ✅ Aquí se aplica el formato al label
+            dataLabelMapper: (ChartData data, _) =>
+                '\$ ${formatoMoneda.format(data.valor)}',
             dataLabelSettings: const DataLabelSettings(isVisible: true),
           )
         ],

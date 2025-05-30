@@ -8,6 +8,8 @@ import 'package:finances/presentations/screens/Egreso/widgets/egreso_chart.dart'
 import 'package:finances/presentations/widgets/column_selection_dialog.dart';
 import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/presentations/widgets/reusable_cardtable.dart';
 
 class EgresosScreen extends ConsumerStatefulWidget {
   const EgresosScreen({super.key});
@@ -55,7 +57,8 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
       case 'Concepto':
         return egreso.concepto;
       case 'Valor':
-        return '${egreso.valor}';
+        final formatter = NumberFormat('#,##0', 'es_CO');
+        return formatter.format(egreso.valor);
       case 'Descripción':
         return egreso.descripcion;
       case 'Estado':
@@ -93,6 +96,7 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
     final egresosAsync = ref.watch(egresosProvider);
 
     return Scaffold(
+      backgroundColor: Themes.light,
       appBar: AppBarFinances(
         title: 'Egresos',
         showProfileIcon: false,
@@ -104,74 +108,115 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
           ),
         ],
       ),
-      floatingActionButton: FloatingActionButton(
-        child: const Icon(Icons.add),
-        onPressed: () => Navigator.push(
-          context,
-          MaterialPageRoute(builder: (context) => const EgresoForm()),
-        ),
-      ),
       body: egresosAsync.when(
+        loading: () => const Center(child: CircularProgressIndicator()),
+        error: (error, stack) => Center(child: Text('Error: $error')),
         data: (egresos) => SingleChildScrollView(
-          child: Column(
-            children: [
-              // Gráfico de Dona para mostrar la distribución de egresos por categoría
-              Padding(
-                padding: const EdgeInsets.all(16.0),
-                child: EgresoChart(
-                  egresos: egresos,
-                ),
-              ),
-              // Tabla de egresos
-              SingleChildScrollView(
-                scrollDirection: Axis.horizontal,
-                child: DataTable(
-                  columns: [
-                    ..._allColumns.where(_visibleColumns.contains).map(
-                          (column) => DataColumn(label: Text(column)),
-                        ),
-                    const DataColumn(label: Text('Acciones')),
-                  ],
-                  rows: egresos.map((egreso) {
-                    return DataRow(
-                      cells: [
-                        ..._allColumns
-                            .where(_visibleColumns.contains)
-                            .map((column) {
-                          return DataCell(
-                            Text(_getEgresoCellValue(egreso, column)),
-                          );
-                        }),
-                        DataCell(
-                          Row(
-                            children: [
-                              IconButton(
-                                icon: const Icon(Icons.edit, size: 20),
-                                onPressed: () => Navigator.push(
-                                  context,
-                                  MaterialPageRoute(
-                                    builder: (context) =>
-                                        EgresoForm(egreso: egreso),
+          child: Padding(
+            padding: const EdgeInsets.all(16.0),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                // Gráfico de dona
+                EgresoChart(egresos: egresos),
+                const SizedBox(height: 16),
+                // Tarjeta con tabla
+                ReusableCardTable(
+                  topColorStart: Themes.degradientDark,
+                  topColorEnd: Themes.degradientLight,
+                  child: SingleChildScrollView(
+                    scrollDirection: Axis.horizontal,
+                    child: DataTable(
+                      columns: [
+                        ..._allColumns.where(_visibleColumns.contains).map(
+                              (column) => DataColumn(
+                                label: Text(
+                                  column,
+                                  style: TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
                                   ),
                                 ),
                               ),
-                              IconButton(
-                                icon: const Icon(Icons.delete, size: 20),
-                                onPressed: () => _deleteEgreso(egreso),
-                              ),
-                            ],
+                            ),
+                        const DataColumn(
+                          label: Text(
+                            'Acciones',
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
                           ),
                         ),
                       ],
-                    );
-                  }).toList(),
+                      rows: egresos.map((egreso) {
+                        return DataRow(
+                          cells: [
+                            ..._allColumns
+                                .where(_visibleColumns.contains)
+                                .map((column) => DataCell(
+                                      Text(_getEgresoCellValue(egreso, column)),
+                                    )),
+                            DataCell(
+                              Row(
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit,
+                                        size: 20, color: Colors.blue),
+                                    onPressed: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (context) =>
+                                            EgresoForm(egreso: egreso),
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete,
+                                        size: 20, color: Colors.red),
+                                    onPressed: () => _deleteEgreso(egreso),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          ],
+                        );
+                      }).toList(),
+                    ),
+                  ),
                 ),
-              ),
-            ],
+
+                // Botón de agregar egreso
+                const SizedBox(height: 24),
+                Center(
+                  child: ElevatedButton.icon(
+                    icon: const Icon(Icons.add, color: Colors.white),
+                    label: const Text(
+                      'Nuevo Egreso',
+                      style: TextStyle(color: Colors.white),
+                    ),
+                    onPressed: () => Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (context) => const EgresoForm()),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Themes.primary,
+                      padding: const EdgeInsets.symmetric(
+                          vertical: 16, horizontal: 20),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(12),
+                      ),
+                      elevation: 4,
+                    ),
+                  ),
+                ),
+
+                const SizedBox(height: 10),
+              ],
+            ),
           ),
         ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Error: $error')),
       ),
     );
   }

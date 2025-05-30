@@ -2,6 +2,7 @@ import 'package:finances/core/data/providers/egreso_provider.dart';
 import 'package:finances/core/data/providers/Ingreso_provider.dart';
 import 'package:finances/presentations/screens/Ahorro/ahorro_screen.dart';
 import 'package:finances/presentations/screens/Auth/LoginScreen.dart';
+import 'package:finances/presentations/screens/Bancos/banks_screen.dart';
 import 'package:finances/presentations/screens/Egreso/egresos_screen.dart';
 import 'package:finances/presentations/screens/Estadistica/Statistics_Screen.dart';
 import 'package:finances/presentations/screens/portafolio/portafolio_screen.dart';
@@ -22,14 +23,17 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
 
+    // Mostrar un indicador de carga si el estado de autenticación está cargando
     if (authState.isLoading) {
       return const Scaffold(body: Center(child: CircularProgressIndicator()));
     }
 
+    // Redirigir al login si no está autenticado
     if (!authState.isAuthenticated) {
       return const LoginScreen();
     }
 
+    // Obtener datos financieros del usuario
     final totalIngresosMesAsync = ref.watch(totalIngresosMesActualProvider);
     final totalGastosAsync = ref.watch(totalEgresoMesActualProvider);
 
@@ -44,12 +48,12 @@ class HomeScreen extends ConsumerWidget {
     );
 
     return Scaffold(
-      backgroundColor: Colors.transparent, // El fondo lo pone el contenedor
+      backgroundColor: Colors.transparent,
       body: BackgroundContainer(
-        backgroundImagePath:
-            'assets/images/bg3.jpg', // Cambia el path si es otro
+        backgroundImagePath: 'assets/images/bg3.jpg',
         child: CustomScrollView(
           slivers: [
+            // AppBar persistente
             SliverPersistentHeader(
               pinned: true,
               delegate: _AppBarDelegate(
@@ -68,10 +72,13 @@ class HomeScreen extends ConsumerWidget {
                 },
               ),
             ),
+
+            // Contenido principal
             SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
+                  // Información del usuario
                   Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
@@ -92,11 +99,15 @@ class HomeScreen extends ConsumerWidget {
                     ),
                   ),
                   const SizedBox(height: 25),
+
+                  // Resumen financiero
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: _buildFinancialSummary(totalIngresos, totalGastos),
                   ),
                   const SizedBox(height: 25),
+
+                  // Acciones rápidas
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16.0),
                     child: Text(
@@ -111,6 +122,8 @@ class HomeScreen extends ConsumerWidget {
                     child: _buildQuickActions(context),
                   ),
                   const SizedBox(height: 20),
+
+                  // Tarjetas de acceso rápido
                   Padding(
                     padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 32.0),
                     child: _buildMenuCardsSeccion(context),
@@ -124,6 +137,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
+  // Construir perfil del usuario
   Widget _buildUserProfile(BuildContext context, AuthState authState) {
     return authState.user == null
         ? const CircularProgressIndicator()
@@ -137,7 +151,8 @@ class HomeScreen extends ConsumerWidget {
                 child: CircleAvatar(
                   radius: 30,
                   backgroundColor: Colors.white,
-                  child: Icon(Icons.person, color: Color(0xFF3674B5), size: 32),
+                  child: Icon(Icons.person,
+                      color: const Color(0xFF3674B5), size: 32),
                 ),
               ),
               const SizedBox(width: 16),
@@ -165,6 +180,7 @@ class HomeScreen extends ConsumerWidget {
           );
   }
 
+  // Construir resumen financiero
   Widget _buildFinancialSummary(double ingresos, double gastos) {
     final saldo = ingresos - gastos;
     final isPositive = saldo >= 0;
@@ -195,7 +211,7 @@ class HomeScreen extends ConsumerWidget {
               child: Image.asset(
                 'assets/images/logobill.png',
                 width: 150,
-                color: Color(0xFF1A2B63),
+                color: const Color(0xFF1A2B63),
               ),
             ),
           ),
@@ -256,6 +272,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
+  // Tarjeta personalizada para estadísticas
   Widget _customStatCard(
       String label, double amount, IconData icon, Color iconColor) {
     final formatter = NumberFormat.currency(locale: 'es_CO', symbol: '\$');
@@ -270,7 +287,7 @@ class HomeScreen extends ConsumerWidget {
           BoxShadow(
             color: Colors.black12,
             blurRadius: 4,
-            offset: Offset(0, 2),
+            offset: const Offset(0, 2),
           ),
         ],
       ),
@@ -296,6 +313,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
+  // Botones de acciones rápidas
   Widget _buildQuickActions(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -310,13 +328,17 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
+  // Botón individual de acción rápida
   Widget _actionButton(BuildContext context, String label, IconData icon,
       Color color, Widget screen) {
     return Column(
       children: [
         InkWell(
           onTap: () => Navigator.push(
-              context, MaterialPageRoute(builder: (_) => screen)),
+              context,
+              MaterialPageRoute(
+                builder: (_) => ProviderScope(child: screen),
+              )),
           child: CircleAvatar(
             radius: 28,
             backgroundColor: color.withValues(alpha:0.2),
@@ -329,13 +351,14 @@ class HomeScreen extends ConsumerWidget {
           style: const TextStyle(
             color: Colors.black87,
             fontSize: 14,
-            fontWeight: FontWeight.bold, // <-- Negrita aquí
+            fontWeight: FontWeight.bold,
           ),
         ),
       ],
     );
   }
 
+  // Tarjetas de acceso rápido
   Widget _buildMenuCardsSeccion(BuildContext context) {
     final List<Map<String, dynamic>> tips = [
       {
@@ -348,7 +371,7 @@ class HomeScreen extends ConsumerWidget {
         'icon': const Icon(FontAwesomeIcons.buildingColumns, color: Colors.red),
         'title': 'Mis Bancos',
         'description': 'Accede a tus cuentas.',
-        'screen': AhorroScreen(),
+        'screen': PantallaBancos(),
       },
       {
         'icon': const Icon(FontAwesomeIcons.chartLine,
@@ -389,7 +412,10 @@ class HomeScreen extends ConsumerWidget {
               final item = tips[index];
               return GestureDetector(
                 onTap: () => Navigator.push(
-                    context, MaterialPageRoute(builder: (_) => item['screen'])),
+                    context,
+                    MaterialPageRoute(
+                      builder: (_) => ProviderScope(child: item['screen']),
+                    )),
                 child: Container(
                   width: 180,
                   margin: const EdgeInsets.only(right: 12),
@@ -405,7 +431,7 @@ class HomeScreen extends ConsumerWidget {
                       BoxShadow(
                           color: Colors.black26,
                           blurRadius: 4,
-                          offset: Offset(0, 2))
+                          offset: const Offset(0, 2)),
                     ],
                   ),
                   child: Column(
@@ -438,6 +464,7 @@ class HomeScreen extends ConsumerWidget {
   }
 }
 
+// Delegado para el AppBar persistente
 typedef BuildTitle = Widget Function(double shrinkOffset);
 
 class _AppBarDelegate extends SliverPersistentHeaderDelegate {

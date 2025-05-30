@@ -1,6 +1,7 @@
 // Importaciones necesarias para la pantalla de ingresos
 import 'package:finances/core/data/models/ingreso.model.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
+import 'package:finances/presentations/widgets/reusable_cardtable.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/services/ingresos_service.dart';
@@ -9,7 +10,6 @@ import 'package:finances/core/data/utils/ingreso_validator.dart';
 import 'package:finances/presentations/screens/ingresos/widgets/ingreso_table.dart';
 import 'package:finances/presentations/screens/ingresos/widgets/Ingreso_chart.dart';
 import 'package:finances/presentations/theme/themes.dart';
-import 'package:intl/intl.dart';
 
 // Definición de la clase IngresosScreen que extiende ConsumerStatefulWidget
 class IngresosScreen extends ConsumerStatefulWidget {
@@ -91,23 +91,16 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
                     .toList(),
               ),
               const SizedBox(height: 16),
-              Card(
-                elevation: 4,
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-                child: Padding(
-                  padding: const EdgeInsets.all(16.0),
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: IngresoTable(
-                      userID: user.uid ?? '',
-                      ingresos: _ingresos,
-                      onEdit: (ingreso) => _mostrarDialogo(context, ingreso),
-                      onDelete: (id) => _eliminarIngreso(id),
-                      camposVisibles: _camposVisibles,
-                    ),
-                  ),
+              //WIDGET TARJETA REUTILIZABLE.
+              ReusableCardTable(
+                topColorStart: Themes.degradientDark,
+                topColorEnd: Themes.degradientLight,
+                child: IngresoTable(
+                  userID: user.uid ?? '',
+                  ingresos: _ingresos,
+                  onEdit: (ingreso) => _mostrarDialogo(context, ingreso),
+                  onDelete: (id) => _eliminarIngreso(id),
+                  camposVisibles: _camposVisibles,
                 ),
               ),
               // Botón debajo del contenido
