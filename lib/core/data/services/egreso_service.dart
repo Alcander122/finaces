@@ -123,6 +123,7 @@ class EgresoService {
         .collection('egreso')
         .where('mes', isEqualTo: mesActual)
         .where('anio', isEqualTo: anioActual)
+        .where('estado', isEqualTo: 'Cancelado')
         .where('estado', isEqualTo: 'Pendiente')
         .snapshots()
         .map((snapshot) {

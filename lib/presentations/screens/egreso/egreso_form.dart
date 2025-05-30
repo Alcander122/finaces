@@ -1,10 +1,14 @@
 import 'package:finances/core/data/providers/egreso_provider.dart';
+import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/models/egreso_model.dart';
-import 'package:intl/intl.dart'; // Importar paquete para formatear fechas
-import 'dart:math'; // Para generar el ID aleatorio
+import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/presentations/screens/Egreso/utils/thousands_formatter.dart';
+import 'package:intl/intl.dart';
+import 'dart:math';
 
 class EgresoForm extends ConsumerStatefulWidget {
   final Egreso? egreso;
@@ -27,7 +31,7 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
   int _anio = DateTime.now().year;
   String? _categoria;
   String? _estado;
-  DateTime _fechaActual = DateTime.now(); // Variable para la fecha actual
+  DateTime _fechaActual = DateTime.now();
 
   final List<String> _quincenas = ['Primera', 'Segunda'];
   final List<String> _meses = [
@@ -69,8 +73,7 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
       _anio = widget.egreso!.anio;
       _categoria = widget.egreso!.categoria;
       _estado = widget.egreso!.estado;
-      _fechaActual =
-          widget.egreso!.fecha; // Cargar fecha desde el egreso si existe
+      _fechaActual = widget.egreso!.fecha;
       _actualizarDias();
     }
   }
@@ -86,14 +89,6 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
         _dias = [];
       });
     }
-  }
-
-  @override
-  void dispose() {
-    _conceptoController.dispose();
-    _valorController.dispose();
-    _descripcionController.dispose();
-    super.dispose();
   }
 
   void _limpiarFormulario() {
@@ -126,16 +121,15 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
       final user = FirebaseAuth.instance.currentUser;
       if (user != null) {
         final egreso = Egreso(
-          id: widget.egreso?.id ??
-              _generarIdAleatorio(), // Generar ID aleatorio
+          id: widget.egreso?.id ?? _generarIdAleatorio(),
           quincena: _quincena!,
-          fecha: _fechaActual, // Guardar la fecha actual
+          fecha: _fechaActual,
           mes: _mes!,
           dia: _dia!,
           anio: _anio,
           categoria: _categoria!,
           concepto: _conceptoController.text,
-          valor: int.parse(_valorController.text),
+          valor: int.parse(_valorController.text.replaceAll(',', '')),
           descripcion: _descripcionController.text,
           estado: _estado!,
         );
@@ -157,7 +151,6 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
     }
   }
 
-  // Generar un ID aleatorio
   String _generarIdAleatorio() {
     const caracteres =
         'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
@@ -169,160 +162,139 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text(widget.egreso == null ? 'Nuevo Egreso' : 'Editar Egreso'),
+      backgroundColor: Themes.degradientLight,
+      appBar: const AppBarFinances(
+        title: 'Nuevo Egreso',
+        showProfileIcon: false,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              DropdownButtonFormField<String>(
-                value: _quincena,
-                items: _quincenas.map((quincena) {
-                  return DropdownMenuItem(
-                    value: quincena,
-                    child: Text(quincena),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _quincena = value;
-                  });
-                },
-                decoration: const InputDecoration(labelText: 'Quincena'),
-                validator: (value) {
-                  if (value == null) {
-                    return 'Por favor seleccione una quincena';
-                  }
-                  return null;
-                },
+      body: Center(
+        child: Card(
+          elevation: 8,
+          margin: const EdgeInsets.all(16),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          child: Padding(
+            padding: const EdgeInsets.all(20.0),
+            child: Form(
+              key: _formKey,
+              child: SingleChildScrollView(
+                child: Column(
+                  children: [
+                    buildDropdown(_quincenas, _quincena, 'Quincena',
+                        (val) => setState(() => _quincena = val)),
+                    buildReadonlyField('Fecha Actual',
+                        DateFormat('dd/MM/yyyy').format(_fechaActual)),
+                    buildDropdown(
+                        _meses,
+                        _mes,
+                        'Mes',
+                        (val) => setState(() {
+                              _mes = val;
+                              _actualizarDias();
+                            })),
+                    buildDropdown(_dias, _dia, 'Día',
+                        (val) => setState(() => _dia = val)),
+                    buildTextField(_conceptoController, 'Concepto'),
+                    buildTextField(
+                      _valorController,
+                      'Valor',
+                      isNumber: true,
+                      inputFormatters: [ThousandsFormatter()],
+                    ),
+                    buildTextField(_descripcionController, 'Descripción'),
+                    buildDropdown(_categorias, _categoria, 'Categoría',
+                        (val) => setState(() => _categoria = val)),
+                    buildDropdown(_estados, _estado, 'Estado',
+                        (val) => setState(() => _estado = val)),
+                    const SizedBox(height: 20),
+                    SizedBox(
+                      width: double.infinity,
+                      child: ElevatedButton(
+                        onPressed: _guardarEgreso,
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Themes.primary,
+                          padding: const EdgeInsets.symmetric(
+                              vertical: 16, horizontal: 20),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          elevation: 4,
+                        ),
+                        child: const Text(
+                          'Guardar',
+                          style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white),
+                        ),
+                      ),
+                    )
+                  ],
+                ),
               ),
-              // Campo de Fecha Actual
-              TextFormField(
-                initialValue: DateFormat('dd/MM/yyyy').format(_fechaActual),
-                decoration: const InputDecoration(labelText: 'Fecha Actual'),
-                enabled: false, // Campo deshabilitado solo para mostrar
-              ),
-              DropdownButtonFormField<String>(
-                value: _mes,
-                items: _meses.map((mes) {
-                  return DropdownMenuItem(
-                    value: mes,
-                    child: Text(mes),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _mes = value;
-                    _actualizarDias();
-                  });
-                },
-                decoration: const InputDecoration(labelText: 'Mes'),
-                validator: (value) {
-                  if (value == null) {
-                    return 'Por favor seleccione un mes';
-                  }
-                  return null;
-                },
-              ),
-              DropdownButtonFormField<int>(
-                value: _dia,
-                items: _dias.map((dia) {
-                  return DropdownMenuItem(
-                    value: dia,
-                    child: Text(dia.toString()),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _dia = value;
-                  });
-                },
-                decoration: const InputDecoration(labelText: 'Día'),
-                validator: (value) {
-                  if (value == null) {
-                    return 'Por favor seleccione un día';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: _conceptoController,
-                decoration: const InputDecoration(labelText: 'Concepto'),
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor ingrese un concepto';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: _valorController,
-                decoration: const InputDecoration(labelText: 'Valor'),
-                keyboardType: TextInputType.number,
-                validator: (value) {
-                  if (value == null || value.isEmpty) {
-                    return 'Por favor ingrese un valor';
-                  }
-                  return null;
-                },
-              ),
-              TextFormField(
-                controller: _descripcionController,
-                decoration: const InputDecoration(labelText: 'Descripción'),
-              ),
-              DropdownButtonFormField<String>(
-                value: _categoria,
-                items: _categorias.map((categoria) {
-                  return DropdownMenuItem(
-                    value: categoria,
-                    child: Text(categoria),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _categoria = value;
-                  });
-                },
-                decoration: const InputDecoration(labelText: 'Categoría'),
-                validator: (value) {
-                  if (value == null) {
-                    return 'Por favor seleccione una categoría';
-                  }
-                  return null;
-                },
-              ),
-              DropdownButtonFormField<String>(
-                value: _estado,
-                items: _estados.map((estado) {
-                  return DropdownMenuItem(
-                    value: estado,
-                    child: Text(estado),
-                  );
-                }).toList(),
-                onChanged: (value) {
-                  setState(() {
-                    _estado = value;
-                  });
-                },
-                decoration: const InputDecoration(labelText: 'Estado'),
-                validator: (value) {
-                  if (value == null) {
-                    return 'Por favor seleccione un estado';
-                  }
-                  return null;
-                },
-              ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _guardarEgreso,
-                child: const Text('Guardar'),
-              ),
-            ],
+            ),
           ),
         ),
+      ),
+    );
+  }
+
+  Widget buildDropdown<T>(
+      List<T> items, T? value, String label, Function(T?) onChanged) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: DropdownButtonFormField<T>(
+        value: value,
+        items: items
+            .map((item) => DropdownMenuItem<T>(
+                  value: item,
+                  child: Text(item.toString()),
+                ))
+            .toList(),
+        onChanged: onChanged,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        validator: (val) => val == null ? 'Seleccione $label' : null,
+      ),
+    );
+  }
+
+  Widget buildTextField(
+    TextEditingController controller,
+    String label, {
+    bool isNumber = false,
+    List<TextInputFormatter>? inputFormatters,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: TextFormField(
+        controller: controller,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+        inputFormatters: inputFormatters,
+        validator: (value) {
+          if (value == null || value.isEmpty) return 'Ingrese $label';
+          return null;
+        },
+      ),
+    );
+  }
+
+  Widget buildReadonlyField(String label, String value) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(vertical: 8),
+      child: TextFormField(
+        initialValue: value,
+        decoration: InputDecoration(
+          labelText: label,
+          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+        enabled: false,
       ),
     );
   }
