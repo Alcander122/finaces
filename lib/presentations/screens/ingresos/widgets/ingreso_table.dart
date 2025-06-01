@@ -25,20 +25,15 @@ class IngresoTable extends StatelessWidget {
     if (ingresos.isNotEmpty) {
       camposDisponibles = ingresos.first.keys.toSet();
     }
-
     List<String> camposMostrar = camposVisibles
         .where((campo) => camposDisponibles.contains(campo))
         .toList();
-
     if (ingresos.isEmpty) {
       return Center(
         child: Text('No hay ingresos disponibles'),
       );
     }
-
-    // Formateador para valores numéricos con separador de miles
     final formatoMoneda = NumberFormat("#,##0", "es_CO");
-
     return SingleChildScrollView(
       child: DataTable(
         columns: [
@@ -49,7 +44,7 @@ class IngresoTable extends StatelessWidget {
                 padding: CustomTableStyles.headerPadding,
                 child: Center(
                   child: Text(
-                    campo == 'anio' ? 'año' : campo,
+                    campo == 'fechaIngreso' ? 'Fecha Ingreso' : campo,
                     style: CustomTableStyles.headerTextStyle,
                   ),
                 ),
@@ -72,7 +67,7 @@ class IngresoTable extends StatelessWidget {
             cells: [
               for (var campo in camposMostrar)
                 DataCell(
-                  campo == 'fecha' && ingreso[campo] is Timestamp
+                  campo == 'fechaIngreso' && ingreso[campo] is Timestamp
                       ? Text(DateFormat('dd/MM/yyyy')
                           .format((ingreso[campo] as Timestamp).toDate()))
                       : campo == 'valor' && ingreso[campo] != null

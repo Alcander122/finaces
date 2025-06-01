@@ -12,18 +12,14 @@ class IngresosService {
           .doc(userId)
           .collection('ingresos')
           .add(ingreso.toMap());
-
       await _firestore
           .collection('users')
           .doc(userId)
           .collection('ingresos')
           .doc(docRef.id)
           .update({'id': docRef.id});
-
-      //print("✅ Ingreso guardado exitosamente: ID ${docRef.id}");
       return docRef.id;
     } catch (e) {
-      //print("❌ Error al guardar ingreso: $e");
       throw Exception("No se pudo guardar el ingreso");
     }
   }
@@ -36,12 +32,10 @@ class IngresosService {
           .doc(userId)
           .collection('ingresos')
           .get();
-
       return snapshot.docs
           .map((doc) => Ingreso.fromMap(doc.data()..['id'] = doc.id))
           .toList();
     } catch (e) {
-      //print("❌ Error al obtener ingresos: $e");
       throw Exception("No se pudieron obtener los ingresos");
     }
   }
@@ -55,9 +49,7 @@ class IngresosService {
           .collection('ingresos')
           .doc(ingresoId)
           .update(ingreso.toMap());
-      //print("✅ Ingreso actualizado exitosamente: ID $ingresoId");
     } catch (e) {
-      // print("❌ Error al actualizar ingreso: $e");
       throw Exception("No se pudo actualizar el ingreso");
     }
   }
@@ -71,14 +63,12 @@ class IngresosService {
           .collection('ingresos')
           .doc(ingresoId)
           .delete();
-      //print("✅ Ingreso eliminado exitosamente: ID $ingresoId");
     } catch (e) {
-      //print("❌ Error al eliminar ingreso: $e");
       throw Exception("No se pudo eliminar el ingreso");
     }
   }
 
-  // Obtener el total de ingresos en tiempo real (Stream)
+  // Total de ingresos en tiempo real (Stream)
   Stream<double> streamTotalIngresos(String userId) {
     return _firestore
         .collection('users')
@@ -95,15 +85,15 @@ class IngresosService {
     });
   }
 
-// Método para obtener el total de ingresos en un rango de fechas
+  // Total de ingresos en un rango de fechas
   Stream<double> streamTotalIngresosInRange(
       String userId, DateTime start, DateTime end) {
     return _firestore
         .collection('users')
         .doc(userId)
         .collection('ingresos')
-        .where('fecha', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
-        .where('fecha', isLessThanOrEqualTo: Timestamp.fromDate(end))
+        .where('fechaIngreso', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('fechaIngreso', isLessThanOrEqualTo: Timestamp.fromDate(end))
         .snapshots()
         .map((snapshot) {
       double total = 0.0;
@@ -122,13 +112,11 @@ class IngresosService {
   ) {
     Query query =
         _firestore.collection('users').doc(userId).collection('ingresos');
-
     if (startDate != null && endDate != null) {
       query = query
-          .where('fecha', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
-          .where('fecha', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
+          .where('fechaIngreso', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('fechaIngreso', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
     }
-
     return query.snapshots().map((snapshot) {
       return snapshot.docs.map((doc) {
         final data = doc.data();
@@ -149,30 +137,15 @@ class IngresosService {
 
   Stream<double> streamTotalIngresosMesActual(String userId) {
     final now = DateTime.now();
-    final anioActual = now.year;
-    const meses = [
-      'Enero',
-      'Febrero',
-      'Marzo',
-      'Abril',
-      'Mayo',
-      'Junio',
-      'Julio',
-      'Agosto',
-      'Septiembre',
-      'Octubre',
-      'Noviembre',
-      'Diciembre'
-    ];
-    String mesActualNombre =
-        meses[now.month - 1]; // Obtiene el nombre del mes actual
+    final firstDayOfMonth = DateTime(now.year, now.month, 1);
+    final lastDayOfMonth = DateTime(now.year, now.month + 1, 0);
+
     return _firestore
         .collection('users')
         .doc(userId)
         .collection('ingresos')
-        .where('mes',
-            isEqualTo: mesActualNombre) // Consulta por el nombre del mes
-        .where('anio', isEqualTo: anioActual)
+        .where('fechaIngreso', isGreaterThanOrEqualTo: Timestamp.fromDate(firstDayOfMonth))
+        .where('fechaIngreso', isLessThanOrEqualTo: Timestamp.fromDate(lastDayOfMonth))
         .snapshots()
         .map((snapshot) {
       double totalIngresos = 0.0;

@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:finances/core/data/models/filter.dart';
 import 'package:finances/core/data/models/ingreso.model.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
@@ -5,80 +7,75 @@ import 'package:finances/core/data/providers/filter_provider.dart';
 import 'package:finances/core/data/services/ingresos_service.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
+// Proveedor singleton del servicio de ingresos
 final ingresosServiceProvider = Provider<IngresosService>((ref) {
   return IngresosService();
 });
 
-// Proveedor para ingresos filtrados
+// Proveedor de ingresos filtrados (total)
 final filteredIngresosProvider = StreamProvider.autoDispose<double>((ref) {
-  final authState =
-      ref.watch(authProvider); // Observar el estado de autenticación
-  final filter = ref.watch(filterProvider); // Observar el filtro actual
-  if (authState.user == null) {
-    return Stream.value(0.0); // Si no hay usuario, devolver 0.0
-  }
+  final authState = ref.watch(authProvider);
+  final filter = ref.watch(filterProvider);
+  if (authState.user == null) return Stream.value(0.0);
 
-  // Según el tipo de filtro, devolver el proveedor de ingresos correspondiente
-  switch (filter.type) {
-    case FilterType.monthly:
-      // Devolver el total de ingresos del mes actual
-      return IngresosService()
-          .streamTotalIngresosMesActual(authState.user!.uid);
-    case FilterType.quarterly:
-    case FilterType.annual:
-      // Devolver el total de ingresos (anuales o trimestrales)
-      return IngresosService().streamTotalIngresos(authState.user!.uid);
-    case FilterType.custom:
-      // Devolver el total de ingresos en el rango de fechas seleccionado
-      return IngresosService().streamTotalIngresosInRange(
-        authState.user!.uid,
-        filter.startDate!,
-        filter.endDate!,
-      );
+  try {
+    switch (filter.type) {
+      case FilterType.monthly:
+        return ref.watch(ingresosServiceProvider).streamTotalIngresosMesActual(authState.user!.uid);
+      case FilterType.quarterly:
+      case FilterType.annual:
+        return ref.watch(ingresosServiceProvider).streamTotalIngresos(authState.user!.uid);
+      case FilterType.custom:
+        return ref.watch(ingresosServiceProvider).streamTotalIngresosInRange(
+              authState.user!.uid,
+              filter.startDate!,
+              filter.endDate!,
+            );
+    }
+  } catch (e) {
+    return Stream.value(0.0);
   }
 });
 
 // Proveedor para ingresos del mes actual
-final totalIngresosMesActualProvider =
-    StreamProvider.autoDispose<double>((ref) {
-  final authState =
-      ref.watch(authProvider); // Observar el estado de autenticación
-  if (authState.user == null) {
-    return Stream.value(0.0); // Si no hay usuario, devolver 0.0
-  }
-  // Devolver el total de ingresos del mes actual
-  return IngresosService().streamTotalIngresosMesActual(authState.user!.uid);
+final totalIngresosMesActualProvider = StreamProvider.autoDispose<double>((ref) {
+  final authState = ref.watch(authProvider);
+  if (authState.user == null) return Stream.value(0.0);
+  final service = ref.watch(ingresosServiceProvider);
+  return service.streamTotalIngresosMesActual(authState.user!.uid);
 });
 
-final ingresosFiltradosProvider =
-    StreamProvider.autoDispose<List<Ingreso>>((ref) {
+// Proveedor de ingresos filtrados por rango de fechas
+final ingresosFiltradosProvider = StreamProvider.autoDispose<List<Ingreso>>((ref) {
   final authState = ref.watch(authProvider);
   final filter = ref.watch(filterProvider);
-
   if (authState.user == null) return Stream.value([]);
 
-  return ref.watch(ingresosServiceProvider).obtenerIngresosFiltrados(
-        authState.user!.uid,
-        filter.startDate,
-        filter.endDate,
-      );
+  try {
+    return ref.watch(ingresosServiceProvider).obtenerIngresosFiltrados(
+          authState.user!.uid,
+          filter.startDate,
+          filter.endDate,
+        );
+  } catch (e) {
+    return Stream.value([]);
+  }
 });
 
-final ingresosPorCategoriaProvider =
-    Provider.family<AsyncValue<List<Ingreso>>, String>(
+// Proveedor de ingresos por categoría
+final ingresosPorCategoriaProvider = Provider.family<AsyncValue<List<Ingreso>>, String>(
   (ref, categoria) => ref.watch(ingresosFiltradosProvider).whenData(
         (ingresos) => ingresos.where((i) => i.categoria == categoria).toList(),
       ),
 );
 
+// Total de ingresos basado en filtro actual
 final totalIngresosProvider = StreamProvider.autoDispose<double>((ref) {
   final authState = ref.watch(authProvider);
-
   if (authState.user == null) return Stream.value(0.0);
 
-  return Stream.value(
-    ref.watch(ingresosServiceProvider).calcularTotalIngresos(
-          ref.watch(ingresosFiltradosProvider).value ?? [],
-        ),
-  );
+  final List<Ingreso> ingresos = ref.watch(ingresosFiltradosProvider).value ?? [];
+  final double total = ref.watch(ingresosServiceProvider).calcularTotalIngresos(ingresos);
+
+  return Stream.value(total);
 });
