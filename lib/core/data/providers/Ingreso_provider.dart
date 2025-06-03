@@ -21,10 +21,14 @@ final filteredIngresosProvider = StreamProvider.autoDispose<double>((ref) {
   try {
     switch (filter.type) {
       case FilterType.monthly:
-        return ref.watch(ingresosServiceProvider).streamTotalIngresosMesActual(authState.user!.uid);
+        return ref
+            .watch(ingresosServiceProvider)
+            .streamTotalIngresosMesActual(authState.user!.uid);
       case FilterType.quarterly:
       case FilterType.annual:
-        return ref.watch(ingresosServiceProvider).streamTotalIngresos(authState.user!.uid);
+        return ref
+            .watch(ingresosServiceProvider)
+            .streamTotalIngresos(authState.user!.uid);
       case FilterType.custom:
         return ref.watch(ingresosServiceProvider).streamTotalIngresosInRange(
               authState.user!.uid,
@@ -37,16 +41,22 @@ final filteredIngresosProvider = StreamProvider.autoDispose<double>((ref) {
   }
 });
 
-// Proveedor para ingresos del mes actual
-final totalIngresosMesActualProvider = StreamProvider.autoDispose<double>((ref) {
+// Proveedor para ingresos del mes actual con try-catch
+final totalIngresosMesActualProvider =
+    StreamProvider.autoDispose<double>((ref) {
   final authState = ref.watch(authProvider);
   if (authState.user == null) return Stream.value(0.0);
   final service = ref.watch(ingresosServiceProvider);
-  return service.streamTotalIngresosMesActual(authState.user!.uid);
+  try {
+    return service.streamTotalIngresosMesActual(authState.user!.uid);
+  } catch (e) {
+    return Stream.value(0.0); // Valor predeterminado en caso de error
+  }
 });
 
 // Proveedor de ingresos filtrados por rango de fechas
-final ingresosFiltradosProvider = StreamProvider.autoDispose<List<Ingreso>>((ref) {
+final ingresosFiltradosProvider =
+    StreamProvider.autoDispose<List<Ingreso>>((ref) {
   final authState = ref.watch(authProvider);
   final filter = ref.watch(filterProvider);
   if (authState.user == null) return Stream.value([]);
@@ -58,24 +68,30 @@ final ingresosFiltradosProvider = StreamProvider.autoDispose<List<Ingreso>>((ref
           filter.endDate,
         );
   } catch (e) {
-    return Stream.value([]);
+    return Stream.value([]); // Valor predeterminado en caso de error
   }
 });
 
 // Proveedor de ingresos por categoría
-final ingresosPorCategoriaProvider = Provider.family<AsyncValue<List<Ingreso>>, String>(
+final ingresosPorCategoriaProvider =
+    Provider.family<AsyncValue<List<Ingreso>>, String>(
   (ref, categoria) => ref.watch(ingresosFiltradosProvider).whenData(
         (ingresos) => ingresos.where((i) => i.categoria == categoria).toList(),
       ),
 );
 
-// Total de ingresos basado en filtro actual
+// Total de ingresos basado en filtro actual con try-catch
 final totalIngresosProvider = StreamProvider.autoDispose<double>((ref) {
   final authState = ref.watch(authProvider);
   if (authState.user == null) return Stream.value(0.0);
 
-  final List<Ingreso> ingresos = ref.watch(ingresosFiltradosProvider).value ?? [];
-  final double total = ref.watch(ingresosServiceProvider).calcularTotalIngresos(ingresos);
-
-  return Stream.value(total);
+  try {
+    final List<Ingreso> ingresos =
+        ref.watch(ingresosFiltradosProvider).value ?? [];
+    final double total =
+        ref.watch(ingresosServiceProvider).calcularTotalIngresos(ingresos);
+    return Stream.value(total);
+  } catch (e) {
+    return Stream.value(0.0); // Valor predeterminado en caso de error
+  }
 });

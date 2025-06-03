@@ -125,6 +125,9 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // Añadir esta línea para evitar llamar a setPersistence() en plataformas no web
       if (kIsWeb) {
         await _auth.setPersistence(Persistence.LOCAL);
+         // Activa el reCAPTCHA para web
+        await _auth.setSettings(appVerificationDisabledForTesting: false);
+
       }
 
       await _auth.signInWithEmailAndPassword(email: email, password: password);
