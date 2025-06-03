@@ -3,6 +3,7 @@
 import 'package:finances/presentations/screens/Ahorro/ahorro_screen.dart';
 import 'package:finances/presentations/screens/Auth/LoginScreen.dart';
 import 'package:finances/presentations/screens/Auth/register.screen.dart';
+import 'package:finances/presentations/screens/Bancos/banks_screen.dart';
 import 'package:finances/presentations/screens/Estadistica/statistics_screen.dart';
 import 'package:finances/presentations/screens/Profile/profile_screen.dart';
 import 'package:finances/presentations/screens/Portafolio/portafolio_screen.dart';
@@ -24,6 +25,7 @@ class AppRoutes {
   static const String ingresos = '/ingresos';
   static const String portafolio = '/portafolio';
   static const String ahorro = '/ahorro';
+  static const String banco = '/banco';
   static const String estadistica = '/Estadistica';
   // Nueva ruta para detalles de categoría
   static const String categoryDetails = '/category-details';
@@ -38,11 +40,13 @@ class AppRoutes {
       home: (context) => const HomeScreen(),
       profile: (context) => const ProfileScreen(),
       register: (context) => const RegisterScreen(),
+      banco: (context) => const PantallaBancos(),
       portafolio: (context) => const PortafolioScreen(),
       ahorro: (context) => const AhorroScreen(),
       estadistica: (context) => const StatisticScreen(),
       categoryDetails: (context) {
-        final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+        final args =
+            ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
         return CategoryDetailsScreen(
           category: args?['category'] ?? '',
           filter: args?['filter'] ?? const Filter(type: FilterType.monthly),

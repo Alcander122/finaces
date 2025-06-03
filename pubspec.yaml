@@ -40,6 +40,10 @@ dependencies:
   logger: ^2.5.0
   rx_bloc: ^6.0.1
   rxdart: ^0.28.0
+  riverpod: ^2.6.1
+  share_plus: ^11.0.0
+  url_launcher: ^6.3.1
+  qr_flutter: ^4.1.0
 
 dev_dependencies:
   flutter_test:
@@ -79,6 +83,7 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
      - assets/images/ # Aquí se añade la carpeta de las imágenes
+     - assets/bancos_colombia.json 
   #   - images/a_dot_ham.jpeg
 
   # An image asset can refer to one or more resolution-specific "variants", see
