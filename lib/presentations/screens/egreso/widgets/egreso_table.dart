@@ -1,11 +1,10 @@
+import 'package:finances/presentations/widgets/customtable_styles.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:finances/presentations/theme/themes.dart';
-import 'package:finances/presentations/screens/ingresos/widgets/customtable_styles.dart';
 
 class IngresoTable extends StatelessWidget {
-  final List<Map<String, dynamic>> ingresos;
+  final List<Map<String, dynamic>> egresos;
   final void Function(Map<String, dynamic>) onEdit;
   final void Function(String) onDelete;
   final List<String> camposVisibles;
@@ -13,7 +12,7 @@ class IngresoTable extends StatelessWidget {
 
   const IngresoTable({
     super.key,
-    required this.ingresos,
+    required this.egresos,
     required this.onEdit,
     required this.onDelete,
     required this.camposVisibles,
@@ -23,19 +22,26 @@ class IngresoTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Set<String> camposDisponibles = {};
-    if (ingresos.isNotEmpty) {
-      camposDisponibles = ingresos.first.keys.toSet();
+    
+    // Si hay datos, se toman las claves del primer elemento como campos disponibles
+    if (egresos.isNotEmpty) {
+      camposDisponibles = egresos.first.keys.toSet();
     }
 
+    // Removemos campos que no se deben mostrar en la tabla
     camposDisponibles.remove('id');
     camposDisponibles.remove('fecha');
 
+    // Se genera la lista de campos a mostrar en la tabla a partir de los visibles y disponibles
     List<String> camposMostrar = camposVisibles
         .where((campo) => camposDisponibles.contains(campo))
         .toList();
 
-    if (ingresos.isEmpty) {
-      return Center(child: Text('No hay ingresos disponibles'));
+    // ✅ Aseguramos que 'Concepto' no se muestre aunque esté en camposVisibles
+    camposDisponibles.remove('Concepto');
+
+    if (egresos.isEmpty) {
+      return const Center(child: Text('No hay ingresos disponibles'));
     }
 
     final formatoMoneda = NumberFormat("#,##0", "es_CO");
@@ -43,38 +49,26 @@ class IngresoTable extends StatelessWidget {
     return SingleChildScrollView(
       child: DataTable(
         columns: [
+          // Construimos las columnas basadas en los campos a mostrar
           for (var campo in camposMostrar)
-            if (campo == 'fechaingreso')
-              DataColumn(
-                label: Container(
-                  decoration: CustomTableStyles.headerDecoration,
-                  padding: CustomTableStyles.headerPadding,
-                  child: Center(
-                    child: Text(
-                      'Fecha de Ingreso',
-                      style: CustomTableStyles.headerTextStyle,
-                    ),
-                  ),
-                ),
-              )
-            else
-              DataColumn(
-                label: Container(
-                  decoration: CustomTableStyles.headerDecoration,
-                  padding: CustomTableStyles.headerPadding,
-                  child: Center(
-                    child: Text(
-                      campo == 'fechaingreso' ? 'Fecha de Ingreso' : campo,
-                      style: CustomTableStyles.headerTextStyle,
-                    ),
+            DataColumn(
+              label: Container(
+                decoration: CustomTableStyles.headerDecoration,
+                padding: CustomTableStyles.headerPadding,
+                child: Center(
+                  child: Text(
+                    campo == 'fechaPago' ? 'Fecha de Pago' : campo,
+                    style: CustomTableStyles.headerTextStyle,
                   ),
                 ),
               ),
+            ),
+          // Columna para acciones (editar/eliminar)
           DataColumn(
             label: Container(
               decoration: CustomTableStyles.headerDecoration,
               padding: CustomTableStyles.headerPadding,
-              child: Text(
+              child: const Text(
                 'Acciones',
                 style: CustomTableStyles.headerTextStyle,
                 textAlign: TextAlign.center,
@@ -82,29 +76,31 @@ class IngresoTable extends StatelessWidget {
             ),
           ),
         ],
-        rows: ingresos.map((ingreso) {
+        rows: egresos.map((egreso) {
           return DataRow(
             cells: [
+              // Llenamos las celdas por cada campo visible
               for (var campo in camposMostrar)
                 DataCell(
-                  campo == 'fechaingreso' && ingreso[campo] is Timestamp
+                  campo == 'fechaPago' && egreso[campo] is Timestamp
                       ? Text(DateFormat('dd/MM/yyyy')
-                          .format((ingreso[campo] as Timestamp).toDate()))
-                      : campo == 'valor' && ingreso[campo] != null
-                          ? Text('\$${formatoMoneda.format(ingreso[campo])}')
-                          : Text(ingreso[campo]?.toString() ?? ''),
+                          .format((egreso[campo] as Timestamp).toDate()))
+                      : campo == 'valor' && egreso[campo] != null
+                          ? Text('\$${formatoMoneda.format(egreso[campo])}')
+                          : Text(egreso[campo]?.toString() ?? ''),
                 ),
+              // Celda de acciones
               DataCell(
                 Row(
                   children: [
                     IconButton(
-                      icon: Icon(Icons.edit, color: Colors.blue),
-                      onPressed: () => onEdit(ingreso),
+                      icon: const Icon(Icons.edit, color: Colors.blue),
+                      onPressed: () => onEdit(egreso),
                     ),
                     IconButton(
-                      icon: Icon(Icons.delete, color: Colors.red),
+                      icon: const Icon(Icons.delete, color: Colors.red),
                       onPressed: () =>
-                          _confirmarEliminar(context, ingreso['id'].toString()),
+                          _confirmarEliminar(context, egreso['id'].toString()),
                     ),
                   ],
                 ),
@@ -116,23 +112,24 @@ class IngresoTable extends StatelessWidget {
     );
   }
 
+  // Diálogo para confirmar eliminación
   void _confirmarEliminar(BuildContext context, String id) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Eliminar ingreso'),
-        content: Text('¿Estás seguro de que deseas eliminar este ingreso?'),
+        title: const Text('Eliminar ingreso'),
+        content: const Text('¿Estás seguro de que deseas eliminar este ingreso?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancelar'),
+            child: const Text('Cancelar'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               onDelete(id);
             },
-            child: Text('Eliminar'),
+            child: const Text('Eliminar'),
           ),
         ],
       ),
