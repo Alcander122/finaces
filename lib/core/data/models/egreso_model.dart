@@ -60,7 +60,13 @@ class Egreso {
     } else if (map['fechaPago'] is String) {
       fechaPago = DateFormat('dd/MM/yyyy').parse(map['fechaPago']);
     } else {
-      fechaPago = DateTime.now();
+      // Fallback para datos legacy (usa mes/anio si existen)
+      final mesMap = map['mes'] ?? 'Enero';
+      final anioMap = map['anio'] ?? DateTime.now().year;
+      final meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
+                    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+      int mesNumero = meses.indexOf(mesMap) + 1;
+      fechaPago = DateTime(anioMap, mesNumero);
     }
 
     return Egreso(
