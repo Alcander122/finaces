@@ -5,9 +5,7 @@ class Egreso {
   final String id;
   final String quincena;
   final DateTime fecha;
-  final String mes;
-  final int dia;
-  final int anio;
+  final DateTime fechaPago; // Nuevo campo
   final String categoria;
   final String concepto;
   final int valor;
@@ -18,9 +16,7 @@ class Egreso {
     required this.id,
     required this.quincena,
     required this.fecha,
-    required this.mes,
-    required this.dia,
-    required this.anio,
+    required this.fechaPago, // Nuevo campo
     required this.categoria,
     required this.concepto,
     required this.valor,
@@ -34,9 +30,7 @@ class Egreso {
       'id': id,
       'quincena': quincena,
       'fecha': Timestamp.fromDate(fecha), // Guardar como Timestamp
-      'mes': mes,
-      'dia': dia,
-      'anio': anio,
+      'fechaPago': Timestamp.fromDate(fechaPago), // Nuevo campo
       'categoria': categoria,
       'concepto': concepto,
       'valor': valor,
@@ -48,8 +42,10 @@ class Egreso {
   // Crear una instancia de Egreso a partir de un Map (Firestore)
   static Egreso fromMap(Map<String, dynamic> map) {
     DateTime fecha;
+    DateTime fechaPago; // Nuevo campo
 
-    if (map['fecha'] is Timestamp) { // Ahora Timestamp está definido
+    if (map['fecha'] is Timestamp) {
+      // Ahora Timestamp está definido
       // Convertir Timestamp a DateTime
       fecha = (map['fecha'] as Timestamp).toDate();
     } else if (map['fecha'] is String) {
@@ -58,14 +54,21 @@ class Egreso {
     } else {
       fecha = DateTime.now();
     }
+    if (map['fechaPago'] is Timestamp) {
+      // Nuevo campo
+      fechaPago = (map['fechaPago'] as Timestamp).toDate();
+    } else if (map['fechaPago'] is String) {
+      fechaPago = DateFormat('dd/MM/yyyy').parse(map['fechaPago']);
+    } else {
+      fechaPago = DateTime.now();
+    }
 
     return Egreso(
       id: map['id'] ?? '',
       quincena: map['quincena'] ?? '',
       fecha: fecha,
-      mes: map['mes'] ?? '',
-      dia: map['dia'] is int ? map['dia'] : 0,
-      anio: map['anio'] is int ? map['anio'] : 0,
+      fechaPago: fechaPago, // Nuevo campo
+
       categoria: map['categoria'] ?? '',
       concepto: map['concepto'] ?? '',
       valor: map['valor'] is int ? map['valor'] : 0,
@@ -79,9 +82,7 @@ class Egreso {
     String? id,
     String? quincena,
     DateTime? fecha,
-    String? mes,
-    int? dia,
-    int? anio,
+    DateTime? fechaPago, // Nuevo campo
     String? categoria,
     String? concepto,
     int? valor,
@@ -92,9 +93,7 @@ class Egreso {
       id: id ?? this.id,
       quincena: quincena ?? this.quincena,
       fecha: fecha ?? this.fecha,
-      mes: mes ?? this.mes,
-      dia: dia ?? this.dia,
-      anio: anio ?? this.anio,
+      fechaPago: fechaPago ?? this.fechaPago, // Nuevo campo
       categoria: categoria ?? this.categoria,
       concepto: concepto ?? this.concepto,
       valor: valor ?? this.valor,

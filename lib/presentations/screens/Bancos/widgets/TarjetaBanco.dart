@@ -78,14 +78,14 @@ class TarjetaBanco extends ConsumerWidget {
   // Función para compartir los datos del banco usando share_plus
   void _compartirCuenta(BuildContext context, BancoModelo banco) {
     final mensaje =
-        'Banco: ${banco.nombre}\nNúmero de cuenta: ${banco.numeroCuenta}';
+        'Banco: ${banco.nombre}\nNumero de cuenta: ${banco.numeroCuenta}';
     Share.share(mensaje); // Llama al plugin para compartir texto
   }
 
   // Navega a la pantalla del QR pasando los datos del banco
   void _mostrarQR(BuildContext context) {
     final dataQR =
-        'Banco: ${banco.nombre}\nNúmero de cuenta: ${banco.numeroCuenta}';
+        'Banco: ${banco.nombre}\nNumero de cuenta: ${banco.numeroCuenta}';
 
     Navigator.push(
       context,

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/presentations/screens/ingresos/widgets/customtable_styles.dart';
 
 class IngresoTable extends StatelessWidget {
@@ -25,31 +26,50 @@ class IngresoTable extends StatelessWidget {
     if (ingresos.isNotEmpty) {
       camposDisponibles = ingresos.first.keys.toSet();
     }
+
+    camposDisponibles.remove('id');
+    camposDisponibles.remove('fecha');
+
     List<String> camposMostrar = camposVisibles
         .where((campo) => camposDisponibles.contains(campo))
         .toList();
+
     if (ingresos.isEmpty) {
-      return Center(
-        child: Text('No hay ingresos disponibles'),
-      );
+      return Center(child: Text('No hay ingresos disponibles'));
     }
+
     final formatoMoneda = NumberFormat("#,##0", "es_CO");
+
     return SingleChildScrollView(
       child: DataTable(
         columns: [
           for (var campo in camposMostrar)
-            DataColumn(
-              label: Container(
-                decoration: CustomTableStyles.headerDecoration,
-                padding: CustomTableStyles.headerPadding,
-                child: Center(
-                  child: Text(
-                    campo == 'fechaIngreso' ? 'Fecha Ingreso' : campo,
-                    style: CustomTableStyles.headerTextStyle,
+            if (campo == 'fechaingreso')
+              DataColumn(
+                label: Container(
+                  decoration: CustomTableStyles.headerDecoration,
+                  padding: CustomTableStyles.headerPadding,
+                  child: Center(
+                    child: Text(
+                      'Fecha de Ingreso',
+                      style: CustomTableStyles.headerTextStyle,
+                    ),
+                  ),
+                ),
+              )
+            else
+              DataColumn(
+                label: Container(
+                  decoration: CustomTableStyles.headerDecoration,
+                  padding: CustomTableStyles.headerPadding,
+                  child: Center(
+                    child: Text(
+                      campo == 'fechaingreso' ? 'Fecha de Ingreso' : campo,
+                      style: CustomTableStyles.headerTextStyle,
+                    ),
                   ),
                 ),
               ),
-            ),
           DataColumn(
             label: Container(
               decoration: CustomTableStyles.headerDecoration,
@@ -67,7 +87,7 @@ class IngresoTable extends StatelessWidget {
             cells: [
               for (var campo in camposMostrar)
                 DataCell(
-                  campo == 'fechaIngreso' && ingreso[campo] is Timestamp
+                  campo == 'fechaingreso' && ingreso[campo] is Timestamp
                       ? Text(DateFormat('dd/MM/yyyy')
                           .format((ingreso[campo] as Timestamp).toDate()))
                       : campo == 'valor' && ingreso[campo] != null

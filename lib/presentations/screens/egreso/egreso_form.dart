@@ -26,39 +26,23 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
   final _descripcionController = TextEditingController();
 
   String? _quincena;
-  String? _mes;
-  int? _dia;
-  int _anio = DateTime.now().year;
+  DateTime fechaPago = DateTime.now();
   String? _categoria;
   String? _estado;
   DateTime _fechaActual = DateTime.now();
 
   final List<String> _quincenas = ['Primera', 'Segunda'];
-  final List<String> _meses = [
-    'Enero',
-    'Febrero',
-    'Marzo',
-    'Abril',
-    'Mayo',
-    'Junio',
-    'Julio',
-    'Agosto',
-    'Septiembre',
-    'Octubre',
-    'Noviembre',
-    'Diciembre'
-  ];
   final List<String> _categorias = [
-    'Salario',
-    'Bonificacion',
+    'Alimentación',
+    'Transporte',
+    'Vivienda',
+    'Entretenimiento',
     'Ahorro',
     'Vacaciones',
-    'Tranferencia',
+    'Transferencia',
     'Otros'
   ];
   final List<String> _estados = ['Pendiente', 'Cancelado'];
-
-  List<int> _dias = [];
 
   @override
   void initState() {
@@ -68,26 +52,10 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
       _valorController.text = widget.egreso!.valor.toString();
       _descripcionController.text = widget.egreso!.descripcion;
       _quincena = widget.egreso!.quincena;
-      _mes = widget.egreso!.mes;
-      _dia = widget.egreso!.dia;
-      _anio = widget.egreso!.anio;
+      fechaPago = widget.egreso!.fechaPago;
       _categoria = widget.egreso!.categoria;
       _estado = widget.egreso!.estado;
       _fechaActual = widget.egreso!.fecha;
-      _actualizarDias();
-    }
-  }
-
-  void _actualizarDias() {
-    if (_mes != null) {
-      final int daysInMonth = DateTime(_anio, _meses.indexOf(_mes!) + 1, 0).day;
-      setState(() {
-        _dias = List<int>.generate(daysInMonth, (i) => i + 1);
-      });
-    } else {
-      setState(() {
-        _dias = [];
-      });
     }
   }
 
@@ -97,21 +65,14 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
     _descripcionController.clear();
     setState(() {
       _quincena = null;
-      _mes = null;
-      _dia = null;
       _categoria = null;
       _estado = null;
-      _dias = [];
     });
   }
 
   Future<void> _guardarEgreso() async {
     if (_formKey.currentState!.validate()) {
-      if (_quincena == null ||
-          _mes == null ||
-          _dia == null ||
-          _categoria == null ||
-          _estado == null) {
+      if (_quincena == null || _categoria == null || _estado == null) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(content: Text('Por favor, complete todos los campos')),
         );
@@ -124,9 +85,7 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
           id: widget.egreso?.id ?? _generarIdAleatorio(),
           quincena: _quincena!,
           fecha: _fechaActual,
-          mes: _mes!,
-          dia: _dia!,
-          anio: _anio,
+          fechaPago: fechaPago,
           categoria: _categoria!,
           concepto: _conceptoController.text,
           valor: int.parse(_valorController.text.replaceAll(',', '')),
@@ -182,18 +141,6 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
                   children: [
                     buildDropdown(_quincenas, _quincena, 'Quincena',
                         (val) => setState(() => _quincena = val)),
-                    buildReadonlyField('Fecha Actual',
-                        DateFormat('dd/MM/yyyy').format(_fechaActual)),
-                    buildDropdown(
-                        _meses,
-                        _mes,
-                        'Mes',
-                        (val) => setState(() {
-                              _mes = val;
-                              _actualizarDias();
-                            })),
-                    buildDropdown(_dias, _dia, 'Día',
-                        (val) => setState(() => _dia = val)),
                     buildTextField(_conceptoController, 'Concepto'),
                     buildTextField(
                       _valorController,
@@ -201,11 +148,42 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
                       isNumber: true,
                       inputFormatters: [ThousandsFormatter()],
                     ),
-                    buildTextField(_descripcionController, 'Descripción'),
+                    buildTextField(
+                      _descripcionController,
+                      'Descripción',
+                      isMultiline: true,
+                    ),
                     buildDropdown(_categorias, _categoria, 'Categoría',
                         (val) => setState(() => _categoria = val)),
                     buildDropdown(_estados, _estado, 'Estado',
                         (val) => setState(() => _estado = val)),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(vertical: 8),
+                      child: InkWell(
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: fechaPago,
+                            firstDate: DateTime(2000),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                            setState(() {
+                              fechaPago = picked;
+                            });
+                          }
+                        },
+                        child: InputDecorator(
+                          decoration: InputDecoration(
+                            labelText: 'Fecha Pago',
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12)),
+                          ),
+                          child:
+                              Text(DateFormat('dd/MM/yyyy').format(fechaPago)),
+                        ),
+                      ),
+                    ),
                     const SizedBox(height: 20),
                     SizedBox(
                       width: double.infinity,
@@ -265,6 +243,7 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
     TextEditingController controller,
     String label, {
     bool isNumber = false,
+    bool isMultiline = false,
     List<TextInputFormatter>? inputFormatters,
   }) {
     return Padding(
@@ -274,9 +253,14 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          alignLabelWithHint: isMultiline,
         ),
-        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+        keyboardType: isNumber
+            ? TextInputType.number
+            : (isMultiline ? TextInputType.multiline : TextInputType.text),
         inputFormatters: inputFormatters,
+        minLines: isMultiline ? 3 : 1,
+        maxLines: isMultiline ? null : 1,
         validator: (value) {
           if (value == null || value.isEmpty) return 'Ingrese $label';
           return null;

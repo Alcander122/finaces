@@ -384,7 +384,7 @@ class HomeScreen extends ConsumerWidget {
         'icon':
             const Icon(FontAwesomeIcons.calendarCheck, color: Colors.orange),
         'title': 'Pagos',
-        'description': 'Pagos agendados.',
+        'description':'Gestiona pagos y fechas.',
         'screen': AhorroScreen(),
       },
       {

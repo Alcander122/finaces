@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finances/core/data/models/egreso_model.dart';
+//import 'package:flutter/foundation.dart';
 import 'dart:math';
 
 class EgresoService {
@@ -14,16 +15,6 @@ class EgresoService {
         20, (index) => caracteres[random.nextInt(caracteres.length)]).join();
   }
 
-  // 🔹 Agregar un nuevo egreso
-  /*Future<void> addEgreso(String uid, Egreso egreso) async {
-    final id = _generarIdAleatorio(); // Generar un ID aleatorio
-    await _firestore
-        .collection('users')
-        .doc(uid)
-        .collection('egreso')
-        .doc(id) // Usar el ID generado
-        .set(egreso.toMap());
-  }*/
   Future<void> addEgreso(String uid, Egreso egreso) async {
     try {
       final docRef = await _firestore
@@ -77,8 +68,9 @@ class EgresoService {
         .collection('users')
         .doc(uid)
         .collection('egreso')
-        .orderBy('anio', descending: true)
-        .orderBy('mes')
+        .orderBy('fechaPago') // Ordenar por fechaPago de menor a mayor
+        /*.orderBy('anio', descending: true)
+        .orderBy('mes')*/
         .snapshots()
         .map((snapshot) {
       return snapshot.docs.map((doc) {
@@ -111,49 +103,72 @@ class EgresoService {
   }
 
   // Obtener el total de ingresos del mes actual en tiempo real (Stream)
-  Stream<double> streamTotalIngresosMesActual(String userId) {
+  Stream<double> streamTotalIngresosMesActual(
+    String userId,
+  ) {
     final now = DateTime.now();
-    final mesActual =
-        _obtenerNombreMes(now.month); // Convertir a nombre del mes
-    final anioActual = now.year;
-
+    final inicioMes = DateTime(now.year, now.month, 1);
+    final finMes = DateTime(now.year, now.month + 1, 0);
+    final finMesAjustado = finMes
+        .add(const Duration(days: 1))
+        .subtract(const Duration(milliseconds: 1));
     return _firestore
         .collection('users')
         .doc(userId)
         .collection('egreso')
-        .where('mes', isEqualTo: mesActual)
-        .where('anio', isEqualTo: anioActual)
-        .where('estado', isEqualTo: 'Cancelado')
-        .where('estado', isEqualTo: 'Pendiente')
+        .where('fechaPago', isGreaterThanOrEqualTo: inicioMes)
+        .where('fechaPago', isLessThanOrEqualTo: finMesAjustado)
         .snapshots()
         .map((snapshot) {
       double totalIngresos = 0.0;
       for (var doc in snapshot.docs) {
-        final valor = doc.data()['valor'];
-        totalIngresos += valor is num ? valor.toDouble() : 0.0;
+        final data = doc.data();
+
+        // Obtiene el valor y asegúrate de que sea numérico
+        final dynamic valor = data['valor'];
+        if (valor != null) {
+          if (valor is num) {
+            totalIngresos += valor.toDouble();
+          } else if (valor is String) {
+            totalIngresos += double.tryParse(valor) ?? 0.0;
+          }
+        }
       }
-      return totalIngresos;
+
+      return totalIngresos; // Devuelve el total de gastos
     });
   }
 
   Stream<double> streamTotalGastosMesActual(String userId) {
     final now = DateTime.now();
-    final mesActual = _obtenerNombreMes(now.month);
-    final anioActual = now.year;
+
+    // CORRECCIÓN CLAVE: Cálculo preciso del último día del mes
+    final inicioMes = DateTime(now.year, now.month, 1);
+    final finMes =  DateTime(now.year, now.month + 1, 0); // <-- Cambio importante
+
+    // Asegurar que cubre todo el día (incluyendo 23:59:59)
+    final inicioMesAjustado = inicioMes;
+    final finMesAjustado =finMes.add(Duration(days: 1)).subtract(Duration(milliseconds: 1));
 
     return _firestore
         .collection('users')
         .doc(userId)
         .collection('egreso')
-        .where('mes', isEqualTo: mesActual)
-        .where('anio', isEqualTo: anioActual)
-        /*.where('estado', isEqualTo: 'Pendiente')*/
+        .where('fechaPago', isGreaterThanOrEqualTo: inicioMesAjustado)
+        .where('fechaPago', isLessThanOrEqualTo: finMesAjustado)
         .snapshots()
         .map((snapshot) {
       double total = 0.0;
       for (var doc in snapshot.docs) {
-        final valor = doc.data()['valor'];
-        total += valor is num ? valor.toDouble() : 0.0;
+        final dynamic valor = doc.data()['valor'];
+
+        if (valor != null) {
+          if (valor is num) {
+            total += valor.toDouble();
+          } else if (valor is String) {
+            total += double.tryParse(valor) ?? 0.0;
+          }
+        }
       }
       return total;
     });
@@ -166,8 +181,8 @@ class EgresoService {
         .collection('users')
         .doc(userId)
         .collection('egreso')
-        .where('fecha', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
-        .where('fecha', isLessThanOrEqualTo: Timestamp.fromDate(end))
+        .where('fechaPago', isGreaterThanOrEqualTo: Timestamp.fromDate(start))
+        .where('fechaPago', isLessThanOrEqualTo: Timestamp.fromDate(end))
         /*.where('estado', isEqualTo: 'Pendiente')*/
         .snapshots()
         .map((snapshot) {
@@ -190,8 +205,9 @@ class EgresoService {
 
     if (startDate != null && endDate != null) {
       query = query
-          .where('fecha', isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
-          .where('fecha', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
+          .where('fechaPago',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(startDate))
+          .where('fechaPago', isLessThanOrEqualTo: Timestamp.fromDate(endDate));
     }
 
     return query.snapshots().map((snapshot) {
@@ -206,23 +222,5 @@ class EgresoService {
 
   double calcularTotalEgresos(List<Egreso> egresos) {
     return egresos.fold(0.0, (sum, egreso) => sum + egreso.valor);
-  }
-
-  // Función auxiliar para convertir número de mes a nombre
-  String _obtenerNombreMes(int numeroMes) {
-    return [
-      'Enero',
-      'Febrero',
-      'Marzo',
-      'Abril',
-      'Mayo',
-      'Junio',
-      'Julio',
-      'Agosto',
-      'Septiembre',
-      'Octubre',
-      'Noviembre',
-      'Diciembre'
-    ][numeroMes - 1];
   }
 }
