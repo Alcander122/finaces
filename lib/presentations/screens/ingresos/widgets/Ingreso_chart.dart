@@ -10,72 +10,60 @@ class IncomeChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Sumar los valores por categoría
+    // Calcular los totales por categoría
     final Map<String, int> categoriaTotales = {};
     for (var ingreso in ingresos) {
       categoriaTotales.update(
-          ingreso.categoria, (value) => value + ingreso.valor,
-          ifAbsent: () => ingreso.valor);
+        ingreso.categoria,
+        (value) => value + ingreso.valor,
+        ifAbsent: () => ingreso.valor,
+      );
     }
-
-    // Formateador de números con separador de miles
-    final formatter = NumberFormat.decimalPattern('es_CO');
 
     // Colores para las categorías
     final colores = [
-      const Color(0xFFFF6384), // Rojo
-      const Color(0xFF36A2EB), // Azul
-      const Color(0xFFFFCE56), // Amarillo
-      const Color(0xFF4BC0C0), // Verde
-      const Color(0xFF9966FF), // Morado
+      const Color.fromRGBO(255, 99, 132, 1), // Rojo
+      const Color.fromRGBO(54, 162, 235, 1), // Azul
+      const Color.fromRGBO(255, 206, 86, 1), // Amarillo
+      const Color.fromRGBO(75, 192, 192, 1), // Verde
+      const Color.fromRGBO(153, 102, 255, 1), // Morado
     ];
 
-    // Construir la lista de datos para el gráfico
+    // Construir los datos para el gráfico
     final List<ChartData> datosGrafico = [];
-    int colorIndex = 0;
     for (var entry in categoriaTotales.entries) {
       datosGrafico.add(
         ChartData(
           categoria: entry.key,
           valor: entry.value.toDouble(),
-          color: colores[colorIndex % colores.length],
+          color: colores[datosGrafico.length % colores.length],
         ),
       );
-      colorIndex++;
     }
+
+    // Formato de moneda
+    final formatoMoneda = NumberFormat('#,##0', 'es_CO');
 
     return SizedBox(
       height: 300,
       child: SfCircularChart(
         title: ChartTitle(
-          text: 'Ingresos categorizados',
+          text: 'Ingresos Categorizados',
           textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
         ),
         legend: Legend(
           isVisible: true,
           position: LegendPosition.bottom,
-          overflowMode: LegendItemOverflowMode.wrap,
-          textStyle: const TextStyle(fontSize: 12),
         ),
         series: <CircularSeries>[
-          DoughnutSeries<ChartData, String>(
+          PieSeries<ChartData, String>(
             dataSource: datosGrafico,
             xValueMapper: (ChartData data, _) => data.categoria,
             yValueMapper: (ChartData data, _) => data.valor,
             pointColorMapper: (ChartData data, _) => data.color,
             dataLabelMapper: (ChartData data, _) =>
-                '${data.categoria}: ${formatter.format(data.valor)}',
-            dataLabelSettings: const DataLabelSettings(
-              isVisible: true,
-              labelPosition: ChartDataLabelPosition.outside,
-              connectorLineSettings: ConnectorLineSettings(
-                type: ConnectorType.curve,
-                length: '10%',
-              ),
-              textStyle: TextStyle(fontSize: 11),
-            ),
-            radius: '80%',
-            innerRadius: '60%',
+                '\$ ${formatoMoneda.format(data.valor)}',
+            dataLabelSettings: const DataLabelSettings(isVisible: true),
           )
         ],
       ),

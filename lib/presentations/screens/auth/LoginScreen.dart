@@ -2,7 +2,6 @@ import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/core/errors/handlers/auth_error_handler.dart';
 import 'package:finances/presentations/screens/Auth/register.screen.dart';
-import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/presentations/widgets/custom_scaffold.dart';
 import 'package:finances/routes/app_routes.dart';

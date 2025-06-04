@@ -159,9 +159,9 @@
     },
     {
       "name": "dart_style",
-      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/dart_style-3.1.0",
+      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/dart_style-3.0.1",
       "packageUri": "lib/",
-      "languageVersion": "3.7"
+      "languageVersion": "3.4"
     },
     {
       "name": "equatable",
@@ -381,9 +381,9 @@
     },
     {
       "name": "js",
-      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/js-0.7.2",
+      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/js-0.7.1",
       "packageUri": "lib/",
-      "languageVersion": "3.7"
+      "languageVersion": "3.1"
     },
     {
       "name": "json_annotation",
@@ -849,9 +849,9 @@
     },
     {
       "name": "win32",
-      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/win32-5.13.0",
+      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/win32-5.10.1",
       "packageUri": "lib/",
-      "languageVersion": "3.7"
+      "languageVersion": "3.5"
     },
     {
       "name": "xdg_directories",
@@ -878,7 +878,7 @@
       "languageVersion": "3.6"
     }
   ],
-  "generated": "2025-06-02T21:02:32.493681Z",
+  "generated": "2025-06-04T13:30:42.639218Z",
   "generator": "pub",
   "generatorVersion": "3.7.2",
   "flutterRoot": "file:///C:/Users/ANDRES%20AYALA/dev/flutter",

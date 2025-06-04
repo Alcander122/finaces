@@ -214,6 +214,7 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
     // Mostrar el diálogo después de un pequeño delay
     Future.delayed(const Duration(milliseconds: 300), () {
       showDialog(
+        // ignore: use_build_context_synchronously
         context: context,
         builder: (context) => AlertDialog(
           title: Text(_editId == null ? 'Nuevo Ingreso' : 'Editar Ingreso'),
@@ -233,7 +234,7 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
     });
   }
 
-  // Método para construir el formulario de ingresos
+// Método para construir el formulario de ingresos
   Widget _buildFormulario() {
     return Form(
       key: _formKey,
@@ -260,8 +261,11 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
               border: const OutlineInputBorder(),
             ),
             controller: TextEditingController(
-                text: DateFormat('dd/MM/yyyy').format(_fechaIngreso)),
+              text: DateFormat('dd/MM/yyyy').format(_fechaIngreso),
+            ),
           ),
+
+          const SizedBox(height: 12),
 
           // Campo para seleccionar la quincena
           DropdownButtonFormField<String>(
@@ -271,9 +275,14 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
                 .map((q) => DropdownMenuItem(value: q, child: Text(q)))
                 .toList(),
             onChanged: (value) => setState(() => _quincena = value),
-            decoration: const InputDecoration(labelText: 'Quincena'),
+            decoration: const InputDecoration(
+              labelText: 'Quincena',
+              border: OutlineInputBorder(),
+            ),
             validator: (value) => _validator.validateQuincena(value),
           ),
+
+          const SizedBox(height: 12),
 
           // Campo para seleccionar la categoría
           DropdownButtonFormField<String>(
@@ -289,22 +298,33 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
               'Otros'
             ].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
             onChanged: (value) => setState(() => _categoria = value),
-            decoration: const InputDecoration(labelText: 'Categoría'),
+            decoration: const InputDecoration(
+              labelText: 'Categoría',
+              border: OutlineInputBorder(),
+            ),
             validator: (value) => _validator.validateCategoria(value),
           ),
-
-          // Campo para ingresar el concepto
+          const SizedBox(height: 12),
           TextFormField(
             controller: _conceptoController,
-            decoration: const InputDecoration(labelText: 'Concepto'),
+            keyboardType: TextInputType.multiline,
+            minLines: 3,
+            maxLines: null,
+            decoration: const InputDecoration(
+              labelText: 'Concepto',
+              border: OutlineInputBorder(),
+              alignLabelWithHint: true,
+            ),
             validator: (value) => _validator.validateConcepto(value),
           ),
-
-          // Campo para ingresar el valor
+          const SizedBox(height: 12),
           TextFormField(
             controller: _valorController,
             keyboardType: TextInputType.number,
-            decoration: const InputDecoration(labelText: 'Valor'),
+            decoration: const InputDecoration(
+              labelText: 'Valor',
+              border: OutlineInputBorder(),
+            ),
             validator: (value) => _validator.validateValor(value),
           ),
         ],

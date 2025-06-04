@@ -9,7 +9,6 @@ import 'LoginScreen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:icons_plus/icons_plus.dart';
-import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/widgets/custom_scaffold.dart';
 
 class RegisterScreen extends StatefulWidget {

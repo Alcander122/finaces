@@ -26,13 +26,12 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
   final _descripcionController = TextEditingController();
 
   String? _quincena;
-  DateTime fechaPago = DateTime.now(); // Nuevo campo
+  DateTime fechaPago = DateTime.now();
   String? _categoria;
   String? _estado;
   DateTime _fechaActual = DateTime.now();
 
   final List<String> _quincenas = ['Primera', 'Segunda'];
-
   final List<String> _categorias = [
     'Alimentación',
     'Transporte',
@@ -45,8 +44,6 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
   ];
   final List<String> _estados = ['Pendiente', 'Cancelado'];
 
-  List<int> dias = [];
-
   @override
   void initState() {
     super.initState();
@@ -55,7 +52,7 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
       _valorController.text = widget.egreso!.valor.toString();
       _descripcionController.text = widget.egreso!.descripcion;
       _quincena = widget.egreso!.quincena;
-      fechaPago = widget.egreso!.fechaPago; // Nuevo campo
+      fechaPago = widget.egreso!.fechaPago;
       _categoria = widget.egreso!.categoria;
       _estado = widget.egreso!.estado;
       _fechaActual = widget.egreso!.fecha;
@@ -88,7 +85,7 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
           id: widget.egreso?.id ?? _generarIdAleatorio(),
           quincena: _quincena!,
           fecha: _fechaActual,
-          fechaPago: fechaPago, // Nuevo campo
+          fechaPago: fechaPago,
           categoria: _categoria!,
           concepto: _conceptoController.text,
           valor: int.parse(_valorController.text.replaceAll(',', '')),
@@ -151,13 +148,15 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
                       isNumber: true,
                       inputFormatters: [ThousandsFormatter()],
                     ),
-                    buildTextField(_descripcionController, 'Descripción'),
+                    buildTextField(
+                      _descripcionController,
+                      'Descripción',
+                      isMultiline: true,
+                    ),
                     buildDropdown(_categorias, _categoria, 'Categoría',
                         (val) => setState(() => _categoria = val)),
-                        
                     buildDropdown(_estados, _estado, 'Estado',
                         (val) => setState(() => _estado = val)),
-                        
                     Padding(
                       padding: const EdgeInsets.symmetric(vertical: 8),
                       child: InkWell(
@@ -177,9 +176,11 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
                         child: InputDecorator(
                           decoration: InputDecoration(
                             labelText: 'Fecha Pago',
-                            border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+                            border: OutlineInputBorder(
+                                borderRadius: BorderRadius.circular(12)),
                           ),
-                          child: Text(DateFormat('dd/MM/yyyy').format(fechaPago)),
+                          child:
+                              Text(DateFormat('dd/MM/yyyy').format(fechaPago)),
                         ),
                       ),
                     ),
@@ -242,6 +243,7 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
     TextEditingController controller,
     String label, {
     bool isNumber = false,
+    bool isMultiline = false,
     List<TextInputFormatter>? inputFormatters,
   }) {
     return Padding(
@@ -251,9 +253,14 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
         decoration: InputDecoration(
           labelText: label,
           border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
+          alignLabelWithHint: isMultiline,
         ),
-        keyboardType: isNumber ? TextInputType.number : TextInputType.text,
+        keyboardType: isNumber
+            ? TextInputType.number
+            : (isMultiline ? TextInputType.multiline : TextInputType.text),
         inputFormatters: inputFormatters,
+        minLines: isMultiline ? 3 : 1,
+        maxLines: isMultiline ? null : 1,
         validator: (value) {
           if (value == null || value.isEmpty) return 'Ingrese $label';
           return null;
