@@ -9,12 +9,13 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
-/// Clase para manejar el almacenamiento local de tokens y estado de autenticación
+/// Esta clase se encarga de gestionar el almacenamiento local del token de autenticación
+/// y el estado del usuario (por ejemplo, si está logueado o cerró sesión).
 class AuthStorage {
   static const String _tokenKey = 'auth_token';
   static const String _loggedOutKey = 'user_logged_out';
 
-  // Guarda el token de autenticación
+  // Guarda el token de autenticación en SharedPreferences.
   Future<void> saveToken(String token) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -25,7 +26,7 @@ class AuthStorage {
     }
   }
 
-  // Elimina el token de autenticación
+  // Elimina el token de autenticación.
   Future<void> deleteToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -36,7 +37,7 @@ class AuthStorage {
     }
   }
 
-  // Obtiene el token almacenado
+  // Obtiene el token almacenado.
   Future<String?> getToken() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -47,7 +48,7 @@ class AuthStorage {
     }
   }
 
-  // Marca al usuario como cerrado de sesión
+  // Marca al usuario como cerrado de sesión.
   Future<void> setLoggedOut(bool value) async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -58,7 +59,7 @@ class AuthStorage {
     }
   }
 
-  // Verifica si el usuario está marcado como cerrado de sesión
+  // Verifica si el usuario está marcado como deslogueado.
   Future<bool> isLoggedOut() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -69,7 +70,7 @@ class AuthStorage {
     }
   }
 
-  // Limpia la marca de cierre de sesión
+  // Limpia la marca de cierre de sesión.
   Future<void> clearLoggedOut() async {
     try {
       final prefs = await SharedPreferences.getInstance();
@@ -81,15 +82,18 @@ class AuthStorage {
   }
 }
 
-/// Proveedor de estado para autenticación (Riverpod)
+/// Proveedor de estado para la autenticación utilizando Riverpod.
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier();
 });
 
-/// Clase que define el estado de autenticación
+/// Define el estado de autenticación de la aplicación.
 class AuthState {
+  /// Usuario autenticado (si existe).
   final User? user;
+  /// Indica si se está realizando una operación (cargando).
   final bool isLoading;
+  /// Mensaje de error (si ocurre alguno).
   final String? error;
 
   const AuthState.initial()
@@ -119,10 +123,10 @@ class AuthState {
   bool get isAuthenticated => user != null;
 }
 
-/// Clase principal para manejar la lógica de autenticación
+/// Clase que gestiona la lógica de autenticación con Firebase.
 class AuthNotifier extends StateNotifier<AuthState> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
-  final UserService _userService = UserService();
+  final UserService _userService = UserService(); // Servicio para manejar operaciones de usuario en Firestore.
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final AuthStorage _storage = AuthStorage();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -131,12 +135,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
     _initAuthListener();
   }
 
-  // Inicializa el listener de cambios de estado de autenticación
+  /// Inicializa un listener para detectar los cambios en el estado de autenticación.
   void _initAuthListener() {
     _auth.authStateChanges().listen((User? user) async {
       try {
         state = const AuthState.loading();
         if (user != null) {
+          // Actualiza el usuario y guarda el token.
           await user.reload();
           final updatedUser = _auth.currentUser;
           if (updatedUser != null) {
@@ -145,6 +150,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
             state = AuthState.authenticated(updatedUser);
           }
         } else {
+          // Si el usuario es nulo, se elimina el token y se marca como no autenticado.
           await _storage.deleteToken();
           state = const AuthState.unauthenticated();
         }
@@ -154,15 +160,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
     });
   }
 
-  // Inicio de sesión con email y contraseña
+  /// Inicio de sesión con email y contraseña.
   Future<void> signIn(String email, String password) async {
     try {
       state = const AuthState.loading();
       await _storage.clearLoggedOut();
+
+      // Para la plataforma web se configura la persistencia y se deshabilita appVerification en testing
       if (kIsWeb) {
         await _auth.setPersistence(Persistence.LOCAL);
-        await _auth.setSettings(appVerificationDisabledForTesting: false);
+        await _auth.setSettings(appVerificationDisabledForTesting: true);
       }
+      // Se realiza el inicio de sesión con correo y contraseña.
       await _auth.signInWithEmailAndPassword(email: email, password: password);
       User? user = _auth.currentUser;
       if (user != null) await user.reload();
@@ -176,9 +185,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // Registro de usuario
-  Future<void> signUp(
-      String name, String displayName, String email, String password) async {
+  /// Registro de usuario: se registra en Firebase Auth y se guarda la información en Firestore.
+  Future<void> signUp(String name, String displayName, String email, String password) async {
     try {
       state = const AuthState.loading();
       await _storage.clearLoggedOut();
@@ -197,7 +205,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // Cierre de sesión
+  /// Cierre de sesión: se cierra la sesión en Firebase Auth y se eliminan las marcas locales.
   Future<void> signOut() async {
     try {
       state = const AuthState.loading();
@@ -218,7 +226,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // Actualización del nombre de usuario
+  /// Actualiza el nombre desplegado del usuario y lo actualiza en Firestore.
   Future<void> updateDisplayName(String displayName) async {
     try {
       state = const AuthState.loading();
@@ -235,7 +243,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // Actualización en Firestore
+  /// Actualiza la información del usuario en la colección 'users' de Firestore.
   Future<void> updateUserInFirestore(String userId, String displayName) async {
     try {
       await _firestore.collection('users').doc(userId).update({
@@ -246,20 +254,23 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // Inicio de sesión con Google
+  /// Inicio de sesión con Google.
   Future<void> signInWithGoogle() async {
     try {
       state = const AuthState.loading();
       await _storage.clearLoggedOut();
+
+      // Inicia el flujo de autenticación con Google.
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
+        // Si el usuario cancela el proceso.
         throw FirebaseAuthException(
           code: 'aborted-by-user',
           message: 'Sign in aborted by user',
         );
       }
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
+      // Recibe la autenticación y crea el credential de Firebase.
+      final GoogleSignInAuthentication googleAuth = await googleUser.authentication;
       final OAuthCredential credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
@@ -268,7 +279,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
           await _auth.signInWithCredential(credential);
       final User? user = userCredential.user;
       if (user != null) {
-        await _handleNewGoogleUser(user);
+        await _handleNewGoogleUser(user); // Crea el usuario en Firestore si es nuevo.
         final token = await user.getIdToken();
         await _storage.saveToken(token ?? '');
         state = AuthState.authenticated(user);
@@ -283,7 +294,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  // Manejo de nuevos usuarios de Google
+  /// Verifica en Firestore si el usuario autenticado mediante Google ya existe, y, en caso negativo, lo registra.
   Future<void> _handleNewGoogleUser(User user) async {
     try {
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
@@ -296,7 +307,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
         });
       }
     } catch (e) {
-      // logger.e('Error al sincronizar datos de usuario', error: e);
+      // Se puede registrar el error en consola o logger, pero no se interrumpe el flujo.
+      logger.e('Error al sincronizar datos de usuario', error: e);
     }
   }
 }

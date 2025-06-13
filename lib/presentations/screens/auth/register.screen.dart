@@ -8,7 +8,7 @@ import 'package:flutter/material.dart';
 import 'LoginScreen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:icons_plus/icons_plus.dart';
+import 'package:icons_plus/icons_plus.dart'; // This import provides the Logos class for social icons
 import 'package:finances/presentations/widgets/custom_scaffold.dart';
 
 class RegisterScreen extends StatefulWidget {
@@ -260,7 +260,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          Logo(Logos.facebook_f),
+                          Logo(Logos.facebook_f), // Uses the Logos class from icons_plus
                           Consumer(
                             builder: (context, ref, _) {
                               return GestureDetector(

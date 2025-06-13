@@ -12,7 +12,12 @@ void main() async {
   await Firebase.initializeApp();
 
   // SOLUCIÓN: Configurar idioma para Firebase (elimina el warning de locale)
-  await FirebaseAuth.instance.setLanguageCode("es");
+  //await FirebaseAuth.instance.setLanguageCode("es");
+  FirebaseAuth.instance.authStateChanges().listen((user) {
+    if (user != null) {
+      FirebaseAuth.instance.setLanguageCode("es");
+    }
+  });
 
   // Inicializar notificaciones después de Firebase
   try {

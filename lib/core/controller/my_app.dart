@@ -15,7 +15,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   Timer? _inactivityTimer;
 
   /// Duración de inactividad antes de cerrar sesión automáticamente
-  final Duration _timeoutDuration = const Duration(minutes: 50);
+  final Duration _timeoutDuration = const Duration(minutes: 15);
 
   @override
   void initState() {
