@@ -1,10 +1,11 @@
+// Pantalla principal de pagos (refactorizada)
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/core/data/providers/payment_provider.dart';
 import 'package:finances/presentations/screens/Pagos/pendientes_tab.dart';
 import 'package:finances/presentations/screens/Pagos/programados_tab.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class PagosScreen extends ConsumerStatefulWidget {
   const PagosScreen({super.key});
@@ -34,14 +35,12 @@ class _PagosScreenState extends ConsumerState<PagosScreen>
     final authState = ref.watch(authProvider);
     final userId = authState.user?.uid ?? '';
 
-    // Verificar autenticación y userId
     if (!authState.isAuthenticated || userId.isEmpty) {
       return const Scaffold(
         body: Center(child: Text("Inicia sesión para ver tus pagos.")),
       );
     }
 
-    // IMPORTANTE: Forzar reconstrucción cuando cambia userId
     ref.watch(paymentProvider(userId));
 
     return Scaffold(
@@ -67,7 +66,6 @@ class _PagosScreenState extends ConsumerState<PagosScreen>
             child: TabBarView(
               controller: _controladorTabs,
               children: [
-                // Usar los widgets de tabs directamente
                 PendientesTab(userId: userId),
                 ProgramadosTab(userId: userId),
               ],

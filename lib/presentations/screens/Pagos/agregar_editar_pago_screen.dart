@@ -1,9 +1,12 @@
-// agregar_editar_pago_screen.dart
+// Pantalla para agregar/editar pagos (refactorizada)
+import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/models/pago_model.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/core/data/providers/payment_provider.dart';
-import 'package:flutter/material.dart';
-import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:finances/presentations/screens/Pagos/widgets/fecha_vencimiento_picker.dart';
+import 'package:finances/presentations/screens/Pagos/widgets/dias_antes_bottom_sheet.dart';
+import 'package:finances/presentations/screens/Pagos/widgets/frecuencia_bottom_sheet.dart';
 
 class AgregarEditarPagoScreen extends ConsumerStatefulWidget {
   const AgregarEditarPagoScreen({super.key});
@@ -18,81 +21,9 @@ class _AgregarEditarPagoScreenState extends ConsumerState<AgregarEditarPagoScree
   final _montoController = TextEditingController();
   late DateTime _fechaVencimiento;
   bool _esProgramado = false;
-  int _diasAntes = 1; // Días antes del vencimiento
-  String _frecuencia = 'mensual'; // Frecuencia de recurrencia
+  int _diasAntes = 1;
+  String _frecuencia = 'mensual';
   bool _datosInicializados = false;
-
-  Future<void> _mostrarDialogoDias(BuildContext context) async {
-    final resultado = await showModalBottomSheet<int>(
-      context: context,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Selecciona los días antes del vencimiento:',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                title: const Text('1 día'),
-                onTap: () => Navigator.pop(context, 1),
-              ),
-              ListTile(
-                title: const Text('3 días'),
-                onTap: () => Navigator.pop(context, 3),
-              ),
-              ListTile(
-                title: const Text('7 días'),
-                onTap: () => Navigator.pop(context, 7),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-
-    if (resultado != null) {
-      setState(() => _diasAntes = resultado);
-    }
-  }
-
-  Future<void> _mostrarDialogoFrecuencia(BuildContext context) async {
-    final resultado = await showModalBottomSheet<String>(
-      context: context,
-      builder: (context) {
-        return Container(
-          padding: const EdgeInsets.all(16),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Text('Selecciona la frecuencia de recurrencia:',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 16),
-              ListTile(
-                title: const Text('Mensual'),
-                onTap: () => Navigator.pop(context, 'mensual'),
-              ),
-              ListTile(
-                title: const Text('Semanal'),
-                onTap: () => Navigator.pop(context, 'semanal'),
-              ),
-              ListTile(
-                title: const Text('Anual'),
-                onTap: () => Navigator.pop(context, 'anual'),
-              ),
-            ],
-          ),
-        );
-      },
-    );
-
-    if (resultado != null) {
-      setState(() => _frecuencia = resultado);
-    }
-  }
 
   @override
   void initState() {
@@ -104,16 +35,83 @@ class _AgregarEditarPagoScreenState extends ConsumerState<AgregarEditarPagoScree
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_datosInicializados) {
-      final args = ModalRoute.of(context)?.settings.arguments as Pago?;
-      if (args != null) {
-        _descripcionController.text = args.descripcion;
-        _montoController.text = args.monto.toString();
-        _fechaVencimiento = args.fechaVencimiento;
-        _esProgramado = args.estaProgramado;
-        _diasAntes = args.notificacionAntes;
-        _frecuencia = args.frecuenciaRecurrencia;
-      }
+      _inicializarDatosDesdeArgumentos();
       _datosInicializados = true;
+    }
+  }
+
+  void _inicializarDatosDesdeArgumentos() {
+    final args = ModalRoute.of(context)?.settings.arguments as Pago?;
+    if (args != null) {
+      _descripcionController.text = args.descripcion;
+      _montoController.text = args.monto.toString();
+      _fechaVencimiento = args.fechaVencimiento;
+      _esProgramado = args.estaProgramado;
+      _diasAntes = args.notificacionAntes;
+      _frecuencia = args.frecuenciaRecurrencia;
+    }
+  }
+
+  Future<void> _mostrarDialogoDias() async {
+    await showModalBottomSheet<int>(
+      context: context,
+      builder: (context) => DiasAntesBottomSheet(
+        onDiasSeleccionados: (dias) {
+          setState(() => _diasAntes = dias);
+        },
+      ),
+    );
+  }
+
+  Future<void> _mostrarDialogoFrecuencia() async {
+    await showModalBottomSheet<String>(
+      context: context,
+      builder: (context) => FrecuenciaBottomSheet(
+        onFrecuenciaSeleccionada: (frec) {
+          setState(() => _frecuencia = frec);
+        },
+      ),
+    );
+  }
+
+  Future<void> _guardarPago() async {
+    if (!_formKey.currentState!.validate()) return;
+
+    try {
+      final authState = ref.read(authProvider);
+      if (authState.user == null) throw Exception("Debe estar autenticado");
+      
+      final provider = ref.read(paymentProvider(authState.user!.uid).notifier);
+      final nuevoPago = Pago(
+        id: '',
+        descripcion: _descripcionController.text.trim(),
+        monto: double.parse(_montoController.text),
+        fechaVencimiento: _fechaVencimiento,
+        estaProgramado: _esProgramado,
+        notificacionAntes: _diasAntes,
+        frecuenciaRecurrencia: _frecuencia,
+      );
+      
+      final args = ModalRoute.of(context)?.settings.arguments;
+      if (args is Pago) {
+        await provider.editarPago(args.copyWith(
+          descripcion: nuevoPago.descripcion,
+          monto: nuevoPago.monto,
+          fechaVencimiento: nuevoPago.fechaVencimiento,
+          estaProgramado: nuevoPago.estaProgramado,
+          notificacionAntes: nuevoPago.notificacionAntes,
+          frecuenciaRecurrencia: nuevoPago.frecuenciaRecurrencia,
+        ));
+      } else {
+        await provider.agregarPago(nuevoPago);
+      }
+      
+      if (mounted) Navigator.pop(context);
+    } catch (e) {
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text("Error guardando pago: $e")),
+      );
     }
   }
 
@@ -122,49 +120,6 @@ class _AgregarEditarPagoScreenState extends ConsumerState<AgregarEditarPagoScree
     _descripcionController.dispose();
     _montoController.dispose();
     super.dispose();
-  }
-
-  Future<void> _guardarPago(BuildContext context, WidgetRef ref) async {
-    if (_formKey.currentState!.validate()) {
-      try {
-        final authState = ref.read(authProvider);
-        if (authState.user == null) {
-          throw Exception("Debe estar autenticado");
-        }
-        final provider = ref.read(paymentProvider(authState.user!.uid).notifier);
-        final nuevoPago = Pago(
-          id: '', // Será asignado por Firebase
-          descripcion: _descripcionController.text.trim(),
-          monto: double.parse(_montoController.text),
-          fechaVencimiento: _fechaVencimiento,
-          estaProgramado: _esProgramado,
-          notificacionAntes: _diasAntes,
-          frecuenciaRecurrencia: _frecuencia,
-        );
-        
-        final args = ModalRoute.of(context)?.settings.arguments;
-        if (args is Pago) {
-          final pagoExistente = args;
-          await provider.editarPago(
-            pagoExistente.copyWith(
-              descripcion: nuevoPago.descripcion,
-              monto: nuevoPago.monto,
-              fechaVencimiento: nuevoPago.fechaVencimiento,
-              estaProgramado: nuevoPago.estaProgramado,
-              notificacionAntes: nuevoPago.notificacionAntes,
-              frecuenciaRecurrencia: nuevoPago.frecuenciaRecurrencia,
-            ),
-          );
-        } else {
-          await provider.agregarPago(nuevoPago);
-        }
-        if (mounted) Navigator.pop(context);
-      } catch (e) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error guardando pago: $e")),
-        );
-      }
-    }
   }
 
   @override
@@ -181,6 +136,7 @@ class _AgregarEditarPagoScreenState extends ConsumerState<AgregarEditarPagoScree
           key: _formKey,
           child: ListView(
             children: [
+              // Campo Descripción
               TextFormField(
                 controller: _descripcionController,
                 decoration: const InputDecoration(
@@ -191,6 +147,8 @@ class _AgregarEditarPagoScreenState extends ConsumerState<AgregarEditarPagoScree
                     value?.trim().isEmpty ?? true ? "Campo requerido" : null,
               ),
               const SizedBox(height: 16),
+              
+              // Campo Monto
               TextFormField(
                 controller: _montoController,
                 keyboardType: TextInputType.number,
@@ -206,59 +164,49 @@ class _AgregarEditarPagoScreenState extends ConsumerState<AgregarEditarPagoScree
                 },
               ),
               const SizedBox(height: 16),
-              ListTile(
-                title: Text(
-                  "Fecha de vencimiento: ${_fechaVencimiento.toLocal().toString().split(' ')[0]}",
-                ),
-                trailing: IconButton(
-                  icon: const Icon(Icons.calendar_today),
-                  onPressed: () async {
-                    final date = await showDatePicker(
-                      context: context,
-                      initialDate: _fechaVencimiento,
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime(2100),
-                    );
-                    if (date != null) {
-                      setState(() => _fechaVencimiento = date);
-                    }
-                  },
-                ),
+              
+              // Selector de Fecha
+              FechaVencimientoPicker(
+                fecha: _fechaVencimiento,
+                onChanged: (date) => setState(() => _fechaVencimiento = date),
               ),
               const SizedBox(height: 16),
+              
+              // Switch Programado
               SwitchListTile(
                 title: const Text("Pago programado/recurrente"),
                 value: _esProgramado,
                 onChanged: (value) async {
                   if (value) {
-                    await _mostrarDialogoDias(context);
-                    await _mostrarDialogoFrecuencia(context);
+                    await _mostrarDialogoDias();
+                    await _mostrarDialogoFrecuencia();
                   }
                   setState(() => _esProgramado = value);
                 },
               ),
-              if (_esProgramado)
-                Column(
-                  children: [
-                    ListTile(
-                      title: Text("Notificar $_diasAntes días antes"),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () => _mostrarDialogoDias(context),
-                      ),
-                    ),
-                    ListTile(
-                      title: Text("Frecuencia: $_frecuencia"),
-                      trailing: IconButton(
-                        icon: const Icon(Icons.edit),
-                        onPressed: () => _mostrarDialogoFrecuencia(context),
-                      ),
-                    ),
-                  ],
+              
+              // Opciones de programación
+              if (_esProgramado) ...[
+                ListTile(
+                  title: Text("Notificar $_diasAntes días antes"),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: _mostrarDialogoDias,
+                  ),
                 ),
+                ListTile(
+                  title: Text("Frecuencia: $_frecuencia"),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.edit),
+                    onPressed: _mostrarDialogoFrecuencia,
+                  ),
+                ),
+              ],
               const SizedBox(height: 24),
+              
+              // Botón Guardar
               ElevatedButton(
-                onPressed: () => _guardarPago(context, ref),
+                onPressed: _guardarPago,
                 style: ElevatedButton.styleFrom(
                   padding: const EdgeInsets.symmetric(vertical: 16),
                 ),
