@@ -84,14 +84,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        // Se quita la flecha de retroceso de la AppBar
-        automaticallyImplyLeading: false,
-        backgroundColor: Colors.white,
-        elevation: 0,
-      ),
-      body: CustomScaffold(
+    return  CustomScaffold(
         child: Column(
           children: [
             const Expanded(flex: 1, child: SizedBox(height: 10)),
@@ -210,8 +203,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ],
         ),
-      ),
-    );
+      );
   }
 
   /// Método para construir un Divider (separador visual) con texto.

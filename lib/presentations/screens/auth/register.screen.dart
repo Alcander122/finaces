@@ -79,243 +79,302 @@ class _RegisterScreenState extends State<RegisterScreen> {
   @override
   Widget build(BuildContext context) {
     return CustomScaffold(
-      child: Column(
-        children: [
-          const Expanded(flex: 1, child: SizedBox()),
-          Expanded(
-            flex: 7,
-            child: Container(
-              padding: const EdgeInsets.fromLTRB(25.0, 50.0, 25.0, 20.0),
-              decoration: const BoxDecoration(
-                color: Colors.white,
-                borderRadius: BorderRadius.only(
-                  topLeft: Radius.circular(40.0),
-                  topRight: Radius.circular(40.0),
-                ),
-              ),
-              child: SingleChildScrollView(
-                child: Form(
-                  key: _formSignupKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.center,
-                    children: [
-                      // Título
-                      Text(
-                        'Registrarse',
-                        style: TextStyle(
-                          fontSize: 30.0,
-                          fontWeight: FontWeight.w900,
-                          color: Themes.degradientLight,
+      // LayoutBuilder permite obtener el tamaño de la pantalla
+      child: LayoutBuilder(
+        builder: (context, constraints) {
+          return SingleChildScrollView(
+            child: ConstrainedBox(
+              // Garantiza que el contenido tenga al menos la altura de la pantalla
+              constraints: BoxConstraints(minHeight: constraints.maxHeight),
+              child: IntrinsicHeight(
+                // Permite que Column use el espacio mínimo necesario sin desbordarse
+                child: Column(
+                  children: [
+                    const SizedBox(height: 40), // Espacio superior opcional
+
+                    // Contenedor de formulario sin usar Expanded
+                    Container(
+                      padding:
+                          const EdgeInsets.fromLTRB(25.0, 50.0, 25.0, 20.0),
+                      decoration: const BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.only(
+                          topLeft: Radius.circular(40.0),
+                          topRight: Radius.circular(40.0),
                         ),
                       ),
-                      const SizedBox(height: 40.0),
-
-                      // Campo Nombre Completo
-                      TextFormField(
-                        controller: _nameController,
-                        validator: (value) => value?.isEmpty ?? true
-                            ? ErrorStrings.requiredField
-                            : null,
-                        decoration: _inputDecoration('Nombre Completo'),
-                      ),
-                      const SizedBox(height: 25.0),
-
-                      // Campo Nombre Usuario
-                      TextFormField(
-                        controller: _usernameController,
-                        validator: (value) => value?.isEmpty ?? true
-                            ? ErrorStrings.requiredField
-                            : null,
-                        decoration: _inputDecoration('Nombre Usuario'),
-                      ),
-                      const SizedBox(height: 25.0),
-
-                      // Campo Correo
-                      TextFormField(
-                        controller: _emailController,
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return ErrorStrings.requiredField;
-                          }
-                          if (!_validateEmail(value)) {
-                            return ErrorStrings.invalidEmail;
-                          }
-                          return null;
-                        },
-                        decoration: _inputDecoration('Correo'),
-                      ),
-                      const SizedBox(height: 25.0),
-
-                      // Campo Contraseña
-                      TextFormField(
-                        controller: _passwordController,
-                        obscureText: !_isPasswordVisible,
-                        validator: (value) => value?.isEmpty ?? true
-                            ? ErrorStrings.requiredField
-                            : null,
-                        decoration: _inputDecoration('Contraseña').copyWith(
-                          suffixIcon: IconButton(
-                            icon: Icon(_isPasswordVisible
-                                ? Icons.visibility
-                                : Icons.visibility_off),
-                            onPressed: () => setState(
-                                () => _isPasswordVisible = !_isPasswordVisible),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 25.0),
-                      // Campo Confirmar Contraseña
-                      TextFormField(
-                        controller: _confirmPasswordController,
-                        obscureText:
-                            !_isConfirmPasswordVisible, // Controla visibilidad
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return ErrorStrings.requiredField;
-                          }
-                          if (value != _passwordController.text) {
-                            return ErrorStrings.passwordMismatch;
-                          }
-                          return null;
-                        },
-                        decoration:
-                            _inputDecoration('Confirmar Contraseña').copyWith(
-                          // <- Modificación aquí
-                          suffixIcon: IconButton(
-                            icon: Icon(
-                              _isConfirmPasswordVisible
-                                  ? Icons.visibility
-                                  : Icons.visibility_off,
-                              color: Colors
-                                  .grey, // Color del ícono (ajusta según tu tema)
-                            ),
-                            onPressed: () => setState(() {
-                              _isConfirmPasswordVisible =
-                                  !_isConfirmPasswordVisible;
-                            }),
-                          ),
-                        ),
-                      ),
-                      const SizedBox(height: 25.0),
-
-                      // Checkbox de términos
-                      Row(
-                        children: [
-                          Checkbox(
-                            value: agreePersonalData,
-                            onChanged: (value) => setState(
-                                () => agreePersonalData = value ?? false),
-                            activeColor: Themes.degradientLight,
-                          ),
-                          const Text('Acepto el procesamiento de ',
-                              style: TextStyle(color: Colors.black45)),
-                          Text('Datos personales.',
+                      child: Form(
+                        key: _formSignupKey,
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.center,
+                          children: [
+                            // Título
+                            Text(
+                              'Registrarse',
                               style: TextStyle(
-                                  color: Themes.degradientLight,
-                                  fontWeight: FontWeight.bold)),
-                        ],
-                      ),
-                      const SizedBox(height: 25.0),
+                                fontSize: 30.0,
+                                fontWeight: FontWeight.w900,
+                                color: Themes.degradientLight,
+                              ),
+                            ),
+                            const SizedBox(height: 40.0),
 
-                      // Botón Registrar
-                      SizedBox(
-                        width: double.infinity,
-                        child: ElevatedButton(
-                          onPressed: () => register(context),
-                          child: _isLoading
-                              ? const CircularProgressIndicator(
-                                  color: Colors.white)
-                              : const Text('Registrar'),
+                            // Nombre Completo
+                            TextFormField(
+                              controller: _nameController,
+                              validator: (value) => value?.isEmpty ?? true
+                                  ? ErrorStrings.requiredField
+                                  : null,
+                              decoration: _inputDecoration('Nombre Completo'),
+                            ),
+                            const SizedBox(height: 25.0),
+
+                            // Nombre Usuario
+                            TextFormField(
+                              controller: _usernameController,
+                              validator: (value) => value?.isEmpty ?? true
+                                  ? ErrorStrings.requiredField
+                                  : null,
+                              decoration: _inputDecoration('Nombre Usuario'),
+                            ),
+                            const SizedBox(height: 25.0),
+
+                            // Correo
+                            TextFormField(
+                              controller: _emailController,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return ErrorStrings.requiredField;
+                                }
+                                if (!_validateEmail(value)) {
+                                  return ErrorStrings.invalidEmail;
+                                }
+                                return null;
+                              },
+                              decoration: _inputDecoration('Correo'),
+                            ),
+                            const SizedBox(height: 25.0),
+
+                            // Contraseña
+                            TextFormField(
+                              controller: _passwordController,
+                              obscureText: !_isPasswordVisible,
+                              validator: (value) => value?.isEmpty ?? true
+                                  ? ErrorStrings.requiredField
+                                  : null,
+                              decoration:
+                                  _inputDecoration('Contraseña').copyWith(
+                                suffixIcon: IconButton(
+                                  icon: Icon(_isPasswordVisible
+                                      ? Icons.visibility
+                                      : Icons.visibility_off),
+                                  onPressed: () => setState(() =>
+                                      _isPasswordVisible = !_isPasswordVisible),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 25.0),
+
+                            // Confirmar contraseña
+                            TextFormField(
+                              controller: _confirmPasswordController,
+                              obscureText: !_isConfirmPasswordVisible,
+                              validator: (value) {
+                                if (value == null || value.isEmpty) {
+                                  return ErrorStrings.requiredField;
+                                }
+                                if (value != _passwordController.text) {
+                                  return ErrorStrings.passwordMismatch;
+                                }
+                                return null;
+                              },
+                              decoration:
+                                  _inputDecoration('Confirmar Contraseña')
+                                      .copyWith(
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _isConfirmPasswordVisible
+                                        ? Icons.visibility
+                                        : Icons.visibility_off,
+                                  ),
+                                  onPressed: () => setState(() =>
+                                      _isConfirmPasswordVisible =
+                                          !_isConfirmPasswordVisible),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 25.0),
+
+                            // Checkbox de términos
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Checkbox(
+                                  value: agreePersonalData,
+                                  onChanged: (value) => setState(
+                                      () => agreePersonalData = value ?? false),
+                                  activeColor: Themes.degradientLight,
+                                ),
+                                // Flexible permite que el texto se ajuste y haga salto de línea si es necesario
+                                Expanded(
+                                  child: Text.rich(
+                                    TextSpan(
+                                      children: [
+                                        const TextSpan(
+                                          text: 'Acepto el procesamiento de ',
+                                          style:
+                                              TextStyle(color: Colors.black45),
+                                        ),
+                                        TextSpan(
+                                          text: 'Datos personales.',
+                                          style: TextStyle(
+                                            color: Themes.degradientLight,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+
+                            const SizedBox(height: 25.0),
+
+                            // Botón de registro
+                            SizedBox(
+                              width: double.infinity,
+                              child: ElevatedButton(
+                                onPressed: () => register(context),
+                                child: _isLoading
+                                    ? const CircularProgressIndicator(
+                                        color: Colors.white,
+                                      )
+                                    : const Text('Registrar'),
+                              ),
+                            ),
+                            const SizedBox(height: 30.0),
+
+                            // Línea separadora
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                Expanded(
+                                  child: Divider(
+                                    color: Colors.grey.withValues(alpha: 0.5),
+                                    thickness: 0.7,
+                                  ),
+                                ),
+                                const Padding(
+                                  padding: EdgeInsets.symmetric(horizontal: 10),
+                                  child: Text('Iniciar sesión',
+                                      style: TextStyle(color: Colors.black45)),
+                                ),
+                                Expanded(
+                                  child: Divider(
+                                    color: Colors.grey.withValues(alpha: 0.5),
+                                    thickness: 0.7,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 30.0),
+
+                            // Iconos redes sociales
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                              children: [
+                                Consumer(
+                                  builder: (context, ref, _) {
+                                    return GestureDetector(
+                                      onTap: () async {
+                                        try {
+                                          final authNotifier =
+                                              ref.read(authProvider.notifier);
+                                          await authNotifier
+                                              .signInWithFacebook(); // Usar el nuevo método
+                                          if (mounted) {
+                                            Navigator.pushAndRemoveUntil(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (_) =>
+                                                      const HomeScreen()),
+                                              (route) => false,
+                                            );
+                                          }
+                                        } catch (e) {
+                                          _showSnackBar(
+                                              e.toString(), Colors.red);
+                                        }
+                                      },
+                                      child: Logo(Logos.facebook_f),
+                                    );
+                                  },
+                                ),
+                                Consumer(
+                                  builder: (context, ref, _) {
+                                    return GestureDetector(
+                                      onTap: () async {
+                                        try {
+                                          final authNotifier =
+                                              ref.read(authProvider.notifier);
+                                          await authNotifier.signInWithGoogle();
+                                          if (mounted) {
+                                            Navigator.pushAndRemoveUntil(
+                                              context,
+                                              MaterialPageRoute(
+                                                  builder: (context) =>
+                                                      const HomeScreen()),
+                                              (route) => false,
+                                            );
+                                          }
+                                        } catch (e) {
+                                          _showSnackBar(
+                                              e.toString(), Colors.red);
+                                        }
+                                      },
+                                      child: Logo(Logos.google),
+                                    );
+                                  },
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 25.0),
+
+                            // Link a Login
+                            Row(
+                              mainAxisAlignment: MainAxisAlignment.center,
+                              children: [
+                                const Text('¿Ya tienes una cuenta? ',
+                                    style: TextStyle(color: Colors.black45)),
+                                GestureDetector(
+                                  onTap: () => Navigator.push(
+                                    context,
+                                    MaterialPageRoute(
+                                      builder: (_) => const LoginScreen(),
+                                    ),
+                                  ),
+                                  child: Text(
+                                    'Inicia sesión',
+                                    style: TextStyle(
+                                      color: Themes.degradientLight,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 20.0),
+                          ],
                         ),
                       ),
-                      const SizedBox(height: 30.0),
-
-                      // Separador con texto
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          // ignore: deprecated_member_use
-                          Expanded(
-                              child: Divider(
-                                  // ignore: deprecated_member_use
-                                  color: Colors.grey.withOpacity(0.5),
-                                  thickness: 0.7)),
-                          const Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 10),
-                            child: Text('Iniciar sesión',
-                                style: TextStyle(color: Colors.black45)),
-                          ),
-                          // ignore: deprecated_member_use
-                          Expanded(
-                              child: Divider(
-                                  // ignore: deprecated_member_use
-                                  color: Colors.grey.withOpacity(0.5),
-                                  thickness: 0.7)),
-                        ],
-                      ),
-                      const SizedBox(height: 30.0),
-
-                      // Iconos de redes sociales
-                      // Sección de iconos de redes sociales
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                        children: [
-                          Logo(Logos.facebook_f), // Uses the Logos class from icons_plus
-                          Consumer(
-                            builder: (context, ref, _) {
-                              return GestureDetector(
-                                onTap: () async {
-                                  try {
-                                    final authNotifier =
-                                        ref.read(authProvider.notifier);
-                                    await authNotifier.signInWithGoogle();
-                                    if (mounted) {
-                                      Navigator.pushAndRemoveUntil(
-                                        context,
-                                        MaterialPageRoute(
-                                            builder: (context) =>
-                                                const HomeScreen()),
-                                        (route) => false,
-                                      );
-                                    }
-                                  } catch (e) {
-                                    _showSnackBar(e.toString(), Colors.red);
-                                  }
-                                },
-                                child: Logo(Logos.google),
-                              );
-                            },
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 25.0),
-
-                      // Enlace a Login
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          const Text('¿Ya tienes una cuenta? ',
-                              style: TextStyle(color: Colors.black45)),
-                          GestureDetector(
-                            onTap: () => Navigator.push(
-                                context,
-                                MaterialPageRoute(
-                                    builder: (e) => const LoginScreen())),
-                            child: Text('Inicia sesión',
-                                style: TextStyle(
-                                    color: Themes.degradientLight,
-                                    fontWeight: FontWeight.bold)),
-                          ),
-                        ],
-                      ),
-                      const SizedBox(height: 20.0),
-                    ],
-                  ),
+                    ),
+                  ],
                 ),
               ),
             ),
-          ),
-        ],
+          );
+        },
       ),
     );
   }

@@ -1,39 +1,41 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="com.example.finances"
     android:installLocation="auto">
 
-    <!-- ✅ Permisos esenciales que necesita tu app -->
-    <uses-permission android:name="android.permission.INTERNET"/>
-    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM"/>
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-    <uses-permission android:name="android.permission.POST_NOTIFICATIONS"/>
+    <!-- ✅ Permisos esenciales -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
     <!-- ✅ Configuración de la versión mínima y objetivo del SDK -->
     <uses-sdk
         android:minSdkVersion="21"
         android:targetSdkVersion="34" />
 
-    <!-- ✅ Consultas necesarias para compartir, procesar texto o abrir links desde otras apps -->
+    <!-- ✅ Consultas necesarias para abrir links, compartir texto, etc -->
     <queries>
         <intent>
-            <action android:name="android.intent.action.PROCESS_TEXT"/>
-            <data android:mimeType="text/plain"/>
+            <action android:name="android.intent.action.PROCESS_TEXT" />
+            <data android:mimeType="text/plain" />
         </intent>
 
         <intent>
-            <action android:name="android.intent.action.SEND"/>
-            <data android:mimeType="text/plain"/>
+            <action android:name="android.intent.action.SEND" />
+            <data android:mimeType="text/plain" />
         </intent>
 
         <intent>
-            <action android:name="android.intent.action.VIEW"/>
-            <category android:name="android.intent.category.BROWSABLE"/>
-            <data android:scheme="https"/>
+            <action android:name="android.intent.action.VIEW" />
+            <category android:name="android.intent.category.BROWSABLE" />
+            <data android:scheme="https" />
         </intent>
     </queries>
 
-    <!-- ✅ Configuración de tu aplicación Flutter -->
+    <!-- ✅ Definición de la aplicación -->
     <application
-        android:label="finances"
+        android:label="BillNance"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
         android:allowBackup="true"
@@ -42,8 +44,37 @@
         android:largeHeap="false"
         android:networkSecurityConfig="@xml/network_security_config">
 
-        <!-- ✅ Esto permite usar bibliotecas de red antiguas (opcional, para compatibilidad) -->
-        <uses-library android:name="org.apache.http.legacy" android:required="false"/>
+        <!-- ✅ Librería de compatibilidad para redes antiguas (opcional) -->
+        <uses-library
+            android:name="org.apache.http.legacy"
+            android:required="false" />
+
+        <!-- ✅ Configuración de Facebook Login -->
+        <meta-data
+            android:name="com.facebook.sdk.ApplicationId"
+            android:value="@string/facebook_app_id" />
+        <meta-data
+            android:name="com.facebook.sdk.ClientToken"
+            android:value="@string/facebook_client_token" />
+
+        <!-- ✅ Actividad para el inicio de sesión con Facebook -->
+        <activity
+            android:name="com.facebook.FacebookActivity"
+            android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation|smallestScreenSize"
+            android:exported="true"
+            tools:replace="android:configChanges" />
+
+        <!-- ✅ Actividad para Custom Tabs de Facebook Login -->
+        <activity
+            android:name="com.facebook.CustomTabActivity"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.VIEW" />
+                <category android:name="android.intent.category.DEFAULT" />
+                <category android:name="android.intent.category.BROWSABLE" />
+                <data android:scheme="@string/fb_login_protocol_scheme" />
+            </intent-filter>
+        </activity>
 
         <!-- ✅ Actividad principal de tu app Flutter -->
         <activity
@@ -56,21 +87,21 @@
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
 
-            <!-- ✅ Tema que se muestra mientras Flutter se inicializa -->
+            <!-- ✅ Tema mostrado mientras Flutter se inicializa -->
             <meta-data
                 android:name="io.flutter.embedding.android.NormalTheme"
-                android:resource="@style/NormalTheme"/>
+                android:resource="@style/NormalTheme" />
 
-            <!-- ✅ Esto permite que esta actividad se ejecute al abrir la app -->
+            <!-- ✅ Define la actividad que inicia al abrir la app -->
             <intent-filter>
-                <action android:name="android.intent.action.MAIN"/>
-                <category android:name="android.intent.category.LAUNCHER"/>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!-- ✅ Meta-data para el motor Flutter -->
+        <!-- ✅ Configuración del motor Flutter -->
         <meta-data
             android:name="flutterEmbedding"
-            android:value="2"/>
+            android:value="2" />
     </application>
 </manifest>

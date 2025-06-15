@@ -8,6 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 
 /// Esta clase se encarga de gestionar el almacenamiento local del token de autenticación
 /// y el estado del usuario (por ejemplo, si está logueado o cerró sesión).
@@ -309,6 +310,61 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (e) {
       // Se puede registrar el error en consola o logger, pero no se interrumpe el flujo.
       logger.e('Error al sincronizar datos de usuario', error: e);
+    }
+  }
+  /// Inicio de sesión con Facebook
+  Future<void> signInWithFacebook() async {
+    try {
+      state = const AuthState.loading();
+      await _storage.clearLoggedOut();
+
+      // Iniciar flujo de autenticación con Facebook
+      final LoginResult loginResult = await FacebookAuth.instance.login();
+
+      if (loginResult.status != LoginStatus.success) {
+        throw FirebaseAuthException(
+          code: 'aborted-by-user',
+          message: 'Sign in aborted by user',
+        );
+      }
+
+      // Obtener token de acceso
+      final OAuthCredential facebookAuthCredential = FacebookAuthProvider.credential(loginResult.accessToken!.tokenString);
+
+      // Iniciar sesión en Firebase
+      final UserCredential userCredential = await _auth.signInWithCredential(facebookAuthCredential);
+      final User? user = userCredential.user;
+
+      if (user != null) {
+        await _handleNewSocialUser(user); // Verificar/crear usuario en Firestore
+        final token = await user.getIdToken();
+        await _storage.saveToken(token ?? '');
+        state = AuthState.authenticated(user);
+      }
+    } on FirebaseAuthException catch (e) {
+      final message = AuthErrorHandler.handle(e);
+      state = AuthState.error(message);
+      throw message;
+    } catch (e) {
+      state = AuthState.error(ErrorStrings.unexpectedError);
+      throw ErrorStrings.unexpectedError;
+    }
+  }
+
+  /// Maneja usuarios nuevos de redes sociales (Google/Facebook)
+  Future<void> _handleNewSocialUser(User user) async {
+    try {
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      if (!userDoc.exists) {
+        await _firestore.collection('users').doc(user.uid).set({
+          'uid': user.uid,
+          'name': user.displayName ?? 'Usuario Social',
+          'email': user.email ?? '',
+          'createdAt': FieldValue.serverTimestamp(),
+        });
+      }
+    } catch (e) {
+      logger.e('Error al sincronizar datos de usuario social', error: e);
     }
   }
 }
