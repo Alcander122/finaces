@@ -10,6 +10,7 @@ import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:finances/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:finances/presentations/theme/themes.dart';
 import 'package:intl/intl.dart';
 
 class StatisticScreen extends ConsumerStatefulWidget {
@@ -22,46 +23,6 @@ class StatisticScreen extends ConsumerStatefulWidget {
 class StatisticsScreenState extends ConsumerState<StatisticScreen> {
   DateTimeRange? selectedDateRange;
 
-  // Abre el selector de rango de fechas y actualiza el filtro
-  void selectDateRange() async {
-    final initialDate = DateTime.now().subtract(const Duration(days: 30));
-    final firstDate = DateTime.now().subtract(const Duration(days: 365));
-    final lastDate = DateTime.now();
-
-    final picked = await showDateRangePicker(
-      context: context,
-      initialDateRange: DateTimeRange(start: initialDate, end: DateTime.now()),
-      firstDate: firstDate,
-      lastDate: lastDate,
-    );
-
-    if (picked != null) {
-      DateTime startDate = picked.start;
-      DateTime endDate = picked.end;
-      endDate = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
-      ref.read(filterProvider.notifier).update((state) => state.copyWith(
-            type: FilterType.custom,
-            startDate: startDate,
-            endDate: endDate,
-          ));
-    }
-  }
-
-  // Cambia el tipo de filtro y reinicia las fechas personalizadas si es necesario
-  void _changeFilter(FilterType type) {
-    ref.read(filterProvider.notifier).update((state) => state.copyWith(
-          type: type,
-          startDate: null,
-          endDate: null,
-        ));
-  }
-
-  // Formatea un número a formato de moneda local
-  String formatCurrency(double value) {
-    final formatter = NumberFormat.decimalPattern('es_CO');
-    return '\$${formatter.format(value)}';
-  }
-
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
@@ -69,6 +30,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     final egresosAsync = ref.watch(filteredEgresosProvider);
 
     return Scaffold(
+      backgroundColor: Themes.light,
       appBar: const AppBarFinances(
         title: 'Estadistica',
         showProfileIcon: false,
@@ -80,14 +42,12 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                _buildHeaderSection(theme),
-                const SizedBox(height: 24),
-                _buildFilterRow(),
-                const SizedBox(height: 24),
-                _buildFinancialCards(ingresosAsync, egresosAsync),
-                const SizedBox(height: 40),
                 _buildFinancialActivitySection(),
-                const SizedBox(height: 40),
+                const SizedBox(height: 8),
+                _buildFilterRow(),
+                const SizedBox(height: 12),
+                _buildFinancialCards(ingresosAsync, egresosAsync),
+                const SizedBox(height: 16),
                 _buildCategorySection(theme),
               ],
             ),
@@ -97,14 +57,30 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     );
   }
 
-  // Título principal de la sección
-  Widget _buildHeaderSection(ThemeData theme) {
-    return Text(
-      'Balance General',
-      style: theme.textTheme.headlineSmall?.copyWith(
-        fontWeight: FontWeight.w700,
-        color: Colors.blueGrey[800],
-      ),
+  // Sección del gráfico de actividad financiera
+  Widget _buildFinancialActivitySection() {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const Text(
+          'Actividad Financiera',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.w700,
+            color: Colors.black87,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Container(
+          decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(4),
+          ),
+          child: const Padding(
+            padding: EdgeInsets.all(2),
+            child: ActivityChart(),
+          ),
+        )
+      ],
     );
   }
 
@@ -198,106 +174,99 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     );
   }
 
-  // Tarjetas con datos de Ingresos, Gastos y Balance
+// Tarjetas con datos de Ingresos, Gastos y Balance
   Widget _buildFinancialCards(
       AsyncValue<double> ingresos, AsyncValue<double> gastos) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        double cardWidth = (constraints.maxWidth - 16) / 3;
-        return SizedBox(
-          height: 120,
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              _buildFinanceCard(
-                title: 'Ingresos',
-                value: ingresos,
-                color: Colors.green,
-                icon: Icons.trending_up,
-                width: cardWidth,
-              ),
-              _buildFinanceCard(
-                title: 'Gastos',
-                value: gastos,
-                color: Colors.red,
-                icon: Icons.trending_down,
-                width: cardWidth,
-              ),
-              _buildBalanceCard(width: cardWidth),
-            ],
+    return SizedBox(
+      height: 120,
+      child: Row(
+        children: [
+          Expanded(
+            child: _buildFinanceCard(
+              title: 'Ingresos',
+              value: ingresos,
+              color: Colors.green,
+              icon: Icons.trending_up,
+            ),
           ),
-        );
-      },
+          const SizedBox(width: 8),
+          Expanded(
+            child: _buildFinanceCard(
+              title: 'Gastos',
+              value: gastos,
+              color: Colors.red,
+              icon: Icons.trending_down,
+            ),
+          ),
+          const SizedBox(width: 8),
+          Expanded(
+            child:
+                _buildBalanceCard(), // Asegúrate de que este método no use width.
+          ),
+        ],
+      ),
     );
   }
 
-  // Construye una tarjeta individual de estadística
+// Construye una tarjeta individual de estadística
   Widget _buildFinanceCard({
     required String title,
     required AsyncValue<double> value,
     required Color color,
     required IconData icon,
-    required double width,
   }) {
-    return SizedBox(
-      width: width,
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: value.when(
-            data: (data) => _buildCardContent(title, icon, color, data),
-            loading: () => const Center(child: CircularProgressIndicator()),
-            error: (_, __) => const Text("Error al cargar datos"),
-          ),
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.all(12),
+        child: value.when(
+          data: (data) => _buildCardContent(title, icon, color, data),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (_, __) => const Text("Error al cargar datos"),
         ),
       ),
     );
   }
 
-  // Contenido interno de cada tarjeta
+// Contenido interno de cada tarjeta
   Widget _buildCardContent(
-      String title, IconData icon, Color color, double value) {
+      String title, IconData icon, Color color, double amount) {
     return Column(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      crossAxisAlignment: CrossAxisAlignment.center, // Centrado horizontal
+      mainAxisAlignment: MainAxisAlignment.center, // Centrado vertical
       children: [
-        Flexible(
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withAlpha(30),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(icon, color: color, size: 20),
+        Icon(icon, color: color),
+        const SizedBox(height: 8),
+        Text(
+          title,
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
+            color: Colors.grey[800],
           ),
+          overflow: TextOverflow.ellipsis,
+          softWrap: false,
+          textAlign:
+              TextAlign.center, // Asegura que el texto también esté centrado
         ),
-        Flexible(
-          child: Text(
-            title,
-            style: const TextStyle(fontSize: 12),
-            textAlign: TextAlign.center,
+        const SizedBox(height: 8),
+        Text(
+          '\$${NumberFormat('#,##0', 'es_CO').format(amount)}',
+          style: TextStyle(
+            fontSize: 12,
+            fontWeight: FontWeight.w600,
+            color: color,
           ),
-        ),
-        Flexible(
-          child: Text(
-            formatCurrency(value),
-            style: TextStyle(
-              fontSize: 14,
-              fontWeight: FontWeight.bold,
-              color: color,
-            ),
-            textAlign: TextAlign.center,
-          ),
+          textAlign: TextAlign.center,
         ),
       ],
     );
   }
 
   // Tarjeta del balance general
-  Widget _buildBalanceCard({required double width}) {
+  Widget _buildBalanceCard() {
     return SizedBox(
-      width: width,
       child: Card(
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
@@ -360,42 +329,6 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     );
   }
 
-  // Sección del gráfico de actividad financiera
-  Widget _buildFinancialActivitySection() {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const Text(
-          'Actividad Financiera',
-          style: TextStyle(
-            fontSize: 18,
-            fontWeight: FontWeight.w700,
-            color: Colors.black87,
-          ),
-        ),
-        const SizedBox(height: 16),
-        Container(
-          decoration: BoxDecoration(
-            color: Colors.white,
-            borderRadius: BorderRadius.circular(12),
-            boxShadow: [
-              BoxShadow(
-                color: Colors.grey.withAlpha(50),
-                spreadRadius: 2,
-                blurRadius: 8,
-              ),
-            ],
-          ),
-          child: const Padding(
-            padding: EdgeInsets.all(16),
-            child: ActivityChart(),
-          ),
-        ),
-      ],
-    );
-  }
-
-  // Resumen por categoría
   Widget _buildCategorySection(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -437,6 +370,57 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
           ),
         ),
       ],
+    );
+  }
+
+  // Abre el selector de rango de fechas y actualiza el filtro
+  void selectDateRange() async {
+    final initialDate = DateTime.now().subtract(const Duration(days: 30));
+    final firstDate = DateTime.now().subtract(const Duration(days: 365));
+    final lastDate = DateTime.now();
+
+    final picked = await showDateRangePicker(
+      context: context,
+      initialDateRange: DateTimeRange(start: initialDate, end: DateTime.now()),
+      firstDate: firstDate,
+      lastDate: lastDate,
+    );
+
+    if (picked != null) {
+      DateTime startDate = picked.start;
+      DateTime endDate = picked.end;
+      endDate = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+      ref.read(filterProvider.notifier).update((state) => state.copyWith(
+            type: FilterType.custom,
+            startDate: startDate,
+            endDate: endDate,
+          ));
+    }
+  }
+
+  // Cambia el tipo de filtro y reinicia las fechas personalizadas si es necesario
+  void _changeFilter(FilterType type) {
+    ref.read(filterProvider.notifier).update((state) => state.copyWith(
+          type: type,
+          startDate: null,
+          endDate: null,
+        ));
+  }
+
+  // Formatea un número a formato de moneda local
+  String formatCurrency(double value) {
+    final formatter = NumberFormat.decimalPattern('es_CO');
+    return '\$${formatter.format(value)}';
+  }
+
+  // Título principal de la sección
+  Widget _buildHeaderSection(ThemeData theme) {
+    return Text(
+      'Balance General',
+      style: theme.textTheme.headlineSmall?.copyWith(
+        fontWeight: FontWeight.w700,
+        color: Colors.blueGrey[800],
+      ),
     );
   }
 }

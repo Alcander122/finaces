@@ -5,6 +5,7 @@ import 'package:finances/presentations/screens/Auth/LoginScreen.dart';
 import 'package:finances/presentations/screens/Bancos/banks_screen.dart';
 import 'package:finances/presentations/screens/Egreso/egresos_screen.dart';
 import 'package:finances/presentations/screens/Estadistica/Statistics_Screen.dart';
+import 'package:finances/presentations/screens/Pagos/pagos_screen.dart';
 import 'package:finances/presentations/screens/portafolio/portafolio_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -384,8 +385,8 @@ class HomeScreen extends ConsumerWidget {
         'icon':
             const Icon(FontAwesomeIcons.calendarCheck, color: Colors.orange),
         'title': 'Pagos',
-        'description': 'Pagos agendados.',
-        'screen': AhorroScreen(),
+        'description':'Gestiona pagos y fechas.',
+        'screen': PagosScreen(),
       },
       {
         'icon': const Icon(FontAwesomeIcons.clockRotateLeft, color: Colors.red),

@@ -21,10 +21,7 @@ class EgresosScreen extends ConsumerStatefulWidget {
 class EgresosScreenState extends ConsumerState<EgresosScreen> {
   final _allColumns = [
     'Quincena',
-    'Fecha',
-    'Mes',
-    'Día',
-    'Año',
+    'Fecha Pago', // Nuevo campo
     'Categoría',
     'Concepto',
     'Valor',
@@ -34,8 +31,8 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
 
   Set<String> _visibleColumns = {
     'Quincena',
-    'Fecha',
-    'Concepto',
+    'Fecha Pago', // Nuevo campo
+    //'Concepto', //| No mostrar 'Concepto' en la tabla
     'Valor',
     'Estado',
   };
@@ -46,12 +43,8 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
         return egreso.quincena;
       case 'Fecha':
         return DateFormat('dd/MM/yyyy').format(egreso.fecha);
-      case 'Mes':
-        return egreso.mes;
-      case 'Día':
-        return egreso.dia.toString();
-      case 'Año':
-        return egreso.anio.toString();
+      case 'Fecha Pago': // Nuevo campo
+        return DateFormat('dd/MM/yyyy').format(egreso.fechaPago);
       case 'Categoría':
         return egreso.categoria;
       case 'Concepto':

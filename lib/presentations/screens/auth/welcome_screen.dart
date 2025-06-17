@@ -5,7 +5,6 @@ import 'package:finances/presentations/screens/home/home_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:finances/presentations/screens/Auth/LoginScreen.dart';
 import 'package:finances/presentations/screens/Auth/register.screen.dart';
-import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/widgets/custom_scaffold.dart';
 import 'package:finances/presentations/widgets/welcome_button.dart';
 

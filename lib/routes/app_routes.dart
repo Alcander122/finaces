@@ -5,6 +5,8 @@ import 'package:finances/presentations/screens/Auth/LoginScreen.dart';
 import 'package:finances/presentations/screens/Auth/register.screen.dart';
 import 'package:finances/presentations/screens/Bancos/banks_screen.dart';
 import 'package:finances/presentations/screens/Estadistica/statistics_screen.dart';
+import 'package:finances/presentations/screens/Pagos/agregar_editar_pago_screen.dart';
+import 'package:finances/presentations/screens/Pagos/pagos_screen.dart';
 import 'package:finances/presentations/screens/Profile/profile_screen.dart';
 import 'package:finances/presentations/screens/Portafolio/portafolio_screen.dart';
 import 'package:finances/presentations/screens/Auth/welcome_screen.dart';
@@ -26,6 +28,9 @@ class AppRoutes {
   static const String portafolio = '/portafolio';
   static const String ahorro = '/ahorro';
   static const String banco = '/banco';
+  static const String pagos = '/pagos';
+  static const String agregarPago = '/agregar-pago';
+  static const String editarPago = '/editar-pago';
   static const String estadistica = '/Estadistica';
   // Nueva ruta para detalles de categoría
   static const String categoryDetails = '/category-details';
@@ -53,6 +58,9 @@ class AppRoutes {
           isExpense: args?['isExpense'] ?? false,
         );
       },
+      pagos: (context) => const PagosScreen(),
+      agregarPago: (context) => const AgregarEditarPagoScreen(),
+      editarPago: (context) => const AgregarEditarPagoScreen(),
     };
   }
 }

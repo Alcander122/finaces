@@ -1,0 +1,9 @@
+<resources>
+  <!-- ID de tu app de Facebook (obtenido en Facebook Developer) -->
+  <string name="facebook_app_id">1064874228922002</string>
+  <!-- Token de cliente (opcional, si lo tienes) -->
+  <!--<string name="facebook_client_token">Efl7ktEMxpPbRN00eXzzi5f/lrk=</string>-->
+  <string name="facebook_client_token">fcf5dffc68da4ba89c77e8436eba4bcd</string>
+  <!-- Esquema de protocolo para Facebook Login -->
+  <string name="fb_login_protocol_scheme">fb1064874228922002</string>
+</resources>

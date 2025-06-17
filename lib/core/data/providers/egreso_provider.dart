@@ -5,6 +5,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/models/egreso_model.dart';
 import 'package:finances/core/data/services/egreso_service.dart';
 import 'package:finances/core/data/models/filter.dart';
+import 'package:flutter/foundation.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 
 final egresoServiceProvider = Provider<EgresoService>((ref) {
@@ -32,10 +33,16 @@ final totalGastosProvider = StreamProvider.autoDispose<double>((ref) {
 final totalEgresoMesActualProvider = StreamProvider.autoDispose<double>((ref) {
   final authState = ref.watch(authProvider);
 
-  if (authState.user == null) return Stream.value(0.0);
+  if (authState.user == null) {
+    return Stream.value(0.0); // Si no hay usuario autenticado, devuelve 0
+  }
 
   final service = ref.watch(egresoServiceProvider);
-  return service.streamTotalIngresosMesActual(authState.user!.uid);
+
+  return service.streamTotalGastosMesActual(authState.user!.uid).handleError((error, stackTrace) {
+    debugPrint('Error al obtener gastos: $error');
+    return Stream.value(0.0); // En caso de error, devuelve 0
+  });
 });
 
 final filteredEgresosProvider = StreamProvider.autoDispose<double>((ref) {
@@ -58,7 +65,8 @@ final filteredEgresosProvider = StreamProvider.autoDispose<double>((ref) {
       );
   }
 });
-final egresosFiltradosProvider = StreamProvider.autoDispose<List<Egreso>>((ref) {
+final egresosFiltradosProvider =
+    StreamProvider.autoDispose<List<Egreso>>((ref) {
   final authState = ref.watch(authProvider);
   final filter = ref.watch(filterProvider);
 
@@ -72,10 +80,11 @@ final egresosFiltradosProvider = StreamProvider.autoDispose<List<Egreso>>((ref) 
 });
 
 // En Egreso_provider.dart
-final egresosPorCategoriaProvider = Provider.family<AsyncValue<List<Egreso>>, String>(
+final egresosPorCategoriaProvider =
+    Provider.family<AsyncValue<List<Egreso>>, String>(
   (ref, categoria) => ref.watch(egresosFiltradosProvider).whenData(
-    (egresos) => egresos.where((e) => e.categoria == categoria).toList(),
-  ),
+        (egresos) => egresos.where((e) => e.categoria == categoria).toList(),
+      ),
 );
 
 final totalEgresosProvider = StreamProvider.autoDispose<double>((ref) {
@@ -85,7 +94,7 @@ final totalEgresosProvider = StreamProvider.autoDispose<double>((ref) {
 
   return Stream.value(
     ref.watch(egresoServiceProvider).calcularTotalEgresos(
-      ref.watch(egresosFiltradosProvider).value ?? [],
-    ),
+          ref.watch(egresosFiltradosProvider).value ?? [],
+        ),
   );
 });

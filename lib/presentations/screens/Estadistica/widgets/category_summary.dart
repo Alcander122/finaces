@@ -1,4 +1,3 @@
-// category_summary.dart
 import 'package:finances/core/data/providers/category_summary_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -16,27 +15,22 @@ class CategorySummary extends ConsumerWidget {
     final selectedTab = ref.watch(selectedTabProvider);
     final summaryAsync = ref.watch(ingresosEgresosCategoryStreamProvider);
 
-    return SizedBox(
-      height: 500,
-      child: Column(
-        children: [
-          _buildTabSelector(ref, selectedTab),
-          Expanded(
-            child: summaryAsync.when(
-              data: (summaryData) => _buildCategoryList(
-                selectedTab,
-                summaryData['ingresos'] ?? {},
-                summaryData['egresos'] ?? {},
-              ),
-              loading: () => const Center(child: CircularProgressIndicator()),
-              error: (error, _) => Center(
-                child: Text('Error: ${error.toString()}',
-                    style: TextStyle(color: Colors.red[700])),
-              ),
-            ),
+    return Column(
+      children: [
+        _buildTabSelector(ref, selectedTab),
+        summaryAsync.when(
+          data: (summaryData) => _buildCategoryList(
+            selectedTab,
+            summaryData['ingresos'] ?? {},
+            summaryData['egresos'] ?? {},
           ),
-        ],
-      ),
+          loading: () => const Center(child: CircularProgressIndicator()),
+          error: (error, _) => Center(
+            child: Text('Error: ${error.toString()}',
+                style: TextStyle(color: Colors.red[700])),
+          ),
+        ),
+      ],
     );
   }
 
@@ -66,6 +60,8 @@ class CategorySummary extends ConsumerWidget {
     return data.isEmpty
         ? _buildEmptyState()
         : ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
             padding: const EdgeInsets.all(8),
             itemCount: data.length,
             separatorBuilder: (_, __) => const Divider(height: 1),
@@ -100,7 +96,7 @@ class CategorySummary extends ConsumerWidget {
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
-            color: isSelected ? color.withValues(alpha:0.15) : Colors.grey[100],
+            color: isSelected ? color.withOpacity(0.15) : Colors.grey[100],
             border: Border(
               bottom: BorderSide(
                 color: isSelected ? color : Colors.transparent,
@@ -123,16 +119,19 @@ class CategorySummary extends ConsumerWidget {
   }
 
   Widget _buildEmptyState() {
-    return Center(
-      child: Text(
-        'No hay transacciones en este período',
-        style: TextStyle(color: Colors.grey[600], fontSize: 16),
+    return Padding(
+      padding: const EdgeInsets.all(16),
+      child: Center(
+        child: Text(
+          'No hay transacciones en este período',
+          style: TextStyle(color: Colors.grey[600], fontSize: 16),
+        ),
       ),
     );
   }
 
- String formatCurrency(double value) {
-      final formatter = NumberFormat.decimalPattern('es_CO');
-      return '\$${formatter.format(value)}';
-    }
+  String formatCurrency(double value) {
+    final formatter = NumberFormat.decimalPattern('es_CO');
+    return '\$${formatter.format(value)}';
+  }
 }

@@ -8,6 +8,7 @@ buildscript {
     dependencies {
         // Google Services para Firebase
         classpath 'com.google.gms:google-services:4.3.15' // Versión más reciente de Google Services
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0' // Compatible con AGP 8.2
         classpath 'com.android.tools.build:gradle:8.2.1'  // Versión más reciente de Android Gradle plugin
         // Agregar otras dependencias si es necesario, como Android Gradle plugin o Kotlin Gradle plugin.
     }

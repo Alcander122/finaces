@@ -1,7 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/models/bank_model.dart';
-import 'package:finances/core/data/providers/bank_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'qr_screen.dart'; // Importa la pantalla para mostrar el código QR
 
