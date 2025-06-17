@@ -9,7 +9,7 @@
     },
     {
       "name": "_flutterfire_internals",
-      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/_flutterfire_internals-1.3.54",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/_flutterfire_internals-1.3.56",
       "packageUri": "lib/",
       "languageVersion": "3.2"
     },
@@ -18,6 +18,12 @@
       "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/analyzer-7.4.5",
       "packageUri": "lib/",
       "languageVersion": "3.5"
+    },
+    {
+      "name": "archive",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/archive-4.0.7",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
     },
     {
       "name": "args",
@@ -98,6 +104,12 @@
       "languageVersion": "2.19"
     },
     {
+      "name": "cli_util",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/cli_util-0.4.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.4"
+    },
+    {
       "name": "clock",
       "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/clock-1.1.1",
       "packageUri": "lib/",
@@ -105,19 +117,19 @@
     },
     {
       "name": "cloud_firestore",
-      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/cloud_firestore-5.6.2",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/cloud_firestore-5.6.9",
       "packageUri": "lib/",
       "languageVersion": "3.2"
     },
     {
       "name": "cloud_firestore_platform_interface",
-      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/cloud_firestore_platform_interface-6.6.2",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/cloud_firestore_platform_interface-6.6.9",
       "packageUri": "lib/",
       "languageVersion": "3.2"
     },
     {
       "name": "cloud_firestore_web",
-      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/cloud_firestore_web-4.4.2",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/cloud_firestore_web-4.4.9",
       "packageUri": "lib/",
       "languageVersion": "3.4"
     },
@@ -164,10 +176,22 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "dbus",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/dbus-0.7.11",
+      "packageUri": "lib/",
+      "languageVersion": "2.17"
+    },
+    {
       "name": "equatable",
       "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/equatable-2.0.7",
       "packageUri": "lib/",
       "languageVersion": "2.12"
+    },
+    {
+      "name": "facebook_auth_desktop",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/facebook_auth_desktop-2.1.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
     },
     {
       "name": "fake_async",
@@ -189,25 +213,25 @@
     },
     {
       "name": "firebase_auth",
-      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_auth-5.5.3",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_auth-5.6.0",
       "packageUri": "lib/",
       "languageVersion": "3.2"
     },
     {
       "name": "firebase_auth_platform_interface",
-      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_auth_platform_interface-7.6.2",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_auth_platform_interface-7.7.0",
       "packageUri": "lib/",
       "languageVersion": "3.2"
     },
     {
       "name": "firebase_auth_web",
-      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_auth_web-5.14.2",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_auth_web-5.15.0",
       "packageUri": "lib/",
       "languageVersion": "3.4"
     },
     {
       "name": "firebase_core",
-      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_core-3.13.0",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_core-3.14.0",
       "packageUri": "lib/",
       "languageVersion": "3.2"
     },
@@ -219,7 +243,7 @@
     },
     {
       "name": "firebase_core_web",
-      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_core_web-2.22.0",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/firebase_core_web-2.23.0",
       "packageUri": "lib/",
       "languageVersion": "3.4"
     },
@@ -242,16 +266,94 @@
       "languageVersion": "3.3"
     },
     {
+      "name": "flutter_facebook_auth",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_facebook_auth-7.1.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
+    },
+    {
+      "name": "flutter_facebook_auth_platform_interface",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_facebook_auth_platform_interface-6.1.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
+    },
+    {
+      "name": "flutter_facebook_auth_web",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_facebook_auth_web-6.1.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.3"
+    },
+    {
+      "name": "flutter_launcher_icons",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_launcher_icons-0.14.4",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "flutter_lints",
       "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_lints-5.0.0",
       "packageUri": "lib/",
       "languageVersion": "3.5"
     },
     {
+      "name": "flutter_local_notifications",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_local_notifications-18.0.1",
+      "packageUri": "lib/",
+      "languageVersion": "3.1"
+    },
+    {
+      "name": "flutter_local_notifications_linux",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_local_notifications_linux-5.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.1"
+    },
+    {
+      "name": "flutter_local_notifications_platform_interface",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_local_notifications_platform_interface-8.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "3.1"
+    },
+    {
       "name": "flutter_riverpod",
       "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_riverpod-2.6.1",
       "packageUri": "lib/",
       "languageVersion": "2.17"
+    },
+    {
+      "name": "flutter_secure_storage",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_secure_storage-9.2.4",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "flutter_secure_storage_linux",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_secure_storage_linux-1.2.3",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "flutter_secure_storage_macos",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_secure_storage_macos-3.1.3",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "flutter_secure_storage_platform_interface",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_secure_storage_platform_interface-1.1.2",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "flutter_secure_storage_web",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_secure_storage_web-1.2.1",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
+      "name": "flutter_secure_storage_windows",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/flutter_secure_storage_windows-3.1.2",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
     },
     {
       "name": "flutter_svg",
@@ -345,9 +447,9 @@
     },
     {
       "name": "http",
-      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/http-0.13.6",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/http-1.4.0",
       "packageUri": "lib/",
-      "languageVersion": "2.19"
+      "languageVersion": "3.4"
     },
     {
       "name": "http_multi_server",
@@ -368,6 +470,12 @@
       "languageVersion": "2.16"
     },
     {
+      "name": "image",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/image-4.5.4",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
+    },
+    {
       "name": "intl",
       "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/intl-0.20.2",
       "packageUri": "lib/",
@@ -381,9 +489,9 @@
     },
     {
       "name": "js",
-      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/js-0.7.1",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/js-0.6.7",
       "packageUri": "lib/",
-      "languageVersion": "3.1"
+      "languageVersion": "2.19"
     },
     {
       "name": "json_annotation",
@@ -534,6 +642,12 @@
       "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/pool-1.5.1",
       "packageUri": "lib/",
       "languageVersion": "2.12"
+    },
+    {
+      "name": "posix",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/posix-6.0.2",
+      "packageUri": "lib/",
+      "languageVersion": "3.0"
     },
     {
       "name": "provider",
@@ -722,6 +836,12 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "timezone",
+      "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/timezone-0.9.4",
+      "packageUri": "lib/",
+      "languageVersion": "2.19"
+    },
+    {
       "name": "timing",
       "rootUri": "file:///C:/Users/andre/AppData/Local/Pub/Cache/hosted/pub.dev/timing-1.0.2",
       "packageUri": "lib/",
@@ -878,7 +998,7 @@
       "languageVersion": "3.6"
     }
   ],
-  "generated": "2025-06-03T21:21:41.673838Z",
+  "generated": "2025-06-17T13:57:01.962785Z",
   "generator": "pub",
   "generatorVersion": "3.6.0",
   "flutterRoot": "file:///C:/Users/andre/dev/flutter",

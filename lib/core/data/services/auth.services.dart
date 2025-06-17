@@ -1,11 +1,12 @@
 // ignore_for_file: depend_on_referenced_packages
 
+import 'package:logger/logger.dart';
 
 import 'package:firebase_auth/firebase_auth.dart';
 
-
 class Authservices {
   final FirebaseAuth _auth = FirebaseAuth.instance;
+  final Logger logger = Logger();
 
   Future<UserCredential?> registerWithEmailAndPassword(
       String email, String password) async {
@@ -23,9 +24,8 @@ class Authservices {
     try {
       return await _auth.signInWithEmailAndPassword(
           email: email, password: password);
-    } on FirebaseAuthException {
-      //print("Error en login: ${e.code} - ${e.message}");
-      //logger.e('Error saving token', error: e, stackTrace: stack);
+    } on FirebaseAuthException catch (e, stack) {
+      logger.e('Error saving token', error: e, stackTrace: stack);
 
       rethrow;
     }

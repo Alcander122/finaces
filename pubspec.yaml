@@ -46,22 +46,25 @@ dependencies:
   qr_flutter: ^4.1.0
   freezed_annotation: ^3.0.0
   freezed: ^3.0.6
+  flutter_local_notifications: ^18.0.1
+  flutter_launcher_icons: ^0.14.4
+  flutter_facebook_auth: ^7.1.2
+  #facebook_auth: ^0.0.3
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  firebase_core: ^3.13.0 # O la última versión disponible
-  firebase_auth: ^5.5.3  # Otras bibliotecas de Firebase que necesites
+  firebase_core: ^3.14.0 # O la última versión disponible
+  firebase_auth: ^5.6.0  # Otras bibliotecas de Firebase que necesites
   flutter_riverpod: ^2.6.1
-  #charts_flutter: ^0.12.0 # O la última versión disponible
   syncfusion_flutter_charts: ^29.1.38 # O la última versión disponible
   shared_preferences: ^2.5.3
-  cloud_firestore: ^5.6.2
+  cloud_firestore: ^5.6.9
   provider: ^6.0.5
   intl: ^0.20.2
   fl_chart: ^0.71.0  
   uuid: ^3.0.4
-  http: ^0.13.5
+  http: ^1.4.0
   tuple: ^2.0.0
   #pigeon: ^22.7.3
   # The "flutter_lints" package below contains a set of recommended lints to
@@ -88,6 +91,11 @@ flutter:
      - assets/images/ # Aquí se añade la carpeta de las imágenes
      - assets/bancos_colombia.json 
   #   - images/a_dot_ham.jpeg
+# 🎯 CONFIGURACIÓN DE ÍCONO DE APP (usado por flutter_launcher_icons)
+flutter_launcher_icons:
+  android: true # Generar íconos para Android
+  ios: true    # Generar íconos para iOS
+  image_path: "assets/icon/app_icon.png" # Ruta del ícono (512x512 PNG recomendado)
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images

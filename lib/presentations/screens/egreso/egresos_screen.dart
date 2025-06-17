@@ -32,7 +32,7 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
   Set<String> _visibleColumns = {
     'Quincena',
     'Fecha Pago', // Nuevo campo
-    'Concepto',
+    //'Concepto', //| No mostrar 'Concepto' en la tabla
     'Valor',
     'Estado',
   };
