@@ -3,6 +3,7 @@
 
 import 'package:finances/core/data/models/filter.dart';
 import 'package:finances/core/data/providers/filter_provider.dart';
+import 'package:finances/presentations/theme/themes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -65,8 +66,9 @@ class ActivityChart extends ConsumerWidget {
     final transacciones = _calcularTransacciones(ingresos, egresos, periodos);
 
     return Card(
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(15)),
+      elevation: 0,
+      color: Color.fromARGB(255, 206, 230, 248),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
@@ -174,8 +176,10 @@ class ActivityChart extends ConsumerWidget {
   BarChartData _crearDatosChart(List<PeriodData> periodosData, Filter filtro) {
     if (periodosData.isEmpty) return BarChartData(barGroups: []);
 
-
     return BarChartData(
+      borderData: FlBorderData(
+        show: false,
+      ),
       barTouchData: BarTouchData(
         enabled: true,
         touchTooltipData: BarTouchTooltipData(
@@ -209,7 +213,7 @@ class ActivityChart extends ConsumerWidget {
             showTitles: true,
             getTitlesWidget: (value, meta) => Padding(
               padding: const EdgeInsets.only(right: 10),
-             /* child: Text(
+              /* child: Text(
                 //formatCurrency(value),
                 //style: const TextStyle(fontSize: 10),
               ),*/
@@ -246,7 +250,6 @@ class ActivityChart extends ConsumerWidget {
         );
       }).toList(),
       gridData: const FlGridData(show: false),
-      borderData: FlBorderData(show: true),
       alignment: BarChartAlignment.spaceAround,
       maxY: _calcularMaxY(periodosData),
     );
@@ -281,7 +284,7 @@ class ActivityChart extends ConsumerWidget {
       '${DateFormat('dd/MM/yyyy').format(rango.start)} - '
       '${DateFormat('dd/MM/yyyy').format(rango.end)}',
       style: const TextStyle(
-        fontSize: 16,
+        fontSize: 12,
         fontWeight: FontWeight.bold,
         color: Colors.black87,
       ),

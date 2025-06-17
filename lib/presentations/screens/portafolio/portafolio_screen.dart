@@ -7,6 +7,7 @@ import 'package:finances/core/data/providers/investment_provider.dart';
 import 'package:finances/presentations/screens/portafolio/portafolio_form_screen.dart';
 import 'package:finances/presentations/screens/portafolio/widgets/portafolio_chart.dart';
 import 'package:finances/core/data/services/portafolio_service.dart';
+import 'package:finances/presentations/theme/themes.dart';
 
 class PortafolioScreen extends ConsumerWidget {
   const PortafolioScreen({super.key});
@@ -24,6 +25,7 @@ class PortafolioScreen extends ConsumerWidget {
     final investments = ref.watch(allInvestmentsProvider(user.uid));
 
     return Scaffold(
+      backgroundColor: Themes.light,
       appBar: AppBar(
         title: const Text("Mis Portafolios"),
         centerTitle: true,

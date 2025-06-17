@@ -13,6 +13,9 @@ class Themes {
   static const Color degradientLight = Color(0xFF006699);
   static const Color infoBlue = Color(0xFFEAF6FF);
   static const Color iconsButton = Color(0xFF2d2e87);
+  static const Color green = Colors.green;
+  static const Color red = Colors.red;
+  static const Color blue = Colors.blue;
 }
 
 //Estructura para las fuentes del diseño KUPI.

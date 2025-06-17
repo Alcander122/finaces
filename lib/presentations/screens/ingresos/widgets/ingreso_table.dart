@@ -28,6 +28,10 @@ class IngresoTable extends StatelessWidget {
     List<String> camposMostrar = camposVisibles
         .where((campo) => camposDisponibles.contains(campo))
         .toList();
+
+    //Se eliminan dos columnas de la interfaz. PENDIENTE REVISION DE REUSO
+    camposMostrar.remove('quincena');
+    camposMostrar.remove('concepto');
     if (ingresos.isEmpty) {
       return Center(
         child: Text('No hay ingresos disponibles'),

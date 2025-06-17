@@ -1,7 +1,9 @@
 import 'package:finances/core/data/models/objetivo_ahorro.dart';
 import 'package:finances/core/data/services/servicio_ahorro.dart';
 import 'package:finances/core/data/utils/ahorro_validator.dart';
+import 'package:finances/presentations/screens/egreso/utils/thousands_formatter.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
+import 'package:finances/presentations/theme/themes.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -23,8 +25,9 @@ class AhorroScreenState extends State<AhorroScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Themes.light,
       appBar: const AppBarFinances(
-        useLogoAsTitle: true,
+        title: 'Ahorros',
         showProfileIcon: false,
       ),
       // Permite que el contenido se ajuste cuando aparece el teclado
@@ -147,97 +150,143 @@ class AhorroScreenState extends State<AhorroScreen> {
 
     showDialog(
       context: context,
-      builder: (dialogContext) => AlertDialog(
-        scrollable: true,
-        shape: RoundedRectangleBorder(
-          borderRadius: BorderRadius.circular(16),
-        ),
-        title: const Text('Nueva Meta de Ahorro'),
-        content: Form(
-          key: formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextFormField(
-                controller: nombreController,
-                decoration: const InputDecoration(
-                  labelText: 'Nombre de la Meta',
-                  prefixIcon: Icon(Icons.title),
-                  border: OutlineInputBorder(),
+      builder: (dialogContext) => Dialog(
+        backgroundColor: Colors.transparent,
+        child: Center(
+          child: Card(
+            elevation: 10,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
+            child: Padding(
+              padding: const EdgeInsets.all(20.0),
+              child: SingleChildScrollView(
+                child: Form(
+                  key: formKey,
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Text(
+                        'Nueva Meta de Ahorro',
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                      const SizedBox(height: 20),
+                      TextFormField(
+                        controller: nombreController,
+                        decoration: InputDecoration(
+                          labelText: 'Nombre de la Meta',
+                          prefixIcon: const Icon(Icons.title),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        validator: (value) => validator.validateNombre(value),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: montoController,
+                        keyboardType: TextInputType.number,
+                        inputFormatters: [ThousandsFormatter()],
+                        decoration: InputDecoration(
+                          labelText: 'Monto Objetivo',
+                          prefixIcon: const Icon(Icons.attach_money),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        validator: (value) =>
+                            validator.validateMonto(value, null),
+                      ),
+                      const SizedBox(height: 16),
+                      TextFormField(
+                        controller: fechaController,
+                        readOnly: true,
+                        decoration: InputDecoration(
+                          labelText: 'Fecha Objetivo',
+                          prefixIcon: const Icon(Icons.calendar_today),
+                          border: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                        onTap: () async {
+                          final picked = await showDatePicker(
+                            context: context,
+                            initialDate: DateTime.now(),
+                            firstDate: DateTime.now(),
+                            lastDate: DateTime(2100),
+                          );
+                          if (picked != null) {
+                            fechaController.text =
+                                DateFormat('yyyy-MM-dd').format(picked);
+                          }
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(dialogContext),
+                            child: const Text('Cancelar'),
+                          ),
+                          ElevatedButton(
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Themes.primary,
+                              padding: const EdgeInsets.symmetric(
+                                  vertical: 12, horizontal: 20),
+                              shape: RoundedRectangleBorder(
+                                borderRadius: BorderRadius.circular(12),
+                              ),
+                            ),
+                            onPressed: () {
+                              if (formKey.currentState!.validate()) {
+                                final nombre = nombreController.text.trim();
+                                final montoLimpio =
+                                    montoController.text.replaceAll('.', '');
+                                final montoObjetivo =
+                                    double.tryParse(montoLimpio) ?? 0;
+                                final fechaObjetivo =
+                                    DateTime.parse(fechaController.text);
+                                _ahorroService
+                                    .crearMeta(
+                                  nombre: nombre,
+                                  montoObjetivo: montoObjetivo,
+                                  fechaObjetivo: fechaObjetivo,
+                                )
+                                    .then((_) {
+                                  Navigator.pop(dialogContext);
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    const SnackBar(
+                                        content:
+                                            Text('Meta creada correctamente')),
+                                  );
+                                }).catchError((error) {
+                                  ScaffoldMessenger.of(context).showSnackBar(
+                                    SnackBar(content: Text('Error: $error')),
+                                  );
+                                });
+                              }
+                            },
+                            child: const Text(
+                              'Guardar',
+                              style: TextStyle(
+                                color: Colors.white,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
                 ),
-                validator: (value) => validator.validateNombre(value),
               ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: montoController,
-                keyboardType: TextInputType.number,
-                decoration: const InputDecoration(
-                  labelText: 'Monto Objetivo',
-                  prefixIcon: Icon(Icons.attach_money),
-                  border: OutlineInputBorder(),
-                ),
-                validator: (value) => validator.validateMonto(value, null),
-              ),
-              const SizedBox(height: 16),
-              TextFormField(
-                controller: fechaController,
-                decoration: const InputDecoration(
-                  labelText: 'Fecha Objetivo',
-                  prefixIcon: Icon(Icons.calendar_today),
-                  border: OutlineInputBorder(),
-                ),
-                readOnly: true,
-                onTap: () async {
-                  final picked = await showDatePicker(
-                    context: context,
-                    initialDate: DateTime.now(),
-                    firstDate: DateTime.now(),
-                    lastDate: DateTime(2100),
-                  );
-                  if (picked != null) {
-                    setState(() {
-                      fechaController.text =
-                          DateFormat('yyyy-MM-dd').format(picked);
-                    });
-                  }
-                },
-              ),
-            ],
+            ),
           ),
         ),
-        actionsAlignment: MainAxisAlignment.center,
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(dialogContext),
-            child: const Text('Cancelar'),
-          ),
-          ElevatedButton(
-            onPressed: () {
-              if (formKey.currentState!.validate()) {
-                final nombre = nombreController.text.trim();
-                final montoObjetivo = double.parse(montoController.text);
-                final fechaObjetivo = DateTime.parse(fechaController.text);
-                _ahorroService
-                    .crearMeta(
-                  nombre: nombre,
-                  montoObjetivo: montoObjetivo,
-                  fechaObjetivo: fechaObjetivo,
-                )
-                    .then((_) {
-                  Navigator.pop(dialogContext);
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(content: Text('Meta creada correctamente')),
-                  );
-                }).catchError((error) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(content: Text('Error: $error')),
-                  );
-                });
-              }
-            },
-            child: const Text('Guardar'),
-          ),
-        ],
       ),
     );
   }

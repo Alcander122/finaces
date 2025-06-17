@@ -348,7 +348,7 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
     }
     // Excluir 'id' de los campos disponibles
     camposDisponibles.remove('id');
-    camposDisponibles.remove('fecha'); // Excluir 'fecha' si no se usa
+    camposDisponibles.remove('fecha');
 
     showDialog(
       context: context,
