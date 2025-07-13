@@ -388,12 +388,12 @@ class HomeScreen extends ConsumerWidget {
         'description':'Gestiona pagos y fechas.',
         'screen': PagosScreen(),
       },
-      {
+      /*{
         'icon': const Icon(FontAwesomeIcons.clockRotateLeft, color: Colors.red),
         'title': 'Historial',
         'description': 'Historial de movimientos.',
         'screen': AhorroScreen(),
-      },
+      },*/
     ];
 
     return Column(

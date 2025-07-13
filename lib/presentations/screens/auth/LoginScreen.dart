@@ -10,6 +10,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:icons_plus/icons_plus.dart';
+import 'package:flutter/widgets.dart';
 
 /// Pantalla de login para autenticar al usuario mediante correo y contraseña.
 /// También incorpora el inicio de sesión con Google.
@@ -65,18 +66,33 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _performLogin() async {
     if (!_validateFields()) return;
 
+    // Mostrar diálogo de carga
+    final context = this.context;
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+
     try {
-      // Se invoca al método signIn del AuthProvider, pasando email y contraseña.
+      // Realizar el inicio de sesión
       await ref.read(authProvider.notifier).signIn(
             _emailController.text.trim(),
             _passwordController.text.trim(),
           );
 
-      // Si la autenticación es exitosa, navegamos al HomeScreen.
+      // Cerrar el diálogo de carga
+      Navigator.pop(context);
+
+      // Navegar al HomeScreen si es exitoso
       if (mounted) {
         Navigator.pushReplacementNamed(context, AppRoutes.home);
       }
     } catch (e) {
+      // Cerrar el diálogo antes de mostrar el error
+      Navigator.pop(context);
       debugPrint('Error en login: $e');
       _showErrorFeedback(_handleError(e));
     }
@@ -84,126 +100,125 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    return  CustomScaffold(
-        child: Column(
-          children: [
-            const Expanded(flex: 1, child: SizedBox(height: 10)),
-            Expanded(
-              flex: 7,
-              child: Container(
-                padding: const EdgeInsets.fromLTRB(25.0, 50.0, 25.0, 20.0),
-                decoration: const BoxDecoration(
-                  color: Colors.white,
-                  // Bordes redondeados en la parte superior
-                  borderRadius: BorderRadius.only(
-                    topLeft: Radius.circular(40.0),
-                    topRight: Radius.circular(40.0),
-                  ),
+    return CustomScaffold(
+      child: Column(
+        children: [
+          const Expanded(flex: 1, child: SizedBox(height: 10)),
+          Expanded(
+            flex: 7,
+            child: Container(
+              padding: const EdgeInsets.fromLTRB(25.0, 50.0, 25.0, 20.0),
+              decoration: const BoxDecoration(
+                color: Colors.white,
+                // Bordes redondeados en la parte superior
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(40.0),
+                  topRight: Radius.circular(40.0),
                 ),
-                child: SingleChildScrollView(
-                  child: Form(
-                    key: _formSignInKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.center,
-                      children: [
-                        // Título de la pantalla.
-                        Text(
-                          'Inicie sesión',
-                          style: TextStyle(
-                            fontSize: 30.0,
-                            fontWeight: FontWeight.w900,
-                            color: Themes.degradientLight,
-                          ),
+              ),
+              child: SingleChildScrollView(
+                child: Form(
+                  key: _formSignInKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.center,
+                    children: [
+                      // Título de la pantalla.
+                      Text(
+                        'Inicie sesión',
+                        style: TextStyle(
+                          fontSize: 30.0,
+                          fontWeight: FontWeight.w900,
+                          color: Themes.degradientLight,
                         ),
-                        const SizedBox(height: 40.0),
-                        // Campo de texto para ingresar el correo.
-                        TextFormField(
-                          controller: _emailController,
-                          keyboardType: TextInputType.emailAddress,
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return ErrorStrings.requiredField;
-                            }
-                            // Expresión regular para validar el correo.
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                                .hasMatch(value)) {
-                              return ErrorStrings.invalidEmail;
-                            }
-                            return null;
-                          },
-                          decoration:
-                              _inputDecoration('Correo', 'ejemplo@dominio.com'),
+                      ),
+                      const SizedBox(height: 40.0),
+                      // Campo de texto para ingresar el correo.
+                      TextFormField(
+                        controller: _emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return ErrorStrings.requiredField;
+                          }
+                          // Expresión regular para validar el correo.
+                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                              .hasMatch(value)) {
+                            return ErrorStrings.invalidEmail;
+                          }
+                          return null;
+                        },
+                        decoration:
+                            _inputDecoration('Correo', 'ejemplo@dominio.com'),
+                      ),
+                      const SizedBox(height: 25.0),
+                      // Campo para la contraseña.
+                      TextFormField(
+                        controller: _passwordController,
+                        obscureText: true,
+                        obscuringCharacter: '•',
+                        validator: (value) {
+                          if (value == null || value.isEmpty) {
+                            return ErrorStrings.requiredField;
+                          }
+                          if (value.length < 6) return "Mínimo 6 caracteres";
+                          return null;
+                        },
+                        decoration: _inputDecoration('Contraseña', '••••••••'),
+                      ),
+                      const SizedBox(height: 25.0),
+                      // Botón de inicio de sesión.
+                      SizedBox(
+                        width: double.infinity,
+                        child: ElevatedButton(
+                          onPressed: _performLogin,
+                          child: const Text('Ingresar'),
                         ),
-                        const SizedBox(height: 25.0),
-                        // Campo para la contraseña.
-                        TextFormField(
-                          controller: _passwordController,
-                          obscureText: true,
-                          obscuringCharacter: '•',
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return ErrorStrings.requiredField;
-                            }
-                            if (value.length < 6) return "Mínimo 6 caracteres";
-                            return null;
-                          },
-                          decoration:
-                              _inputDecoration('Contraseña', '••••••••'),
-                        ),
-                        const SizedBox(height: 25.0),
-                        // Botón de inicio de sesión.
-                        SizedBox(
-                          width: double.infinity,
-                          child: ElevatedButton(
-                            onPressed: _performLogin,
-                            child: const Text('Ingresar'),
-                          ),
-                        ),
-                        const SizedBox(height: 25.0),
-                        _buildDivider(),
-                        const SizedBox(height: 25.0),
-                        // Sección para login con redes sociales.
-                        Row(
-                          mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                          children: [
-                            // Botón de Facebook (ejemplo visual)
-                            Logo(Logos.facebook_f),
-                            // Botón para iniciar sesión con Google.
-                            Consumer(
-                              builder: (context, ref, _) {
-                                return GestureDetector(
-                                  onTap: () async {
-                                    try {
-                                      final authNotifier =
-                                          ref.read(authProvider.notifier);
-                                      await authNotifier.signInWithGoogle();
-                                      if (mounted) {
-                                        Navigator.pushReplacementNamed(
-                                          context,
-                                          AppRoutes.home,
-                                        );
-                                      }
-                                    } catch (e) {
-                                      _showSnackBar(e.toString(), Colors.red);
+                      ),
+                      const SizedBox(height: 25.0),
+                      _buildDivider(),
+                      const SizedBox(height: 25.0),
+                      // Sección para login con redes sociales.
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                        children: [
+                          // Botón de Facebook (ejemplo visual)
+                          //Logo(Logos.facebook_f),
+                          // Botón para iniciar sesión con Google.
+                          Consumer(
+                            builder: (context, ref, _) {
+                              return GestureDetector(
+                                onTap: () async {
+                                  try {
+                                    final authNotifier =
+                                        ref.read(authProvider.notifier);
+                                    await authNotifier.signInWithGoogle();
+                                    if (mounted) {
+                                      Navigator.pushReplacementNamed(
+                                        context,
+                                        AppRoutes.home,
+                                      );
                                     }
-                                  },
-                                  child: Logo(Logos.google),
-                                );
-                              },
-                            ),
-                          ],
-                        ),
-                        const SizedBox(height: 25.0),
-                        _buildRegisterSection(),
-                      ],
-                    ),
+                                  } catch (e) {
+                                    _showSnackBar(e.toString(), Colors.red);
+                                  }
+                                },
+                                child: Logo(Logos.google),
+                              );
+                            },
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 25.0),
+                      _buildRegisterSection(),
+                    ],
                   ),
                 ),
               ),
             ),
-          ],
-        ),
-      );
+          ),
+        ],
+      ),
+    );
   }
 
   /// Método para construir un Divider (separador visual) con texto.
