@@ -414,7 +414,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
   }
 
   // Título principal de la sección
-  Widget _buildHeaderSection(ThemeData theme) {
+  Widget buildHeaderSection(ThemeData theme) {
     return Text(
       'Balance General',
       style: theme.textTheme.headlineSmall?.copyWith(
