@@ -284,7 +284,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                                Consumer(
+                               /* Consumer(
                                   builder: (context, ref, _) {
                                     return GestureDetector(
                                       onTap: () async {
@@ -310,7 +310,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       child: Logo(Logos.facebook_f),
                                     );
                                   },
-                                ),
+                                ),*/
                                 Consumer(
                                   builder: (context, ref, _) {
                                     return GestureDetector(

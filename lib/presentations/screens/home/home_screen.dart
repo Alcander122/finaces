@@ -342,7 +342,7 @@ class HomeScreen extends ConsumerWidget {
               )),
           child: CircleAvatar(
             radius: 28,
-            backgroundColor: color.withValues(alpha:0.2),
+            backgroundColor: color.withValues(alpha: 0.2),
             child: Icon(icon, color: color, size: 28),
           ),
         ),
@@ -384,16 +384,16 @@ class HomeScreen extends ConsumerWidget {
       {
         'icon':
             const Icon(FontAwesomeIcons.calendarCheck, color: Colors.orange),
-        'title': 'Pagos',
-        'description':'Gestiona pagos y fechas.',
+        'title': 'Pagos Programados',
+        'description': 'Gestiona pagos y fechas.',
         'screen': PagosScreen(),
       },
-      {
+      /*{
         'icon': const Icon(FontAwesomeIcons.clockRotateLeft, color: Colors.red),
         'title': 'Historial',
         'description': 'Historial de movimientos.',
         'screen': AhorroScreen(),
-      },
+      },*/
     ];
 
     return Column(
