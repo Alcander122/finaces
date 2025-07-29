@@ -2,6 +2,8 @@ import 'package:finances/utils/utilities.dart';
 import 'package:flutter/material.dart';
 import 'package:finances/core/data/models/investment_model.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:finances/presentations/theme/themes.dart';
+import 'package:intl/intl.dart';
 
 class InvestmentChart extends StatelessWidget {
   final List<Investment> investments;
@@ -20,19 +22,39 @@ class InvestmentChart extends StatelessWidget {
       return const SizedBox.shrink();
     }
 
-    return Padding(
-      padding: const EdgeInsets.all(16),
+    final formatter = NumberFormat.currency(
+      locale: 'es_CO',
+      symbol: '\$',
+      decimalDigits: 2,
+    );
+
+    return Container(
+      color: Themes.light,
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Card(
         elevation: 4,
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
         child: Padding(
-          padding: const EdgeInsets.all(16),
+          padding: const EdgeInsets.all(20),
           child: Column(
             children: [
               const Text(
                 'Distribución de Inversiones',
                 style: TextStyle(
                   fontWeight: FontWeight.bold,
+                  fontSize: 18,
                   color: Colors.blueGrey,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Total: ${formatter.format(total)}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
                 ),
               ),
               const SizedBox(height: 20),
@@ -42,13 +64,12 @@ class InvestmentChart extends StatelessWidget {
                   PieChartData(
                     sections: _chartSections(total),
                     centerSpaceRadius: 40,
-                    sectionsSpace: 0,
+                    sectionsSpace: 2,
                     startDegreeOffset: -90,
                   ),
                 ),
               ),
               const SizedBox(height: 20),
-              _buildLegend(),
             ],
           ),
         ),
@@ -61,15 +82,10 @@ class InvestmentChart extends StatelessWidget {
       final percentage =
           (investment.invMensual / total * 100).toStringAsFixed(1);
       return PieChartSectionData(
-        color: Color.fromARGB(
-          255,
-          investment.activo.hashCode % 256,
-          (investment.activo.hashCode * 2) % 256,
-          (investment.activo.hashCode * 3) % 256,
-        ),
+        color: _generateColor(investment.activo),
         value: investment.invMensual,
         title: '$percentage%',
-        radius: 25,
+        radius: 30,
         titleStyle: const TextStyle(
           fontSize: 14,
           color: Colors.white,
@@ -79,48 +95,12 @@ class InvestmentChart extends StatelessWidget {
     }).toList();
   }
 
-  Widget _buildLegend() {
-    return Wrap(
-      spacing: 10,
-      runSpacing: 10,
-      children: investments.map((investment) {
-        final color = Color.fromARGB(
-          255,
-          investment.activo.hashCode % 256,
-          (investment.activo.hashCode * 2) % 256,
-          (investment.activo.hashCode * 3) % 256,
-        );
-        return Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Container(
-              width: 16,
-              height: 16,
-              decoration: BoxDecoration(
-                color: color,
-                shape: BoxShape.circle,
-              ),
-            ),
-            const SizedBox(width: 4),
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  investment.descripcion,
-                  style: TextStyle(
-                    color: color,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                Text(
-                  '${Utilities.formatCurrency(investment.invMensual)} ${investment.moneda}',
-                  style: const TextStyle(fontSize: 12),
-                ),
-              ],
-            ),
-          ],
-        );
-      }).toList(),
+  Color _generateColor(String key) {
+    return Color.fromARGB(
+      255,
+      key.hashCode % 256,
+      (key.hashCode * 2) % 256,
+      (key.hashCode * 3) % 256,
     );
   }
 }

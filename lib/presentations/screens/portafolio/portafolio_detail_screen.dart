@@ -4,10 +4,13 @@ import 'package:finances/core/data/services/investment_service.dart';
 import 'package:finances/presentations/screens/portafolio/investment_form_screen.dart';
 import 'package:finances/presentations/screens/portafolio/portafolio_form_screen.dart';
 import 'package:finances/presentations/screens/portafolio/widgets/investment_chart.dart';
+import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:finances/utils/utilities.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tuple/tuple.dart';
+import 'package:intl/intl.dart';
 
 class PortafolioDetailScreen extends ConsumerWidget {
   final Portafolio portafolio;
@@ -16,24 +19,36 @@ class PortafolioDetailScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final investments = ref
-        .watch(investmentsProvider(Tuple2(portafolio.userId, portafolio.id)));
+    final investments = ref.watch(
+      investmentsProvider(Tuple2(portafolio.userId, portafolio.id)),
+    );
+
+    final currencyFormatter = NumberFormat.currency(
+      locale: 'es_CO',
+      symbol: '\$',
+      decimalDigits: 2,
+    );
 
     return Scaffold(
-      appBar: AppBar(
-        title: Text(portafolio.nombre),
+      backgroundColor: Themes.light,
+      appBar: AppBarFinances(
+        title: portafolio.nombre,
+        showProfileIcon: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.edit),
-            onPressed: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => PortafolioFormScreen(
-                  userId: portafolio.userId,
-                  portafolio: portafolio,
+            color: Colors.white,
+            onPressed: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => PortafolioFormScreen(
+                    userId: portafolio.userId,
+                    portafolio: portafolio,
+                  ),
                 ),
-              ),
-            ),
+              );
+            },
           ),
         ],
       ),
@@ -41,51 +56,116 @@ class PortafolioDetailScreen extends ConsumerWidget {
         data: (investmentsList) => Column(
           children: [
             InvestmentChart(investments: investmentsList),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+              child: Align(
+                alignment: Alignment.centerLeft,
+                child: Text(
+                  "Inversiones",
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.bold,
+                    color: Colors.blueGrey,
+                  ),
+                ),
+              ),
+            ),
             Expanded(
-              child: ListView.builder(
-                itemCount: investmentsList.length,
-                itemBuilder: (context, index) {
-                  final investment = investmentsList[index];
-                  return ListTile(
-                    title: Text(investment.descripcion),
-                    subtitle: Text(
-                        '${Utilities.formatCurrency(investment.invMensual)} ${investment.moneda}'),
-                    trailing: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        IconButton(
-                          icon: const Icon(Icons.edit),
-                          onPressed: () => Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => InvestmentFormScreen(
-                                userId: portafolio.userId,
-                                portafolioId: portafolio.id,
-                                investment: investment,
+              child: investmentsList.isEmpty
+                  ? const Center(
+                      child: Text(
+                        'No hay inversiones registradas.',
+                        style: TextStyle(color: Colors.grey),
+                      ),
+                    )
+                  : ListView.builder(
+                      itemCount: investmentsList.length,
+                      itemBuilder: (context, index) {
+                        final investment = investmentsList[index];
+                        return Padding(
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 16, vertical: 6),
+                          child: Card(
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 2,
+                            child: ListTile(
+                              contentPadding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              title: Text(
+                                investment.descripcion,
+                                style: const TextStyle(
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              subtitle: Text(
+                                '${currencyFormatter.format(investment.invMensual)} ${investment.moneda}',
+                              ),
+                              trailing: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                children: [
+                                  IconButton(
+                                    icon: const Icon(Icons.edit),
+                                    onPressed: () => Navigator.push(
+                                      context,
+                                      MaterialPageRoute(
+                                        builder: (_) => InvestmentFormScreen(
+                                          userId: portafolio.userId,
+                                          portafolioId: portafolio.id,
+                                          investment: investment,
+                                        ),
+                                      ),
+                                    ),
+                                  ),
+                                  IconButton(
+                                    icon: const Icon(Icons.delete),
+                                    onPressed: () async {
+                                      final confirm = await showDialog(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title:
+                                              const Text("Eliminar Inversión"),
+                                          content: const Text(
+                                              "¿Estás seguro de que deseas eliminar esta inversión?"),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, false),
+                                              child: const Text("Cancelar"),
+                                            ),
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, true),
+                                              child: const Text("Eliminar"),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+
+                                      if (confirm == true) {
+                                        await InvestmentService()
+                                            .eliminarInvestment(
+                                          portafolio.userId,
+                                          portafolio.id,
+                                          investment.id,
+                                        );
+                                      }
+                                    },
+                                  ),
+                                ],
                               ),
                             ),
                           ),
-                        ),
-                        IconButton(
-                          icon: const Icon(Icons.delete),
-                          onPressed: () async {
-                            await InvestmentService().eliminarInvestment(
-                              portafolio.userId,
-                              portafolio.id,
-                              investment.id,
-                            );
-                          },
-                        ),
-                      ],
+                        );
+                      },
                     ),
-                  );
-                },
-              ),
             ),
           ],
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Error: $error')),
+        error: (error, _) =>
+            Center(child: Text('Error al cargar datos: $error')),
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => Navigator.push(

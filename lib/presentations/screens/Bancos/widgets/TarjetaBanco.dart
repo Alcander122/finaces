@@ -1,95 +1,187 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/models/bank_model.dart';
+import 'package:finances/presentations/theme/themes.dart';
 import 'package:share_plus/share_plus.dart';
-import 'qr_screen.dart'; // Importa la pantalla para mostrar el código QR
+import 'qr_screen.dart';
 
-// Función para enmascarar el número de cuenta, dejando visibles solo los últimos 4 dígitos
 String maskAccountNumber(String accountNumber) {
   if (accountNumber.length <= 4) return accountNumber;
   return '*' * (accountNumber.length - 4) +
       accountNumber.substring(accountNumber.length - 4);
 }
 
-// Widget que representa una tarjeta con la información del banco
 class TarjetaBanco extends ConsumerWidget {
-  final BancoModelo banco; // Modelo con la información del banco
+  final BancoModelo banco;
+  final VoidCallback onEliminar;
 
-  const TarjetaBanco({super.key, required this.banco});
+  const TarjetaBanco({
+    super.key,
+    required this.banco,
+    required this.onEliminar,
+  });
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final theme = Theme.of(context); // Obtiene el tema actual de la app
+    final theme = Theme.of(context);
 
-    return Card(
-      margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-      elevation: 4,
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // Nombre del banco en texto grande y en negrita
-            Text(
-              banco.nombre,
-              style: theme.textTheme.titleLarge
-                  ?.copyWith(fontWeight: FontWeight.bold),
+    return Stack(
+      children: [
+        Card(
+          elevation: 6,
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          child: Container(
+            decoration: BoxDecoration(
+              borderRadius: BorderRadius.circular(20),
+              gradient: const LinearGradient(
+                colors: [Themes.degradientLight, Themes.degradientDark],
+                begin: Alignment.topLeft,
+                end: Alignment.bottomRight,
+              ),
             ),
-            const SizedBox(height: 8),
+            child: Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.center,
+                children: [
+                  // Nombre del banco
+                  Text(
+                    banco.nombre,
+                    textAlign: TextAlign.center,
+                    style: theme.textTheme.titleLarge?.copyWith(
+                      fontWeight: FontWeight.bold,
+                      color: Themes.white,
+                    ),
+                  ),
+                  const SizedBox(height: 8),
 
-            // Muestra el número de cuenta enmascarado
-            Text(
-              maskAccountNumber(banco.numeroCuenta),
-              style: theme.textTheme.bodyMedium
-                  ?.copyWith(color: theme.colorScheme.primary),
+                  // Número de cuenta
+                  Text(
+                    maskAccountNumber(banco.numeroCuenta),
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: Colors.white70,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+
+                  // Botones principales
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      // Botón Ver QR
+                      ElevatedButton.icon(
+                        onPressed: () => _mostrarQR(context),
+                        icon: const Icon(Icons.qr_code),
+                        label: const Text('Ver QR'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Themes.degradientDark,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+
+                      // Botón Compartir
+                      ElevatedButton.icon(
+                        onPressed: () => _compartirCuenta(),
+                        icon: const Icon(Icons.share),
+                        label: const Text('Compartir'),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: Colors.white,
+                          foregroundColor: Themes.degradientDark,
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
             ),
-
-            const SizedBox(height: 12),
-
-            // Botones para ver el QR y compartir la cuenta
-            Wrap(
-              spacing: 8,
-              runSpacing: 8,
-              alignment: WrapAlignment.start,
-              children: [
-                // Botón para ver el código QR
-                ElevatedButton.icon(
-                  onPressed: () => _mostrarQR(context),
-                  icon: const Icon(Icons.qr_code),
-                  label: const Text('Ver QR'),
-                ),
-
-                // Botón para compartir los datos de la cuenta
-                ElevatedButton.icon(
-                  onPressed: () => _compartirCuenta(context, banco),
-                  icon: const Icon(Icons.share),
-                  label: const Text('Compartir'),
-                ),
-              ],
-            ),
-          ],
+          ),
         ),
-      ),
+
+        // Botón flotante redondo para eliminar.
+        Positioned(
+          bottom: 6,
+          left: 6,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: () => _confirmarEliminacion(context),
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withOpacity(0.15),
+                      blurRadius: 4,
+                      offset: const Offset(2, 2),
+                    )
+                  ],
+                ),
+                child: const Icon(
+                  Icons.delete,
+                  size: 20,
+                  color: Colors.redAccent,
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
-  // Función para compartir los datos del banco usando share_plus
-  void _compartirCuenta(BuildContext context, BancoModelo banco) {
+  void _compartirCuenta() {
     final mensaje =
-        'Banco: ${banco.nombre}\nNumero de cuenta: ${banco.numeroCuenta}';
-    Share.share(mensaje); // Llama al plugin para compartir texto
+        'Banco: ${banco.nombre}\nNúmero de cuenta: ${banco.numeroCuenta}';
+    Share.share(mensaje);
   }
 
-  // Navega a la pantalla del QR pasando los datos del banco
   void _mostrarQR(BuildContext context) {
     final dataQR =
-        'Banco: ${banco.nombre}\nNumero de cuenta: ${banco.numeroCuenta}';
+        'Banco: ${banco.nombre}\nNúmero de cuenta: ${banco.numeroCuenta}';
 
     Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => QRScreen(data: dataQR), // Construye la pantalla QR
+        builder: (_) => QRScreen(data: dataQR),
+      ),
+    );
+  }
+
+  void _confirmarEliminacion(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('¿Eliminar cuenta bancaria?'),
+        content: const Text(
+            '¿Estás seguro de que deseas eliminar esta cuenta bancaria? Esta acción no se puede deshacer.'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context), // Cancelar
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(context); // Cierra el diálogo
+              onEliminar(); // Ejecuta eliminación
+            },
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
       ),
     );
   }
