@@ -24,7 +24,7 @@ class PagoItemWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    
+
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       elevation: 2,
@@ -32,7 +32,7 @@ class PagoItemWidget extends StatelessWidget {
         leading: Container(
           padding: const EdgeInsets.all(8),
           decoration: BoxDecoration(
-            color: color.withValues(alpha:0.2),
+            color: color.withValues(alpha: 0.2),
             shape: BoxShape.circle,
           ),
           child: Icon(icon, color: color),
@@ -48,7 +48,7 @@ class PagoItemWidget extends StatelessWidget {
           children: [
             const SizedBox(height: 4),
             Text(
-              'Monto: \$${pago.monto.toStringAsFixed(2)}',
+              'Monto: \$${NumberFormat("#,###", "es_CO").format(pago.monto.round())}',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 2),

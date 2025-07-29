@@ -1,13 +1,13 @@
-// Importaciones necesarias
 import 'package:finances/presentations/screens/Bancos/widgets/DialogoNumeroCuenta.dart';
 import 'package:finances/presentations/screens/Bancos/widgets/DialogoSeleccionarBanco.dart';
 import 'package:finances/presentations/screens/Bancos/widgets/TarjetaBanco.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:finances/core/data/models/bank_model.dart'; 
-import 'package:finances/core/data/providers/bank_provider.dart'; 
-import 'package:finances/core/data/providers/auth_provider.dart'; 
+import 'package:finances/core/data/models/bank_model.dart';
+import 'package:finances/core/data/providers/bank_provider.dart';
+import 'package:finances/core/data/providers/auth_provider.dart';
+import 'package:finances/presentations/theme/themes.dart';
 
 class PantallaBancos extends ConsumerStatefulWidget {
   const PantallaBancos({super.key});
@@ -23,33 +23,31 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
   @override
   void initState() {
     super.initState();
-    // Inicializa el controlador de las pestañas (2 tabs)
     _controladorTabs = TabController(length: 2, vsync: this);
   }
 
   @override
   void dispose() {
-    // Libera recursos cuando el widget se elimina
     _controladorTabs.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    // Obtiene el estado de autenticación
     final authState = ref.watch(authProvider);
     final userId = authState.user?.uid ?? '';
 
-    // Obtiene la lista de bancos desde el provider (AsyncValue)
     final bancosAsync = ref.watch(bancoNotifierProvider(userId));
 
     return Scaffold(
+      backgroundColor: Themes.light,
       appBar: AppBarFinances(
         useLogoAsTitle: true,
         showProfileIcon: false,
         actions: [
           IconButton(
             icon: const Icon(Icons.add),
+            color: Themes.white,
             onPressed: () => _mostrarDialogoAgregarBanco(context, userId),
           ),
         ],
@@ -57,26 +55,36 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
       body: bancosAsync.when(
         data: (bancos) => Column(
           children: [
-            // Barra de pestañas
             Container(
-              color: Theme.of(context).primaryColor,
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Themes.degradientDark, Themes.degradientLight],
+                ),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 6,
+                    offset: const Offset(0, 3),
+                  )
+                ],
+              ),
               child: TabBar(
                 controller: _controladorTabs,
-                labelColor: Colors.white,
-                unselectedLabelColor: Colors.grey,
+                labelColor: Themes.white,
+                unselectedLabelColor: Colors.grey[300],
+                indicatorColor: Themes.white,
                 tabs: const [
                   Tab(text: 'Bancos'),
                   Tab(text: 'Tasa'),
                 ],
               ),
             ),
-            // Vista de contenido de pestañas
             Expanded(
               child: TabBarView(
                 controller: _controladorTabs,
                 children: [
-                  _buildBancosTab(bancos), // Pestaña de bancos
-                  _buildTasaTab(bancos), // Pestaña de tasas
+                  _buildBancosTab(bancos, userId),
+                  _buildTasaTab(bancos),
                 ],
               ),
             ),
@@ -88,40 +96,58 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
     );
   }
 
-  // Construye la pestaña "Bancos"
-  Widget _buildBancosTab(List<BancoModelo> bancos) {
+  Widget _buildBancosTab(List<BancoModelo> bancos, String userId) {
     if (bancos.isEmpty) {
       return const Center(child: Text("No hay bancos registrados."));
     }
 
-    return ListView.builder(
+    return ListView.separated(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
       itemCount: bancos.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final banco = bancos[index];
-        return TarjetaBanco(banco: banco);
-      },
-    );
-  }
-
-  // Construye la pestaña "Tasa"
-  Widget _buildTasaTab(List<BancoModelo> bancos) {
-    if (bancos.isEmpty) {
-      return const Center(child: Text("No hay datos disponibles."));
-    }
-
-    return ListView.builder(
-      itemCount: bancos.length,
-      itemBuilder: (context, index) {
-        final banco = bancos[index];
-        return ListTile(
-          title: Text(banco.nombre),
-          subtitle: Text('Cuenta: ${banco.numeroCuenta}'),
+        return TarjetaBanco(
+          banco: banco,
+          onEliminar: () {
+            ref
+                .read(bancoNotifierProvider(userId).notifier)
+                .eliminarBanco(banco.id, userId);
+          },
         );
       },
     );
   }
 
-  // Muestra diálogo para seleccionar un banco
+  Widget _buildTasaTab(List<BancoModelo> bancos) {
+    if (bancos.isEmpty) {
+      return const Center(child: Text("No hay datos disponibles."));
+    }
+
+    return ListView.separated(
+      padding: const EdgeInsets.all(16),
+      itemCount: bancos.length,
+      separatorBuilder: (_, __) => const SizedBox(height: 8),
+      itemBuilder: (context, index) {
+        final banco = bancos[index];
+        return Card(
+          elevation: 3,
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+          child: ListTile(
+            title: Text(
+              banco.nombre,
+              style: const TextStyle(fontWeight: FontWeight.bold),
+            ),
+            subtitle: Text('Cuenta: ${banco.numeroCuenta}'),
+            leading: const Icon(Icons.account_balance),
+          ),
+        );
+      },
+    );
+  }
+
   void _mostrarDialogoAgregarBanco(BuildContext context, String userId) {
     if (userId.isEmpty) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -139,7 +165,6 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
     );
   }
 
-  // Muestra diálogo para ingresar número de cuenta
   void _mostrarDialogoNumeroCuenta(
       BuildContext context, BancoModelo banco, String userId) {
     final controladorCuenta = TextEditingController();
@@ -156,14 +181,12 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
             userId: userId,
           );
 
-          // Guarda el nuevo banco usando Riverpod
           ref
               .read(bancoNotifierProvider(userId).notifier)
               .crearBanco(nuevoBanco)
               .then((_) {
-            // Cierra ambos diálogos después de guardar
-            Navigator.of(context).pop(); // Cierra diálogo de número de cuenta
-            Navigator.of(context).pop(); // Cierra diálogo de selección
+            Navigator.of(context).pop();
+            Navigator.of(context).pop();
           });
         },
       ),
