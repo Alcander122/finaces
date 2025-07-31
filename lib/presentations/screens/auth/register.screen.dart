@@ -10,10 +10,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:icons_plus/icons_plus.dart'; // This import provides the Logos class for social icons
 import 'package:finances/presentations/widgets/custom_scaffold.dart';
+import 'package:finances/presentations/screens/terms_acceptance.screen.dart'; // Importar la nueva pantalla
 
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({super.key});
-
   @override
   State<RegisterScreen> createState() => _RegisterScreenState();
 }
@@ -26,12 +26,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
-
   // Estados de visibilidad de contraseñas
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _isLoading = false; // Estado de carga
-
   final _formSignupKey = GlobalKey<FormState>();
   bool agreePersonalData = false;
 
@@ -46,7 +44,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   void register(BuildContext context) async {
     if (_isLoading) return;
     setState(() => _isLoading = true);
-
     try {
       if (_formSignupKey.currentState!.validate() && agreePersonalData) {
         final userService = UserService();
@@ -56,7 +53,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
           email: _emailController.text,
           password: _passwordController.text,
         );
-
         Navigator.pushAndRemoveUntil(
           context,
           MaterialPageRoute(builder: (context) => const LoginScreen()),
@@ -91,7 +87,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 child: Column(
                   children: [
                     const SizedBox(height: 40), // Espacio superior opcional
-
                     // Contenedor de formulario sin usar Expanded
                     Container(
                       padding:
@@ -118,7 +113,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                             ),
                             const SizedBox(height: 40.0),
-
                             // Nombre Completo
                             TextFormField(
                               controller: _nameController,
@@ -128,7 +122,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               decoration: _inputDecoration('Nombre Completo'),
                             ),
                             const SizedBox(height: 25.0),
-
                             // Nombre Usuario
                             TextFormField(
                               controller: _usernameController,
@@ -138,7 +131,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               decoration: _inputDecoration('Nombre Usuario'),
                             ),
                             const SizedBox(height: 25.0),
-
                             // Correo
                             TextFormField(
                               controller: _emailController,
@@ -154,7 +146,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               decoration: _inputDecoration('Correo'),
                             ),
                             const SizedBox(height: 25.0),
-
                             // Contraseña
                             TextFormField(
                               controller: _passwordController,
@@ -174,7 +165,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                             ),
                             const SizedBox(height: 25.0),
-
                             // Confirmar contraseña
                             TextFormField(
                               controller: _confirmPasswordController,
@@ -204,8 +194,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                             ),
                             const SizedBox(height: 25.0),
-
-                            // Checkbox de términos
+                            // Checkbox de términos (minimalista pero con enlaces a términos completos)
                             Row(
                               crossAxisAlignment: CrossAxisAlignment.start,
                               children: [
@@ -215,21 +204,43 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                       () => agreePersonalData = value ?? false),
                                   activeColor: Themes.degradientLight,
                                 ),
-                                // Flexible permite que el texto se ajuste y haga salto de línea si es necesario
                                 Expanded(
-                                  child: Text.rich(
-                                    TextSpan(
+                                  child: RichText(
+                                    text: TextSpan(
+                                      style: const TextStyle(
+                                          color: Colors.black87, fontSize: 14),
                                       children: [
                                         const TextSpan(
-                                          text: 'Acepto el procesamiento de ',
-                                          style:
-                                              TextStyle(color: Colors.black45),
+                                            text:
+                                                'Al registrarte, aceptas nuestros '),
+                                        WidgetSpan(
+                                          child: GestureDetector(
+                                            onTap: () =>
+                                                _showTermsDialog(context),
+                                            child: Text(
+                                              'Términos y Condiciones',
+                                              style: TextStyle(
+                                                color: Themes.degradientLight,
+                                                decoration:
+                                                    TextDecoration.underline,
+                                              ),
+                                            ),
+                                          ),
                                         ),
-                                        TextSpan(
-                                          text: 'Datos personales.',
-                                          style: TextStyle(
-                                            color: Themes.degradientLight,
-                                            fontWeight: FontWeight.bold,
+                                        const TextSpan(text: ' y '),
+                                        WidgetSpan(
+                                          child: GestureDetector(
+                                            onTap: () =>
+                                                _showPrivacyPolicyDialog(
+                                                    context),
+                                            child: Text(
+                                              'Política de Privacidad',
+                                              style: TextStyle(
+                                                color: Themes.degradientLight,
+                                                decoration:
+                                                    TextDecoration.underline,
+                                              ),
+                                            ),
                                           ),
                                         ),
                                       ],
@@ -238,9 +249,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                 ),
                               ],
                             ),
-
                             const SizedBox(height: 25.0),
-
                             // Botón de registro
                             SizedBox(
                               width: double.infinity,
@@ -254,7 +263,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                             ),
                             const SizedBox(height: 30.0),
-
                             // Línea separadora
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -279,38 +287,10 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ],
                             ),
                             const SizedBox(height: 30.0),
-
                             // Iconos redes sociales
                             Row(
                               mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                               children: [
-                               /* Consumer(
-                                  builder: (context, ref, _) {
-                                    return GestureDetector(
-                                      onTap: () async {
-                                        try {
-                                          final authNotifier =
-                                              ref.read(authProvider.notifier);
-                                          await authNotifier
-                                              .signInWithFacebook(); // Usar el nuevo método
-                                          if (mounted) {
-                                            Navigator.pushAndRemoveUntil(
-                                              context,
-                                              MaterialPageRoute(
-                                                  builder: (_) =>
-                                                      const HomeScreen()),
-                                              (route) => false,
-                                            );
-                                          }
-                                        } catch (e) {
-                                          _showSnackBar(
-                                              e.toString(), Colors.red);
-                                        }
-                                      },
-                                      child: Logo(Logos.facebook_f),
-                                    );
-                                  },
-                                ),*/
                                 Consumer(
                                   builder: (context, ref, _) {
                                     return GestureDetector(
@@ -318,8 +298,21 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                         try {
                                           final authNotifier =
                                               ref.read(authProvider.notifier);
-                                          await authNotifier.signInWithGoogle();
-                                          if (mounted) {
+                                          // MODIFICADO: Ahora signInWithGoogle devuelve si es nuevo usuario
+                                          final isNewUser = await authNotifier
+                                              .signInWithGoogle();
+
+                                          if (isNewUser) {
+                                            // Si es usuario nuevo, mostrar pantalla de términos
+                                            Navigator.push(
+                                              context,
+                                              MaterialPageRoute(
+                                                builder: (_) =>
+                                                    TermsAcceptanceScreen(),
+                                              ),
+                                            );
+                                          } else {
+                                            // Usuario existente puede ir directamente
                                             Navigator.pushAndRemoveUntil(
                                               context,
                                               MaterialPageRoute(
@@ -340,7 +333,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ],
                             ),
                             const SizedBox(height: 25.0),
-
                             // Link a Login
                             Row(
                               mainAxisAlignment: MainAxisAlignment.center,
@@ -375,6 +367,62 @@ class _RegisterScreenState extends State<RegisterScreen> {
             ),
           );
         },
+      ),
+    );
+  }
+
+  // Mostrar diálogo con términos y condiciones
+  void _showTermsDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(ErrorStrings.termsAndConditionsTitle),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                ErrorStrings.termsAndConditionsContent,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: Navigator.of(context).pop,
+            child: const Text('Cerrar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // Mostrar diálogo con política de privacidad
+  void _showPrivacyPolicyDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(ErrorStrings.privacyPolicyTitle),
+        content: SingleChildScrollView(
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                ErrorStrings.privacyPolicyContent,
+                style: Theme.of(context).textTheme.bodyMedium,
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: Navigator.of(context).pop,
+            child: const Text('Cerrar'),
+          ),
+        ],
       ),
     );
   }

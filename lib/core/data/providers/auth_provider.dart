@@ -15,7 +15,7 @@ import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 class AuthStorage {
   static const String _tokenKey = 'auth_token';
   static const String _loggedOutKey = 'user_logged_out';
-
+  
   // Guarda el token de autenticación en SharedPreferences.
   Future<void> saveToken(String token) async {
     try {
@@ -26,7 +26,7 @@ class AuthStorage {
       throw ErrorStrings.unexpectedError;
     }
   }
-
+  
   // Elimina el token de autenticación.
   Future<void> deleteToken() async {
     try {
@@ -37,7 +37,7 @@ class AuthStorage {
       throw ErrorStrings.unexpectedError;
     }
   }
-
+  
   // Obtiene el token almacenado.
   Future<String?> getToken() async {
     try {
@@ -48,7 +48,7 @@ class AuthStorage {
       return null;
     }
   }
-
+  
   // Marca al usuario como cerrado de sesión.
   Future<void> setLoggedOut(bool value) async {
     try {
@@ -59,7 +59,7 @@ class AuthStorage {
       throw ErrorStrings.unexpectedError;
     }
   }
-
+  
   // Verifica si el usuario está marcado como deslogueado.
   Future<bool> isLoggedOut() async {
     try {
@@ -70,7 +70,7 @@ class AuthStorage {
       return false;
     }
   }
-
+  
   // Limpia la marca de cierre de sesión.
   Future<void> clearLoggedOut() async {
     try {
@@ -96,30 +96,30 @@ class AuthState {
   final bool isLoading;
   /// Mensaje de error (si ocurre alguno).
   final String? error;
-
+  
   const AuthState.initial()
       : user = null,
         isLoading = false,
         error = null;
-
+  
   const AuthState.loading()
       : user = null,
         isLoading = true,
         error = null;
-
+  
   const AuthState.authenticated(this.user)
       : isLoading = false,
         error = null;
-
+  
   const AuthState.unauthenticated()
       : user = null,
         isLoading = false,
         error = null;
-
+  
   const AuthState.error(this.error)
       : user = null,
         isLoading = false;
-
+  
   String? get uid => user?.uid ?? '';
   bool get isAuthenticated => user != null;
 }
@@ -131,7 +131,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final GoogleSignIn _googleSignIn = GoogleSignIn();
   final AuthStorage _storage = AuthStorage();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-
+  
   AuthNotifier() : super(const AuthState.initial()) {
     _initAuthListener();
   }
@@ -166,7 +166,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       state = const AuthState.loading();
       await _storage.clearLoggedOut();
-
       // Para la plataforma web se configura la persistencia y se deshabilita appVerification en testing
       if (kIsWeb) {
         await _auth.setPersistence(Persistence.LOCAL);
@@ -256,11 +255,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Inicio de sesión con Google.
-  Future<void> signInWithGoogle() async {
+  /// MODIFICADO: Ahora devuelve un booleano indicando si es un usuario nuevo
+  Future<bool> signInWithGoogle() async {
     try {
       state = const AuthState.loading();
       await _storage.clearLoggedOut();
-
       // Inicia el flujo de autenticación con Google.
       final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
       if (googleUser == null) {
@@ -279,12 +278,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final UserCredential userCredential =
           await _auth.signInWithCredential(credential);
       final User? user = userCredential.user;
+      
       if (user != null) {
-        await _handleNewGoogleUser(user); // Crea el usuario en Firestore si es nuevo.
+        // Verificar si es un usuario nuevo
+        final isNewUser = await _isNewGoogleUser(user);
+        await _handleNewGoogleUser(user);
+        
         final token = await user.getIdToken();
         await _storage.saveToken(token ?? '');
         state = AuthState.authenticated(user);
+        
+        return isNewUser;
       }
+      
+      return false;
     } on FirebaseAuthException catch (e) {
       final message = AuthErrorHandler.handle(e);
       state = AuthState.error(message);
@@ -292,6 +299,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (e) {
       state = AuthState.error(ErrorStrings.unexpectedError);
       throw ErrorStrings.unexpectedError;
+    }
+  }
+
+  /// Verifica en Firestore si el usuario autenticado mediante Google ya existe
+  /// MODIFICADO: Ahora devuelve un booleano
+  Future<bool> _isNewGoogleUser(User user) async {
+    try {
+      final userDoc = await _firestore.collection('users').doc(user.uid).get();
+      return !userDoc.exists;
+    } catch (e) {
+      logger.e('Error verificando si es nuevo usuario', error: e);
+      return false;
     }
   }
 
@@ -305,6 +324,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
           'displayName': user.displayName ?? 'Usuario Nuevo',
           'email': user.email ?? '',
           'createdAt': FieldValue.serverTimestamp(),
+          // Agregar campo para rastrear la aceptación de términos
+          'acceptedTerms': false,
         });
       }
     } catch (e) {
@@ -312,29 +333,25 @@ class AuthNotifier extends StateNotifier<AuthState> {
       logger.e('Error al sincronizar datos de usuario', error: e);
     }
   }
+
   /// Inicio de sesión con Facebook
   Future<void> signInWithFacebook() async {
     try {
       state = const AuthState.loading();
       await _storage.clearLoggedOut();
-
       // Iniciar flujo de autenticación con Facebook
       final LoginResult loginResult = await FacebookAuth.instance.login();
-
       if (loginResult.status != LoginStatus.success) {
         throw FirebaseAuthException(
           code: 'aborted-by-user',
           message: 'Sign in aborted by user',
         );
       }
-
       // Obtener token de acceso
       final OAuthCredential facebookAuthCredential = FacebookAuthProvider.credential(loginResult.accessToken!.tokenString);
-
       // Iniciar sesión en Firebase
       final UserCredential userCredential = await _auth.signInWithCredential(facebookAuthCredential);
       final User? user = userCredential.user;
-
       if (user != null) {
         await _handleNewSocialUser(user); // Verificar/crear usuario en Firestore
         final token = await user.getIdToken();
@@ -361,6 +378,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
           'name': user.displayName ?? 'Usuario Social',
           'email': user.email ?? '',
           'createdAt': FieldValue.serverTimestamp(),
+          // Agregar campo para rastrear la aceptación de términos
+          'acceptedTerms': false,
         });
       }
     } catch (e) {

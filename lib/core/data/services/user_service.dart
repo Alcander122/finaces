@@ -20,13 +20,11 @@ class UserService {
         email: email,
         password: password,
       );
-
       // Verificar que el usuario fue creado correctamente
       final User? user = userCredential.user;
       if (user == null) {
         throw Exception("No se pudo completar el registro del usuario.");
       }
-
       // Crear documento del usuario en Firestore
       final userDoc = _firestore.collection('users').doc(user.uid);
       await userDoc.set({
@@ -35,11 +33,11 @@ class UserService {
         'displayName': displayName,
         'email': email,
         'createdAt': FieldValue.serverTimestamp(),
+        // Agregar campo para rastrear la aceptación de términos
+        'acceptedTerms': true,
       });
-
       // Actualizar displayName del usuario
       await user.updateDisplayName(name);
-
       // Devolver el modelo de usuario completo
       return UserModel(
         uid: user.uid,
@@ -50,7 +48,7 @@ class UserService {
     } on FirebaseAuthException {
       rethrow;
     } catch (e) {
-     // print("❌ Error en registerUser: $e");
+      // print("❌ Error en registerUser: $e");
       //print("🔍 StackTrace: $stackTrace");
       rethrow;
     }
@@ -66,7 +64,6 @@ class UserService {
       await _firestore.collection('users').doc(userId).update({
         'name': newName,
       });
-
       // Actualizar displayName en Auth
       final user = _auth.currentUser;
       if (user != null) {
@@ -84,10 +81,8 @@ class UserService {
     try {
       final user = _auth.currentUser;
       if (user == null) return null;
-
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
       if (!userDoc.exists) return null;
-
       return UserModel.fromMap(userDoc.data()!);
     } catch (e) {
       //print("❌ Error al obtener usuario actual: $e");
@@ -103,10 +98,8 @@ class UserService {
       if (user == null) {
         throw Exception("No hay usuario autenticado.");
       }
-
       // Eliminar documento de Firestore
       await _firestore.collection('users').doc(user.uid).delete();
-
       // Eliminar usuario de Auth
       await user.delete();
     } catch (e) {
@@ -128,19 +121,20 @@ class UserService {
       rethrow;
     }
   }
-   Future<UserModel> handleGoogleUser(User user) async {
+
+  Future<UserModel> handleGoogleUser(User user) async {
     final userDoc = _firestore.collection('users').doc(user.uid);
     final docSnapshot = await userDoc.get();
-
     if (!docSnapshot.exists) {
       await userDoc.set({
         'uid': user.uid,
         'name': user.displayName ?? 'Usuario Google',
         'email': user.email ?? '',
         'createdAt': FieldValue.serverTimestamp(),
+        // Agregar campo para rastrear la aceptación de términos
+        'acceptedTerms': false,
       });
     }
-
     return UserModel(
       uid: user.uid,
       name: user.displayName ?? 'Usuario Google',
@@ -148,23 +142,25 @@ class UserService {
       createdAt: DateTime.now(),
     );
   }
+
   Future<UserModel> handleSocialUser(User user) async {
-  final userDoc = _firestore.collection('users').doc(user.uid);
-  final docSnapshot = await userDoc.get();
-  if (!docSnapshot.exists) {
-    await userDoc.set({
-      'uid': user.uid,
-      'name': user.displayName ?? 'Usuario Social',
-      'email': user.email ?? '',
-      'createdAt': FieldValue.serverTimestamp(),
-    });
+    final userDoc = _firestore.collection('users').doc(user.uid);
+    final docSnapshot = await userDoc.get();
+    if (!docSnapshot.exists) {
+      await userDoc.set({
+        'uid': user.uid,
+        'name': user.displayName ?? 'Usuario Social',
+        'email': user.email ?? '',
+        'createdAt': FieldValue.serverTimestamp(),
+        // Agregar campo para rastrear la aceptación de términos
+        'acceptedTerms': false,
+      });
+    }
+    return UserModel(
+      uid: user.uid,
+      name: user.displayName ?? 'Usuario Social',
+      email: user.email ?? '',
+      createdAt: DateTime.now(),
+    );
   }
-  return UserModel(
-    uid: user.uid,
-    name: user.displayName ?? 'Usuario Social',
-    email: user.email ?? '',
-    createdAt: DateTime.now(),
-  );
-}
-  
 }
