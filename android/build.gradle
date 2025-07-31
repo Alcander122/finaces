@@ -1,16 +1,18 @@
-// Top-level build file where you can add configuration options common to all sub-projects/modules.
-
+// Archivo de configuración de nivel superior para todas las subproyectos/modules
 buildscript {
     repositories {
-        google()
-        mavenCentral()
+        google()        // Repositorio de Google
+        mavenCentral()  // Repositorio central de Maven
     }
     dependencies {
-        // Google Services para Firebase
-        classpath 'com.google.gms:google-services:4.3.15' // Versión más reciente de Google Services
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:1.9.0' // Compatible con AGP 8.2
-        classpath 'com.android.tools.build:gradle:8.2.1'  // Versión más reciente de Android Gradle plugin
-        // Agregar otras dependencias si es necesario, como Android Gradle plugin o Kotlin Gradle plugin.
+        // Plugin de Google Services para Firebase
+        classpath 'com.google.gms:google-services:4.3.15'
+
+        // Plugin de Kotlin Gradle (versión compatible con AGP 8.2)
+        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0'
+
+        // Plugin de Android Gradle (compatible con Gradle 8.4)
+        classpath 'com.android.tools.build:gradle:8.2.1'
     }
 }
 
@@ -21,16 +23,14 @@ allprojects {
     }
 }
 
-// Configuración para gestionar los directorios de build
+// Configura las carpetas de build para todos los módulos
 rootProject.buildDir = "../build"
 subprojects {
     project.buildDir = "${rootProject.buildDir}/${project.name}"
-}
-subprojects {
     project.evaluationDependsOn(":app")
 }
 
-// Tarea para limpiar los directorios de build
+// Limpia la carpeta build
 tasks.register("clean", Delete) {
     delete rootProject.buildDir
 }

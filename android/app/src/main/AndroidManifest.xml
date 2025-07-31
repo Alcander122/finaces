@@ -3,18 +3,13 @@
     package="com.example.finances"
     android:installLocation="auto">
 
-    <!-- ✅ Permisos esenciales -->
+    <!-- Permisos necesarios -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
 
-    <!-- ✅ Configuración de la versión mínima y objetivo del SDK -->
-    <uses-sdk
-        android:minSdkVersion="21"
-        android:targetSdkVersion="34" />
-
-    <!-- ✅ Consultas necesarias para abrir links, compartir texto, etc -->
+    <!-- Consulta para apps que envían texto, abren links, etc -->
     <queries>
         <intent>
             <action android:name="android.intent.action.PROCESS_TEXT" />
@@ -33,7 +28,6 @@
         </intent>
     </queries>
 
-    <!-- ✅ Definición de la aplicación -->
     <application
         android:label="BillNance"
         android:name="${applicationName}"
@@ -44,39 +38,12 @@
         android:largeHeap="false"
         android:networkSecurityConfig="@xml/network_security_config">
 
-        <!-- ✅ Librería de compatibilidad para redes antiguas (opcional) -->
+        <!-- Librería de compatibilidad (opcional) -->
         <uses-library
             android:name="org.apache.http.legacy"
             android:required="false" />
 
-        <!-- ✅ Configuración de Facebook Login -->
-        <meta-data
-            android:name="com.facebook.sdk.ApplicationId"
-            android:value="@string/facebook_app_id" />
-        <meta-data
-            android:name="com.facebook.sdk.ClientToken"
-            android:value="@string/facebook_client_token" />
-
-        <!-- ✅ Actividad para el inicio de sesión con Facebook -->
-        <activity
-            android:name="com.facebook.FacebookActivity"
-            android:configChanges="keyboard|keyboardHidden|screenLayout|screenSize|orientation|smallestScreenSize"
-            android:exported="true"
-            tools:replace="android:configChanges" />
-
-        <!-- ✅ Actividad para Custom Tabs de Facebook Login -->
-        <activity
-            android:name="com.facebook.CustomTabActivity"
-            android:exported="true">
-            <intent-filter>
-                <action android:name="android.intent.action.VIEW" />
-                <category android:name="android.intent.category.DEFAULT" />
-                <category android:name="android.intent.category.BROWSABLE" />
-                <data android:scheme="@string/fb_login_protocol_scheme" />
-            </intent-filter>
-        </activity>
-
-        <!-- ✅ Actividad principal de tu app Flutter -->
+        <!-- Actividad principal de Flutter -->
         <activity
             android:name=".MainActivity"
             android:exported="true"
@@ -87,19 +54,17 @@
             android:hardwareAccelerated="true"
             android:windowSoftInputMode="adjustResize">
 
-            <!-- ✅ Tema mostrado mientras Flutter se inicializa -->
             <meta-data
                 android:name="io.flutter.embedding.android.NormalTheme"
                 android:resource="@style/NormalTheme" />
 
-            <!-- ✅ Define la actividad que inicia al abrir la app -->
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!-- ✅ Configuración del motor Flutter -->
+        <!-- Configuración del motor Flutter -->
         <meta-data
             android:name="flutterEmbedding"
             android:value="2" />

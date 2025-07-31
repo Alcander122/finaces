@@ -1,8 +1,8 @@
 plugins {
     id "com.android.application"
     id "kotlin-android"
-    id "dev.flutter.flutter-gradle-plugin"
-    id "com.google.gms.google-services" // Plugin de Google Services para Firebase
+    id "dev.flutter.flutter-gradle-plugin"        // Plugin Flutter
+    id "com.google.gms.google-services"           // Plugin Google Services (Firebase)
 }
 
 android {
@@ -10,12 +10,37 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
+    // Configuración de firma (opcional, solo si quieres firmar la app)
+    def keystoreProperties = new Properties()
+    def keystorePropertiesFile = rootProject.file("key.properties")
+    if (keystorePropertiesFile.exists()) {
+        keystoreProperties.load(new FileInputStream(keystorePropertiesFile))
+    }
+
     defaultConfig {
-        minSdkVersion 23 // El SDK mínimo debe ser 23 para Firebase
-        applicationId = "com.example.finances" // Cambia por el ID único de tu aplicación
+        applicationId = "com.example.finances"
+        minSdkVersion 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
         versionName = flutter.versionName
+    }
+
+    signingConfigs {
+        release {
+            keyAlias keystoreProperties['keyAlias']
+            keyPassword keystoreProperties['keyPassword']
+            storeFile file(keystoreProperties['storeFile'])
+            storePassword keystoreProperties['storePassword']
+        }
+    }
+
+    buildTypes {
+        release {
+            signingConfig signingConfigs.release
+            minifyEnabled true                // Reduce tamaño del APK
+            shrinkResources true             // Elimina recursos no usados
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
     }
 
     compileOptions {
@@ -24,28 +49,22 @@ android {
     }
 
     kotlinOptions {
-        jvmTarget = "1.8" // Se asegura de que Kotlin sea compatible con Java 1.8
-    }
-
-    buildTypes {
-        release {
-            // Firmado con claves de debug para que `flutter run --release` funcione
-            minifyEnabled true // Habilitar la reducción de código no utilizado
-            shrinkResources true // Habilitar la eliminación de recursos no utilizados
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
-        }
+        jvmTarget = "1.8"
     }
 }
 
 flutter {
-    source = "../.." // Ruta al directorio raíz de tu proyecto Flutter
+    source = "../.."
 }
 
 dependencies {
-    implementation platform('com.google.firebase:firebase-bom:32.2.0') // BOM de Firebase para gestionar versiones
-    implementation 'com.google.firebase:firebase-analytics' // Firebase Analytics
-    implementation 'com.google.firebase:firebase-auth' // Firebase Authentication
-    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.1.0" // Biblioteca estándar de Kotlin
-}
+    // Importa BoM de Firebase (control de versiones unificado)
+    implementation platform('com.google.firebase:firebase-bom:32.2.0')
 
-apply plugin: 'com.google.gms.google-services' // Aplica el plugin de Google Services para Firebase
+    // Firebase Analytics y Auth
+    implementation 'com.google.firebase:firebase-analytics'
+    implementation 'com.google.firebase:firebase-auth'
+
+    // Kotlin stdlib
+    implementation "org.jetbrains.kotlin:kotlin-stdlib:2.1.0"
+}
