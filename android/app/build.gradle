@@ -60,7 +60,7 @@ flutter {
 dependencies {
     // Importa BoM de Firebase (control de versiones unificado)
     implementation platform('com.google.firebase:firebase-bom:32.2.0')
-
+    implementation 'com.google.android.gms:play-services-auth:20.7.0'
     // Firebase Analytics y Auth
     implementation 'com.google.firebase:firebase-analytics'
     implementation 'com.google.firebase:firebase-auth'

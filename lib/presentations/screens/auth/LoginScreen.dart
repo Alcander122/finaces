@@ -10,7 +10,6 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:icons_plus/icons_plus.dart';
-import 'package:flutter/widgets.dart';
 
 /// Pantalla de login para autenticar al usuario mediante correo y contraseña.
 /// También incorpora el inicio de sesión con Google.
@@ -22,14 +21,14 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class LoginScreenState extends ConsumerState<LoginScreen> {
-  // Controladores para capturar el correo y la contraseña ingresados por el usuario.
+  // Controladores para los campos de entrada
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
 
-  // Clave global para validar el formulario.
+  // Clave para validar el formulario
   final GlobalKey<FormState> _formSignInKey = GlobalKey<FormState>();
 
-  /// Valida que los campos de correo y contraseña no estén vacíos.
+  /// Verifica si los campos están llenos.
   bool _validateFields() {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       UIHelpers.showErrorSnackBar(
@@ -41,14 +40,14 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     return true;
   }
 
-  /// Muestra un SnackBar con el mensaje y color correspondiente.
+  /// Muestra un SnackBar con un mensaje y color.
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: color),
     );
   }
 
-  /// Maneja y retorna el mensaje de error a partir de una excepción.
+  /// Maneja errores y retorna un mensaje amigable.
   String _handleError(Object error) {
     if (error is FirebaseAuthException) {
       return AuthErrorHandler.handle(error);
@@ -56,42 +55,34 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     return ErrorStrings.unexpectedError;
   }
 
-  /// Muestra el feedback de error al usuario.
+  /// Muestra feedback de error al usuario.
   void _showErrorFeedback(String message) {
     if (!mounted) return;
     UIHelpers.showErrorSnackBar(context: context, message: message);
   }
 
-  /// Función que realiza el inicio de sesión mediante el método definido en AuthProvider.
+  /// Realiza el login con email y contraseña.
   Future<void> _performLogin() async {
     if (!_validateFields()) return;
 
-    // Mostrar diálogo de carga
-    final context = this.context;
     showDialog(
       context: context,
       barrierDismissible: false,
-      builder: (context) => const Center(
-        child: CircularProgressIndicator(),
-      ),
+      builder: (context) => const Center(child: CircularProgressIndicator()),
     );
 
     try {
-      // Realizar el inicio de sesión
       await ref.read(authProvider.notifier).signIn(
             _emailController.text.trim(),
             _passwordController.text.trim(),
           );
 
-      // Cerrar el diálogo de carga
-      Navigator.pop(context);
+      Navigator.pop(context); // Cierra el diálogo de carga
 
-      // Navegar al HomeScreen si es exitoso
       if (mounted) {
         Navigator.pushReplacementNamed(context, AppRoutes.home);
       }
     } catch (e) {
-      // Cerrar el diálogo antes de mostrar el error
       Navigator.pop(context);
       debugPrint('Error en login: $e');
       _showErrorFeedback(_handleError(e));
@@ -110,7 +101,6 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
               padding: const EdgeInsets.fromLTRB(25.0, 50.0, 25.0, 20.0),
               decoration: const BoxDecoration(
                 color: Colors.white,
-                // Bordes redondeados en la parte superior
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(40.0),
                   topRight: Radius.circular(40.0),
@@ -122,7 +112,6 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
-                      // Título de la pantalla.
                       Text(
                         'Inicie sesión',
                         style: TextStyle(
@@ -132,7 +121,8 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 40.0),
-                      // Campo de texto para ingresar el correo.
+
+                      // Input de email
                       TextFormField(
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
@@ -140,7 +130,6 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                           if (value == null || value.isEmpty) {
                             return ErrorStrings.requiredField;
                           }
-                          // Expresión regular para validar el correo.
                           if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
                               .hasMatch(value)) {
                             return ErrorStrings.invalidEmail;
@@ -151,7 +140,8 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                             _inputDecoration('Correo', 'ejemplo@dominio.com'),
                       ),
                       const SizedBox(height: 25.0),
-                      // Campo para la contraseña.
+
+                      // Input de contraseña
                       TextFormField(
                         controller: _passwordController,
                         obscureText: true,
@@ -166,7 +156,8 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                         decoration: _inputDecoration('Contraseña', '••••••••'),
                       ),
                       const SizedBox(height: 25.0),
-                      // Botón de inicio de sesión.
+
+                      // Botón de ingresar
                       SizedBox(
                         width: double.infinity,
                         child: ElevatedButton(
@@ -177,13 +168,11 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                       const SizedBox(height: 25.0),
                       _buildDivider(),
                       const SizedBox(height: 25.0),
-                      // Sección para login con redes sociales.
+
+                      // Botón de login con Google
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
-                          // Botón de Facebook (ejemplo visual)
-                          //Logo(Logos.facebook_f),
-                          // Botón para iniciar sesión con Google.
                           Consumer(
                             builder: (context, ref, _) {
                               return GestureDetector(
@@ -191,12 +180,26 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                                   try {
                                     final authNotifier =
                                         ref.read(authProvider.notifier);
-                                    await authNotifier.signInWithGoogle();
-                                    if (mounted) {
-                                      Navigator.pushReplacementNamed(
-                                        context,
-                                        AppRoutes.home,
-                                      );
+                                    final isNewUser =
+                                        await authNotifier.signInWithGoogle();
+
+                                    if (isNewUser) {
+                                      // Si es nuevo usuario, lo redirige al registro
+                                      if (mounted) {
+                                        Navigator.pushReplacement(
+                                          context,
+                                          MaterialPageRoute(
+                                            builder: (_) =>
+                                                const RegisterScreen(),
+                                          ),
+                                        );
+                                      }
+                                    } else {
+                                      // Usuario existente → home
+                                      if (mounted) {
+                                        Navigator.pushReplacementNamed(
+                                            context, AppRoutes.home);
+                                      }
                                     }
                                   } catch (e) {
                                     _showSnackBar(e.toString(), Colors.red);
@@ -221,7 +224,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  /// Método para construir un Divider (separador visual) con texto.
+  /// Sección de divider entre login tradicional y social login
   Widget _buildDivider() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -246,7 +249,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  /// Sección que redirige al usuario a la pantalla de registro.
+  /// Redirige al usuario a la pantalla de registro
   Widget _buildRegisterSection() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -270,7 +273,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  /// Método que define la decoración de los campos de entrada.
+  /// Estilo de los inputs del formulario
   InputDecoration _inputDecoration(String label, String hint) {
     return InputDecoration(
       label: Text(label),
