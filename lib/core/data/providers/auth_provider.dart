@@ -7,7 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+//import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 
 /// Maneja almacenamiento local (token, estado de logout)
 class AuthStorage {
@@ -87,7 +87,7 @@ class AuthState {
 class AuthNotifier extends StateNotifier<AuthState> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final UserService _userService = UserService();
-  final GoogleSignIn _googleSignIn = GoogleSignIn();
+  final GoogleSignIn googleSignIn = GoogleSignIn();
   final AuthStorage _storage = AuthStorage();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
@@ -212,32 +212,40 @@ class AuthNotifier extends StateNotifier<AuthState> {
   /// Retorna `true` si el usuario NO tiene documento en Firestore (es nuevo)
   Future<bool> signInWithGoogle() async {
     try {
-      final GoogleSignInAccount? googleUser = await _googleSignIn.signIn();
+      // Crear una nueva instancia para asegurar el selector de cuenta
+      final GoogleSignIn googleSignIn = GoogleSignIn(
+        scopes: ['email', 'profile'],
+        // Esto fuerza una nueva autenticación, evitando sesión previa
+        forceCodeForRefreshToken: true,
+      );
+
+      // Cierra cualquier sesión previa para que siempre salga el diálogo
+      await googleSignIn.signOut();
+
+      // Muestra el diálogo de selección de cuenta de Google
+      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
       if (googleUser == null) throw Exception("Inicio de sesión cancelado");
 
+      // Autenticación con Google
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
+      // Genera las credenciales de Firebase
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
+      // Inicia sesión en Firebase con las credenciales de Google
       final userCredential = await _auth.signInWithCredential(credential);
-
       final user = userCredential.user;
       if (user == null) throw Exception("Usuario no encontrado");
 
-      // Verifica si el usuario ya existe en Firestore
+      // Verifica si el documento del usuario ya existe en Firestore
       final exists = await _userService.userExists(user.uid);
 
-      // Solo si NO existe, retornamos true para redirigir a registro
-      if (!exists) {
-        // No se crea documento aquí — se redirige a completar el perfil
-        return true;
-      }
-
-      return false;
+      // Si no existe, se debe redirigir al registro
+      return !exists;
     } catch (e) {
       debugPrint("Error en signInWithGoogle: $e");
       rethrow;
@@ -245,7 +253,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Login con Facebook
-  Future<void> signInWithFacebook() async {
+  /*Future<void> signInWithFacebook() async {
     try {
       state = const AuthState.loading();
       await _storage.clearLoggedOut();
@@ -275,5 +283,5 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = AuthState.error(ErrorStrings.unexpectedError);
       throw ErrorStrings.unexpectedError;
     }
-  }
+  }*/
 }

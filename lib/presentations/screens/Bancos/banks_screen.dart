@@ -23,7 +23,7 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
   @override
   void initState() {
     super.initState();
-    _controladorTabs = TabController(length: 2, vsync: this);
+    _controladorTabs = TabController(length: 1, vsync: this);
   }
 
   @override
@@ -62,7 +62,7 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
                 ),
                 boxShadow: [
                   BoxShadow(
-                    color: Colors.black.withOpacity(0.1),
+                    color: Colors.black.withValues(alpha: 0.1),
                     blurRadius: 6,
                     offset: const Offset(0, 3),
                   )
@@ -84,7 +84,7 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
                 controller: _controladorTabs,
                 children: [
                   _buildBancosTab(bancos, userId),
-                  _buildTasaTab(bancos),
+                  //_buildTasaTab(bancos),
                 ],
               ),
             ),
@@ -185,8 +185,8 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
               .read(bancoNotifierProvider(userId).notifier)
               .crearBanco(nuevoBanco)
               .then((_) {
-            Navigator.of(context).pop();
-            Navigator.of(context).pop();
+            Navigator.of(context).pop(); // Cierra el diálogo de cuenta
+            Navigator.of(context).pop(); // Cierra el diálogo de banco
           });
         },
       ),

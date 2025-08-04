@@ -30,8 +30,8 @@ class IngresoTable extends StatelessWidget {
         .toList();
 
     //Se eliminan dos columnas de la interfaz. PENDIENTE REVISION DE REUSO
-    camposMostrar.remove('quincena');
-    camposMostrar.remove('concepto');
+    //camposMostrar.remove('quincena');
+    //camposMostrar.remove('concepto');
     if (ingresos.isEmpty) {
       return Center(
         child: Text('No hay ingresos disponibles'),
@@ -48,7 +48,11 @@ class IngresoTable extends StatelessWidget {
                 padding: CustomTableStyles.headerPadding,
                 child: Center(
                   child: Text(
-                    campo == 'fechaIngreso' ? 'Fecha Ingreso' : campo,
+                    campo == 'fechaIngreso'
+                        ? 'Fecha Ingreso'
+                        : campo == 'quincena'
+                            ? 'Periodo'
+                            : campo,
                     style: CustomTableStyles.headerTextStyle,
                   ),
                 ),
@@ -76,7 +80,9 @@ class IngresoTable extends StatelessWidget {
                           .format((ingreso[campo] as Timestamp).toDate()))
                       : campo == 'valor' && ingreso[campo] != null
                           ? Text('\$${formatoMoneda.format(ingreso[campo])}')
-                          : Text(ingreso[campo]?.toString() ?? ''),
+                          : campo == 'quincena'
+                              ? Text(_formatearPeriodo(ingreso[campo]))
+                              : Text(ingreso[campo]?.toString() ?? ''),
                 ),
               DataCell(
                 Row(
@@ -121,5 +127,20 @@ class IngresoTable extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatearPeriodo(dynamic valor) {
+    switch (valor) {
+      case 'Primera':
+        return 'Primera Quincena';
+      case 'Segunda':
+        return 'Segunda Quincena';
+      case 'Diario':
+        return 'Diario';
+      case 'Mensual':
+        return 'Mensual';
+      default:
+        return valor?.toString() ?? '';
+    }
   }
 }

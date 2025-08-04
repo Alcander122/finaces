@@ -31,7 +31,7 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
   String? _estado;
   DateTime _fechaActual = DateTime.now();
 
-  final List<String> _quincenas = ['Primera', 'Segunda'];
+  final List<String> _quincenas = ['Primera Quincena', 'Segunda Quincena', 'Diario', 'Mensual'];
   final List<String> _categorias = [
     'Alimentación',
     'Transporte',
@@ -139,7 +139,7 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
               child: SingleChildScrollView(
                 child: Column(
                   children: [
-                    buildDropdown(_quincenas, _quincena, 'Quincena',
+                    buildDropdown(_quincenas, _quincena, 'Periodo',
                         (val) => setState(() => _quincena = val)),
                     buildTextField(_conceptoController, 'Concepto'),
                     buildTextField(

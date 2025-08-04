@@ -22,7 +22,7 @@ class IngresoTable extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     Set<String> camposDisponibles = {};
-    
+
     // Si hay datos, se toman las claves del primer elemento como campos disponibles
     if (egresos.isNotEmpty) {
       camposDisponibles = egresos.first.keys.toSet();
@@ -87,8 +87,11 @@ class IngresoTable extends StatelessWidget {
                           .format((egreso[campo] as Timestamp).toDate()))
                       : campo == 'valor' && egreso[campo] != null
                           ? Text('\$${formatoMoneda.format(egreso[campo])}')
-                          : Text(egreso[campo]?.toString() ?? ''),
+                          : campo == 'quincena'
+                              ? Text(_formatearPeriodo(egreso[campo]))
+                              : Text(egreso[campo]?.toString() ?? ''),
                 ),
+
               // Celda de acciones
               DataCell(
                 Row(
@@ -118,7 +121,8 @@ class IngresoTable extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Eliminar ingreso'),
-        content: const Text('¿Estás seguro de que deseas eliminar este ingreso?'),
+        content:
+            const Text('¿Estás seguro de que deseas eliminar este ingreso?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -134,5 +138,20 @@ class IngresoTable extends StatelessWidget {
         ],
       ),
     );
+  }
+
+  String _formatearPeriodo(dynamic valor) {
+    switch (valor) {
+      case 'Primera':
+        return 'Primera Quincena';
+      case 'Segunda':
+        return 'Segunda Quincena';
+      case 'Diario':
+        return 'Diario';
+      case 'Mensual':
+        return 'Mensual';
+      default:
+        return valor?.toString() ?? '';
+    }
   }
 }

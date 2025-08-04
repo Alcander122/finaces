@@ -20,7 +20,7 @@ class EgresosScreen extends ConsumerStatefulWidget {
 
 class EgresosScreenState extends ConsumerState<EgresosScreen> {
   final _allColumns = [
-    'Quincena',
+    'Periodo',
     'Fecha Pago', // Nuevo campo
     'Categoría',
     'Concepto',
@@ -30,7 +30,7 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
   ];
 
   Set<String> _visibleColumns = {
-    'Quincena',
+    'Periodo',
     'Fecha Pago', // Nuevo campo
     //'Concepto', //| No mostrar 'Concepto' en la tabla
     'Valor',
@@ -39,8 +39,8 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
 
   String _getEgresoCellValue(Egreso egreso, String column) {
     switch (column) {
-      case 'Quincena':
-        return egreso.quincena;
+      case 'Periodo':
+  return _formatearPeriodo(egreso.quincena);
       case 'Fecha':
         return DateFormat('dd/MM/yyyy').format(egreso.fecha);
       case 'Fecha Pago': // Nuevo campo
@@ -212,5 +212,19 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
         ),
       ),
     );
+  }
+  String _formatearPeriodo(dynamic valor) {
+    switch (valor) {
+      case 'Primera':
+        return 'Primera Quincena';
+      case 'Segunda':
+        return 'Segunda Quincena';
+      case 'Diario':
+        return 'Diario';
+      case 'Mensual':
+        return 'Mensual';
+      default:
+        return valor?.toString() ?? '';
+    }
   }
 }

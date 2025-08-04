@@ -41,18 +41,17 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
 
   // Lista de campos visibles en la tabla (sin 'mes' y 'anio')
   final List<String> _camposVisibles = [
-    'fechaIngreso', // Reemplaza 'fecha', 'mes', 'anio'
-    'quincena',
+    'fechaIngreso',
     'categoria',
-    'concepto',
     'valor',
+    // 'quincena' y 'concepto' disponibles pero no visibles por defecto
   ];
 
   // Método que se ejecuta al inicializar la pantalla
   @override
   void initState() {
     super.initState();
-    _quincena = 'Primera';
+    _quincena = 'Primera Quincena';
     _categoria = 'Salario';
     _cargarIngresos();
   }
@@ -271,12 +270,15 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
           DropdownButtonFormField<String>(
             value: _quincena,
             hint: const Text('Selecciona una quincena'),
-            items: const ['Primera', 'Segunda']
-                .map((q) => DropdownMenuItem(value: q, child: Text(q)))
-                .toList(),
+            items: const [
+              'Primera Quincena',
+              'Segunda Quincena',
+              'Diario',
+              'Mensual'
+            ].map((q) => DropdownMenuItem(value: q, child: Text(q))).toList(),
             onChanged: (value) => setState(() => _quincena = value),
             decoration: const InputDecoration(
-              labelText: 'Quincena',
+              labelText: 'Periodo',
               border: OutlineInputBorder(),
             ),
             validator: (value) => _validator.validateQuincena(value),
@@ -362,7 +364,11 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
                   children: camposDisponibles
                       .map((campo) => CheckboxListTile(
                             title: Text(
-                              campo == 'fechaIngreso' ? 'Fecha Ingreso' : campo,
+                              campo == 'fechaIngreso'
+                                  ? 'Fecha Ingreso'
+                                  : campo == 'quincena'
+                                      ? 'Periodo'
+                                      : campo,
                             ),
                             value: _camposVisibles.contains(campo),
                             onChanged: (value) {

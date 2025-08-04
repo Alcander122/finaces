@@ -74,9 +74,32 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        validator: (value) => (value?.isEmpty ?? true)
-                            ? 'Por favor, ingresa un nombre'
-                            : null,
+                        // Validación personalizada para el campo "Nombre"
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Por favor, ingresa un nombre';
+                          }
+
+                          final trimmed = value.trim();
+
+                          // Longitud mínima
+                          if (trimmed.length < 3) {
+                            return 'El nombre debe tener al menos 3 caracteres';
+                          }
+
+                          // Longitud máxima
+                          if (trimmed.length > 30) {
+                            return 'El nombre no debe exceder los 30 caracteres';
+                          }
+
+                          // Solo letras, números y espacios
+                          final validNameRegExp = RegExp(r'^[a-zA-Z0-9\s]+$');
+                          if (!validNameRegExp.hasMatch(trimmed)) {
+                            return 'Solo se permiten letras, números y espacios';
+                          }
+
+                          return null; // Todo OK
+                        },
                       ),
                       const SizedBox(height: 24),
                       SizedBox(
@@ -89,10 +112,12 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       false) {
                                     setState(() => _isSaving = true);
                                     try {
+                                      // Guardamos el nombre con espacios removidos al inicio/final
                                       await ref
                                           .read(authProvider.notifier)
                                           .updateDisplayName(
-                                              _nameController.text);
+                                              _nameController.text.trim());
+
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(
                                         const SnackBar(
@@ -159,6 +184,7 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  // Muestra el nombre y correo del usuario en un card decorativo
   Widget _buildProfileInfo(User? user) {
     return Container(
       width: double.infinity,
@@ -211,6 +237,7 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  // Diálogo de confirmación para cerrar sesión
   void _showLogoutDialog(BuildContext context) {
     showDialog(
       context: context,

@@ -182,20 +182,34 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                                         ref.read(authProvider.notifier);
                                     final isNewUser =
                                         await authNotifier.signInWithGoogle();
-
                                     if (isNewUser) {
-                                      // Si es nuevo usuario, lo redirige al registro
-                                      if (mounted) {
-                                        Navigator.pushReplacement(
-                                          context,
-                                          MaterialPageRoute(
-                                            builder: (_) =>
-                                                const RegisterScreen(),
-                                          ),
-                                        );
-                                      }
+                                      // Mostrar mensaje y redirigir a registro
+                                      if (!mounted) return;
+                                      showDialog(
+                                        context: context,
+                                        builder: (_) => AlertDialog(
+                                          title: const Text(
+                                              'Cuenta no registrada'),
+                                          content: const Text(
+                                              'La cuenta no se encuentra registrada, será redireccionado al registro para crear la cuenta.'),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () {
+                                                Navigator.of(context).pop();
+                                                Navigator.pushReplacement(
+                                                  context,
+                                                  MaterialPageRoute(
+                                                      builder: (_) =>
+                                                          const RegisterScreen()),
+                                                );
+                                              },
+                                              child: const Text('Aceptar'),
+                                            ),
+                                          ],
+                                        ),
+                                      );
                                     } else {
-                                      // Usuario existente → home
+                                      // Redirige a home
                                       if (mounted) {
                                         Navigator.pushReplacementNamed(
                                             context, AppRoutes.home);
