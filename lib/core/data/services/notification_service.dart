@@ -4,7 +4,6 @@ import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
 import 'package:timezone/data/latest_all.dart' as tz;
 import 'package:intl/intl.dart';
-import 'package:flutter_local_notifications/flutter_local_notifications.dart' show DateTimeComponents;
 
 /// Servicio para manejar notificaciones locales en la aplicación.
 /// Se encarga de programar y cancelar notificaciones para pagos recurrentes.
@@ -68,7 +67,8 @@ class NotificationService {
 
       // Programa la notificación usando zonedSchedule
       await flutterLocalNotificationsPlugin.zonedSchedule(
-        scheduledDate.millisecondsSinceEpoch.hashCode % 1000000000, // ID único basado en la fecha
+        scheduledDate.millisecondsSinceEpoch.hashCode %
+            1000000000, // ID único basado en la fecha
         title,
         body,
         tzDateTime,
@@ -88,15 +88,19 @@ class NotificationService {
   /// [pago] El objeto Pago que contiene la información de programación.
   Future<void> scheduleRecurringNotification(Pago pago) async {
     try {
-      debugPrint("Intentando programar notificación para pago: ${pago.id} (${pago.descripcion})");
+      debugPrint(
+          "Intentando programar notificación para pago: ${pago.id} (${pago.descripcion})");
 
       // 1. Calcular la fecha/hora base para la notificación
       // Se resta el número de días de anticipación a la fecha de vencimiento
-      final DateTime notificationDateTime = pago.fechaVencimiento.subtract(Duration(days: pago.notificacionAntes));
-      debugPrint("Fecha base calculada para notificación: $notificationDateTime");
+      final DateTime notificationDateTime = pago.fechaVencimiento
+          .subtract(Duration(days: pago.notificacionAntes));
+      debugPrint(
+          "Fecha base calculada para notificación: $notificationDateTime");
 
       // Convertir a TZDateTime para manejo correcto de zonas horarias
-      final tz.TZDateTime tzDateTime = tz.TZDateTime.from(notificationDateTime, tz.local);
+      final tz.TZDateTime tzDateTime =
+          tz.TZDateTime.from(notificationDateTime, tz.local);
 
       // 2. Determinar el componente de fecha/hora para repetir
       DateTimeComponents? repeatComponent;
@@ -124,7 +128,8 @@ class NotificationService {
           break;
         default:
           // Si no coincide con una frecuencia conocida, programa solo una vez
-          debugPrint("Frecuencia desconocida o no especificada: ${pago.frecuenciaRecurrencia}. Programando solo una notificación.");
+          debugPrint(
+              "Frecuencia desconocida o no especificada: ${pago.frecuenciaRecurrencia}. Programando solo una notificación.");
           repeatComponent = null; // No se repite
       }
 
@@ -133,8 +138,10 @@ class NotificationService {
           AndroidNotificationDetails(
         'canal_pagos', // ID del canal
         'Notificaciones de Pagos', // Nombre del canal
-        channelDescription: 'Canal para recordatorios de pagos recurrentes', // Descripción del canal
-        importance: Importance.high, // Importancia alta para que se muestre prominentemente
+        channelDescription:
+            'Canal para recordatorios de pagos recurrentes', // Descripción del canal
+        importance: Importance
+            .high, // Importancia alta para que se muestre prominentemente
         priority: Priority.high, // Prioridad alta
       );
       const NotificationDetails platformChannelSpecifics =
@@ -142,23 +149,26 @@ class NotificationService {
 
       // 4. Programar la notificación con recurrencia
       await flutterLocalNotificationsPlugin.zonedSchedule(
-        _getNotificationId(pago.id), // ID único para esta notificación basado en el ID del pago
+        _getNotificationId(pago
+            .id), // ID único para esta notificación basado en el ID del pago
         'Pago programado: ${pago.descripcion}', // Título de la notificación
         'Recuerda pagar ${pago.descripcion} el ${DateFormat.yMd().format(pago.fechaVencimiento)}', // Cuerpo del mensaje
         tzDateTime, // Fecha/Hora base calculada
         platformChannelSpecifics, // Detalles de la notificación
         uiLocalNotificationDateInterpretation:
-            UILocalNotificationDateInterpretation.absoluteTime, // Interpretar la fecha como absoluta
+            UILocalNotificationDateInterpretation
+                .absoluteTime, // Interpretar la fecha como absoluta
         // Modo exacto que permite mostrar la notificación incluso en modo Doze (ahorro de energía)
         androidScheduleMode: AndroidScheduleMode.exactAllowWhileIdle,
         // Componente para repetir - Esta es la corrección principal
         matchDateTimeComponents: repeatComponent,
       );
 
-      debugPrint("Notificación programada correctamente para pago ${pago.id} con frecuencia ${pago.frecuenciaRecurrencia} (ID: ${_getNotificationId(pago.id)})");
-
+      debugPrint(
+          "Notificación programada correctamente para pago ${pago.id} con frecuencia ${pago.frecuenciaRecurrencia} (ID: ${_getNotificationId(pago.id)})");
     } catch (e) {
-      debugPrint("Error programando notificación recurrente para pago ${pago.id}: $e");
+      debugPrint(
+          "Error programando notificación recurrente para pago ${pago.id}: $e");
     }
   }
 
@@ -198,7 +208,8 @@ class NotificationService {
       debugPrint("Cancelando notificación con ID: $notificationId");
       // Llama al plugin para cancelar la notificación específica
       await flutterLocalNotificationsPlugin.cancel(notificationId);
-      debugPrint("Notificación con ID: $notificationId cancelada exitosamente.");
+      debugPrint(
+          "Notificación con ID: $notificationId cancelada exitosamente.");
     } catch (e) {
       debugPrint("Error cancelando notificación con ID $notificationId: $e");
     }

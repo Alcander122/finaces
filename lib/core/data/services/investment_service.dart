@@ -66,7 +66,7 @@ class InvestmentService {
         await doc.reference.delete();
       }
     } catch (e) {
-      print('Error al eliminar inversiones: $e');
+      //print('Error al eliminar inversiones: $e');
       rethrow;
     }
   }

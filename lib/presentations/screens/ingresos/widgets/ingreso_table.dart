@@ -3,6 +3,8 @@ import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finances/presentations/screens/ingresos/widgets/customtable_styles.dart';
 
+/// Widget para mostrar una tabla de ingresos con campos dinámicos
+/// y una columna de acciones al principio.
 class IngresoTable extends StatelessWidget {
   final List<Map<String, dynamic>> ingresos;
   final void Function(Map<String, dynamic>) onEdit;
@@ -21,26 +23,42 @@ class IngresoTable extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    Set<String> camposDisponibles = {};
-    if (ingresos.isNotEmpty) {
-      camposDisponibles = ingresos.first.keys.toSet();
-    }
-    List<String> camposMostrar = camposVisibles
-        .where((campo) => camposDisponibles.contains(campo))
-        .toList();
-
-    //Se eliminan dos columnas de la interfaz. PENDIENTE REVISION DE REUSO
-    //camposMostrar.remove('quincena');
-    //camposMostrar.remove('concepto');
+    // Mostrar mensaje si no hay ingresos
     if (ingresos.isEmpty) {
-      return Center(
+      return const Center(
         child: Text('No hay ingresos disponibles'),
       );
     }
+
+    // Obtener campos disponibles del primer ingreso
+    final Set<String> camposDisponibles = ingresos.first.keys.toSet();
+
+    // Filtrar campos visibles
+    final List<String> camposMostrar = camposVisibles
+        .where((campo) => camposDisponibles.contains(campo))
+        .toList();
+
+    // Formateador de moneda para Colombia
     final formatoMoneda = NumberFormat("#,##0", "es_CO");
+
     return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
       child: DataTable(
         columns: [
+          // Columna de acciones (primera columna)
+          DataColumn(
+            label: Container(
+              decoration: CustomTableStyles.headerDecoration,
+              padding: CustomTableStyles.headerPadding,
+              child: Center(
+                child: Text(
+                  'Acciones',
+                  style: CustomTableStyles.headerTextStyle,
+                ),
+              ),
+            ),
+          ),
+          // Columnas dinámicas basadas en los campos visibles
           for (var campo in camposMostrar)
             DataColumn(
               label: Container(
@@ -48,57 +66,50 @@ class IngresoTable extends StatelessWidget {
                 padding: CustomTableStyles.headerPadding,
                 child: Center(
                   child: Text(
-                    campo == 'fechaIngreso'
-                        ? 'Fecha Ingreso'
-                        : campo == 'quincena'
-                            ? 'Periodo'
-                            : campo,
+                    _formatearNombreCampo(campo),
                     style: CustomTableStyles.headerTextStyle,
                   ),
                 ),
               ),
             ),
-          DataColumn(
-            label: Container(
-              decoration: CustomTableStyles.headerDecoration,
-              padding: CustomTableStyles.headerPadding,
-              child: Text(
-                'Acciones',
-                style: CustomTableStyles.headerTextStyle,
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
         ],
         rows: ingresos.map((ingreso) {
           return DataRow(
             cells: [
-              for (var campo in camposMostrar)
-                DataCell(
-                  campo == 'fechaIngreso' && ingreso[campo] is Timestamp
-                      ? Text(DateFormat('dd/MM/yyyy')
-                          .format((ingreso[campo] as Timestamp).toDate()))
-                      : campo == 'valor' && ingreso[campo] != null
-                          ? Text('\$${formatoMoneda.format(ingreso[campo])}')
-                          : campo == 'quincena'
-                              ? Text(_formatearPeriodo(ingreso[campo]))
-                              : Text(ingreso[campo]?.toString() ?? ''),
-                ),
+              // Celda de acciones (debe ir de primera)
               DataCell(
-                Row(
-                  children: [
-                    IconButton(
-                      icon: Icon(Icons.edit, color: Colors.blue),
-                      onPressed: () => onEdit(ingreso),
-                    ),
-                    IconButton(
-                      icon: Icon(Icons.delete, color: Colors.red),
-                      onPressed: () =>
-                          _confirmarEliminar(context, ingreso['id'].toString()),
-                    ),
-                  ],
+                SizedBox(
+                  width: 100,
+                  child: Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                    children: [
+                      Tooltip(
+                        message: "Actualizar registro",
+                        child: IconButton(
+                          icon: const Icon(Icons.edit,
+                              color: Colors.blue, size: 18),
+                          onPressed: () => onEdit(ingreso),
+                        ),
+                      ),
+                      Tooltip(
+                        message: "Eliminar registro",
+                        child: IconButton(
+                          icon: const Icon(Icons.delete,
+                              color: Colors.red, size: 18),
+                          onPressed: () => _confirmarEliminar(
+                              context, ingreso['id'].toString()),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
+
+              // Celdas dinámicas con datos
+              for (var campo in camposMostrar)
+                DataCell(
+                  _formatearCelda(campo, ingreso[campo], formatoMoneda),
+                ),
             ],
           );
         }).toList(),
@@ -106,29 +117,45 @@ class IngresoTable extends StatelessWidget {
     );
   }
 
+  /// Diálogo de confirmación para eliminar ingreso
   void _confirmarEliminar(BuildContext context, String id) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text('Eliminar ingreso'),
-        content: Text('¿Estás seguro de que deseas eliminar este ingreso?'),
+        title: const Text('Eliminar ingreso'),
+        content: const Text('¿Estás seguro de que deseas eliminar este ingreso?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text('Cancelar'),
+            child: const Text('Cancelar'),
           ),
           ElevatedButton(
             onPressed: () {
               Navigator.pop(context);
               onDelete(id);
             },
-            child: Text('Eliminar'),
+            child: const Text('Eliminar'),
           ),
         ],
       ),
     );
   }
 
+  /// Devuelve un widget con el texto formateado para cada celda
+  Widget _formatearCelda(
+      String campo, dynamic valor, NumberFormat formatoMoneda) {
+    if (campo == 'fechaIngreso' && valor is Timestamp) {
+      return Text(DateFormat('dd/MM/yyyy').format(valor.toDate()));
+    } else if (campo == 'valor' && valor != null) {
+      return Text('\$${formatoMoneda.format(valor)}');
+    } else if (campo == 'quincena') {
+      return Text(_formatearPeriodo(valor));
+    } else {
+      return Text(valor?.toString() ?? '');
+    }
+  }
+
+  /// Convierte el valor de quincena a texto legible
   String _formatearPeriodo(dynamic valor) {
     switch (valor) {
       case 'Primera':
@@ -141,6 +168,20 @@ class IngresoTable extends StatelessWidget {
         return 'Mensual';
       default:
         return valor?.toString() ?? '';
+    }
+  }
+
+  /// Formatea el nombre del campo para mostrarlo como encabezado
+  String _formatearNombreCampo(String campo) {
+    switch (campo) {
+      case 'fechaIngreso':
+        return 'Fecha Ingreso';
+      case 'quincena':
+        return 'Periodo';
+      case 'valor':
+        return 'Valor';
+      default:
+        return campo[0].toUpperCase() + campo.substring(1);
     }
   }
 }

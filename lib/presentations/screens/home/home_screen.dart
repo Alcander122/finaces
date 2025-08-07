@@ -360,7 +360,11 @@ class HomeScreen extends ConsumerWidget {
   }
 
   // Tarjetas de acceso rápido
+  // Sección mejorada de tarjetas de acceso rápido
+// Esta implementación resuelve el problema de que el usuario no se dé cuenta
+// que debe desplazar horizontalmente para ver todas las opciones
   Widget _buildMenuCardsSeccion(BuildContext context) {
+    // Definimos los datos de las tarjetas de acceso rápido
     final List<Map<String, dynamic>> tips = [
       {
         'icon': const Icon(FontAwesomeIcons.piggyBank, color: Colors.orange),
@@ -389,75 +393,160 @@ class HomeScreen extends ConsumerWidget {
         'screen': PagosScreen(),
       },
       /*{
-        'icon': const Icon(FontAwesomeIcons.clockRotateLeft, color: Colors.red),
-        'title': 'Historial',
-        'description': 'Historial de movimientos.',
-        'screen': AhorroScreen(),
-      },*/
+      'icon': const Icon(FontAwesomeIcons.clockRotateLeft, color: Colors.red),
+      'title': 'Historial',
+      'description': 'Historial de movimientos.',
+      'screen': AhorroScreen(),
+    },*/
     ];
+
+    // Verificamos si hay más tarjetas de las que caben en la pantalla
+    // (asumiendo que caben aproximadamente 3 en pantalla completa)
+    final bool hayMasOpciones = tips.length > 3;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 10),
-          child: Text('Accesos rápidos',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        // Título de la sección con indicador visual de que hay más opciones
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Accesos rápidos',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+
+            // Mostramos un indicador solo si hay más opciones que las que caben en pantalla
+            if (hayMasOpciones)
+              Row(
+                children: [
+                  const Text('Más opciones ',
+                      style: TextStyle(color: Colors.blue, fontSize: 14)),
+                  const Icon(Icons.arrow_forward_ios,
+                      size: 14, color: Colors.blue)
+                ],
+              )
+          ],
         ),
+
+        const SizedBox(height: 10),
+
+        // Contenedor principal de las tarjetas
         SizedBox(
           height: 150,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: tips.length,
-            itemBuilder: (context, index) {
-              final item = tips[index];
-              return GestureDetector(
-                onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ProviderScope(child: item['screen']),
-                    )),
-                child: Container(
-                  width: 180,
-                  margin: const EdgeInsets.only(right: 12),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Themes.degradientLight, Themes.degradientDark],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+          child: Stack(
+            children: [
+              // ListView horizontal con las tarjetas
+              ListView.builder(
+                scrollDirection: Axis.horizontal,
+                // Añadimos padding para mostrar parcialmente la siguiente tarjeta
+                // Esto ayuda al usuario a entender que hay más contenido
+                padding: const EdgeInsets.only(left: 8, right: 16),
+                itemCount: tips.length,
+                itemBuilder: (context, index) {
+                  final item = tips[index];
+
+                  // Determinamos si es el último elemento
+                  final bool esUltimoElemento = index == tips.length - 1;
+
+                  return GestureDetector(
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ProviderScope(child: item['screen']),
+                        )),
+                    child: Container(
+                      width: 180,
+                      // Ajustamos el margen para mostrar un "peek" del siguiente elemento
+                      // Si es el último elemento, no añadimos margen derecho
+                      margin: EdgeInsets.only(
+                          right: esUltimoElemento ? 0 : 24,
+                          // Para el primer elemento, añadimos un pequeño desplazamiento
+                          // para mostrar que hay espacio para desplazar
+                          left: index == 0 ? 8 : 0),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Themes.degradientLight,
+                            Themes.degradientDark
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: [
+                          BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 4,
+                              offset: const Offset(0, 2)),
+                        ],
+                      ),
+                      child: Stack(
+                        children: [
+                          // Contenido principal de la tarjeta
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              item['icon'] as Widget,
+                              const SizedBox(height: 8),
+                              Text(
+                                item['title'],
+                                style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Themes.white),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                item['description'],
+                                style: const TextStyle(
+                                    fontSize: 13, color: Colors.white70),
+                              ),
+                            ],
+                          ),
+
+                          // Efecto de desvanecimiento en el borde derecho para el último elemento
+                          // Esto indica visualmente que hay más contenido a la derecha
+                          if (index == tips.length - 1 && hayMasOpciones)
+                            const Align(
+                              alignment: Alignment.centerRight,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.centerRight,
+                                    end: Alignment.centerLeft,
+                                    colors: [Colors.white, Colors.transparent],
+                                    stops: [0.3, 1.0],
+                                  ),
+                                ),
+                                child: SizedBox(
+                                    width: 30, height: double.infinity),
+                              ),
+                            )
+                        ],
+                      ),
                     ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 4,
-                          offset: const Offset(0, 2)),
-                    ],
+                  );
+                },
+              ),
+
+              // Indicador visual adicional en el borde derecho
+              // Solo se muestra si hay más opciones
+              if (hayMasOpciones)
+                Positioned(
+                  right: 12,
+                  top: 50,
+                  bottom: 50,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.black26,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(Icons.chevron_right,
+                        color: Colors.white, size: 20),
                   ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      item['icon'] as Widget,
-                      const SizedBox(height: 8),
-                      Text(
-                        item['title'],
-                        style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Themes.white),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        item['description'],
-                        style: const TextStyle(
-                            fontSize: 13, color: Colors.white70),
-                      ),
-                    ],
-                  ),
-                ),
-              );
-            },
+                )
+            ],
           ),
         ),
       ],

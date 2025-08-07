@@ -85,7 +85,7 @@ class IngresosService {
         return totalIngresos;
       }).handleError((error) {
         // Manejar el error si es necesario
-        print("Error en streamTotalIngresos: $error");
+        //print("Error en streamTotalIngresos: $error");
         throw Exception("Error en streamTotalIngresos: $error");
       });
     } catch (e) {
@@ -113,7 +113,7 @@ class IngresosService {
         }
         return total;
       }).handleError((error) {
-        print("Error en streamTotalIngresosInRange: $error");
+        //print("Error en streamTotalIngresosInRange: $error");
         throw Exception("Error en streamTotalIngresosInRange: $error");
       });
     } catch (e) {
@@ -148,7 +148,7 @@ class IngresosService {
           });
         }).toList();
       }).handleError((error) {
-        print("Error en obtenerIngresosFiltrados: $error");
+        //print("Error en obtenerIngresosFiltrados: $error");
         throw Exception("Error en obtenerIngresosFiltrados: $error");
       });
     } catch (e) {
@@ -191,7 +191,7 @@ class IngresosService {
         }
         return totalIngresos;
       }).handleError((error) {
-        print("Error en streamTotalIngresosMesActual: $error");
+        //print("Error en streamTotalIngresosMesActual: $error");
         throw Exception("Error en streamTotalIngresosMesActual: $error");
       });
     } catch (e) {

@@ -23,22 +23,20 @@ class IngresoTable extends StatelessWidget {
   Widget build(BuildContext context) {
     Set<String> camposDisponibles = {};
 
-    // Si hay datos, se toman las claves del primer elemento como campos disponibles
+    // Si hay datos, tomamos las claves del primer egreso como referencia
     if (egresos.isNotEmpty) {
       camposDisponibles = egresos.first.keys.toSet();
     }
 
-    // Removemos campos que no se deben mostrar en la tabla
+    // Remover campos que no se deben mostrar
     camposDisponibles.remove('id');
     camposDisponibles.remove('fecha');
+    camposDisponibles.remove('Concepto');
 
-    // Se genera la lista de campos a mostrar en la tabla a partir de los visibles y disponibles
+    // Filtrar campos visibles que están disponibles
     List<String> camposMostrar = camposVisibles
         .where((campo) => camposDisponibles.contains(campo))
         .toList();
-
-    // ✅ Aseguramos que 'Concepto' no se muestre aunque esté en camposVisibles
-    camposDisponibles.remove('Concepto');
 
     if (egresos.isEmpty) {
       return const Center(child: Text('No hay ingresos disponibles'));
@@ -47,9 +45,23 @@ class IngresoTable extends StatelessWidget {
     final formatoMoneda = NumberFormat("#,##0", "es_CO");
 
     return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
       child: DataTable(
         columns: [
-          // Construimos las columnas basadas en los campos a mostrar
+          // ✅ Columna de Acciones al inicio
+          DataColumn(
+            label: Container(
+              decoration: CustomTableStyles.headerDecoration,
+              padding: CustomTableStyles.headerPadding,
+              child: const Text(
+                'Acciones',
+                style: CustomTableStyles.headerTextStyle,
+                textAlign: TextAlign.center,
+              ),
+            ),
+          ),
+
+          // Luego las demás columnas visibles
           for (var campo in camposMostrar)
             DataColumn(
               label: Container(
@@ -63,59 +75,53 @@ class IngresoTable extends StatelessWidget {
                 ),
               ),
             ),
-          // Columna para acciones (editar/eliminar)
-          DataColumn(
-            label: Container(
-              decoration: CustomTableStyles.headerDecoration,
-              padding: CustomTableStyles.headerPadding,
-              child: const Text(
-                'Acciones',
-                style: CustomTableStyles.headerTextStyle,
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
         ],
         rows: egresos.map((egreso) {
-          return DataRow(
-            cells: [
-              // Llenamos las celdas por cada campo visible
-              for (var campo in camposMostrar)
-                DataCell(
-                  campo == 'fechaPago' && egreso[campo] is Timestamp
-                      ? Text(DateFormat('dd/MM/yyyy')
-                          .format((egreso[campo] as Timestamp).toDate()))
-                      : campo == 'valor' && egreso[campo] != null
-                          ? Text('\$${formatoMoneda.format(egreso[campo])}')
-                          : campo == 'quincena'
-                              ? Text(_formatearPeriodo(egreso[campo]))
-                              : Text(egreso[campo]?.toString() ?? ''),
-                ),
+          // ✅ Construimos la lista de celdas en el orden correcto
+          List<DataCell> celdas = [];
 
-              // Celda de acciones
-              DataCell(
-                Row(
-                  children: [
-                    IconButton(
-                      icon: const Icon(Icons.edit, color: Colors.blue),
-                      onPressed: () => onEdit(egreso),
-                    ),
-                    IconButton(
-                      icon: const Icon(Icons.delete, color: Colors.red),
-                      onPressed: () =>
-                          _confirmarEliminar(context, egreso['id'].toString()),
-                    ),
-                  ],
-                ),
+          // Primero: la celda de acciones
+          celdas.add(
+            DataCell(
+              Row(
+                children: [
+                  IconButton(
+                    icon: const Icon(Icons.edit, color: Colors.blue),
+                    onPressed: () => onEdit(egreso),
+                  ),
+                  IconButton(
+                    icon: const Icon(Icons.delete, color: Colors.red),
+                    onPressed: () =>
+                        _confirmarEliminar(context, egreso['id'].toString()),
+                  ),
+                ],
               ),
-            ],
+            ),
           );
+
+          // Luego: las celdas de datos
+          for (var campo in camposMostrar) {
+            final valor = egreso[campo];
+            celdas.add(
+              DataCell(
+                campo == 'fechaPago' && valor is Timestamp
+                    ? Text(DateFormat('dd/MM/yyyy').format(valor.toDate()))
+                    : campo == 'valor' && valor != null
+                        ? Text('\$${formatoMoneda.format(valor)}')
+                        : campo == 'quincena'
+                            ? Text(_formatearPeriodo(valor))
+                            : Text(valor?.toString() ?? ''),
+              ),
+            );
+          }
+
+          return DataRow(cells: celdas);
         }).toList(),
       ),
     );
   }
 
-  // Diálogo para confirmar eliminación
+  // Diálogo de confirmación al eliminar
   void _confirmarEliminar(BuildContext context, String id) {
     showDialog(
       context: context,
@@ -140,6 +146,7 @@ class IngresoTable extends StatelessWidget {
     );
   }
 
+  // Formatea el campo 'quincena'
   String _formatearPeriodo(dynamic valor) {
     switch (valor) {
       case 'Primera':

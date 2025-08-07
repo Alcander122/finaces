@@ -119,7 +119,7 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
     );
   }
 
-  Widget _buildTasaTab(List<BancoModelo> bancos) {
+  Widget buildTasaTab(List<BancoModelo> bancos) {
     if (bancos.isEmpty) {
       return const Center(child: Text("No hay datos disponibles."));
     }
