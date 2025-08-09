@@ -5,9 +5,15 @@ import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:intl/date_symbol_data_local.dart'; // IMPORTANTE: Agrega esta línea
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // 🔑 INICIALIZACIÓN CRÍTICA: Datos de localización para español
+  // Esto es ABSOLUTAMENTE NECESARIO para que los nombres de los meses funcionen
+  await initializeDateFormatting('es', null);
+  debugPrint('Datos de localización para español inicializados correctamente');
 
   // Inicializar Firebase antes que cualquier otro servicio
   await Firebase.initializeApp();
@@ -27,7 +33,7 @@ void main() async {
     debugPrint('Error al inicializar notificaciones: $e');
   }
 
-   await FacebookAuth.i.webAndDesktopInitialize(
+  await FacebookAuth.i.webAndDesktopInitialize(
     appId: "642352742000792", // Usa tu App ID
     cookie: true,
     xfbml: true,

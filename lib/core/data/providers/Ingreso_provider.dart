@@ -24,6 +24,8 @@ final filteredIngresosProvider = StreamProvider.autoDispose<double>((ref) {
             .streamTotalIngresosMesActual(authState.user!.uid);
       case FilterType.quarterly:
       case FilterType.annual:
+        // IMPORTANTE: Para el filtro anual, obtenemos TODOS los ingresos del año
+        // Esto permite que el gráfico los agrupe por mes posteriormente
         return ref
             .watch(ingresosServiceProvider)
             .streamTotalIngresos(authState.user!.uid);

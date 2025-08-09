@@ -39,7 +39,9 @@ final totalEgresoMesActualProvider = StreamProvider.autoDispose<double>((ref) {
 
   final service = ref.watch(egresoServiceProvider);
 
-  return service.streamTotalGastosMesActual(authState.user!.uid).handleError((error, stackTrace) {
+  return service
+      .streamTotalGastosMesActual(authState.user!.uid)
+      .handleError((error, stackTrace) {
     debugPrint('Error al obtener gastos: $error');
     return Stream.value(0.0); // En caso de error, devuelve 0
   });
@@ -56,6 +58,8 @@ final filteredEgresosProvider = StreamProvider.autoDispose<double>((ref) {
       return EgresoService().streamTotalGastosMesActual(authState.user!.uid);
     case FilterType.quarterly:
     case FilterType.annual:
+      // IMPORTANTE: Para el filtro anual, obtenemos TODOS los egresos del año
+      // Esto permite que el gráfico los agrupe por mes posteriormente
       return EgresoService().streamTotalGastos(authState.user!.uid);
     case FilterType.custom:
       return EgresoService().streamTotalGastosInRange(
@@ -65,6 +69,9 @@ final filteredEgresosProvider = StreamProvider.autoDispose<double>((ref) {
       );
   }
 });
+
+// Proveedor de egresos filtrados por rango de fechas
+// Este es el proveedor que usa activity_chart.dart para obtener los datos
 final egresosFiltradosProvider =
     StreamProvider.autoDispose<List<Egreso>>((ref) {
   final authState = ref.watch(authProvider);

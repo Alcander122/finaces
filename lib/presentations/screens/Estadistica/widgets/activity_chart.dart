@@ -1,73 +1,70 @@
-// activity_chart.dart
-// Gráfico de actividad financiera con manejo seguro de datos y formato de fechas
-
 import 'package:finances/core/data/models/filter.dart';
 import 'package:finances/core/data/providers/filter_provider.dart';
-//import 'package:finances/presentations/theme/themes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:finances/core/data/models/ingreso.model.dart';
+import 'package:finances/core/data/models/egreso_model.dart';
 import 'package:finances/core/data/providers/ingreso_provider.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
 import 'dart:math';
 
-/// Modelo que representa una transacción financiera
-/// - [fecha]: Fecha de la transacción
-/// - [monto]: Valor monetario (positivo para ingresos, negativo para egresos)
-/// - [esIngreso]: Bandera que indica si es un ingreso
-class Transaction {
-  final DateTime fecha;
-  final double monto;
-  final bool esIngreso;
-
-  const Transaction({
-    required this.fecha,
-    required this.monto,
-    required this.esIngreso,
-  });
-}
-
-/// Clase para almacenar datos por período con ingresos y egresos separados
+/// Clase que representa un periodo con datos de ingresos y egresos
+///
+/// Almacena los datos necesarios para mostrar en cada barra del gráfico:
+/// - Fecha de inicio del periodo
+/// - Total de ingresos en ese periodo
+/// - Total de egresos en ese periodo
 class PeriodData {
   final DateTime start;
   final double ingresos;
   final double egresos;
 
-  PeriodData(
-      {required this.start, required this.ingresos, required this.egresos});
+  PeriodData({
+    required this.start,
+    required this.ingresos,
+    required this.egresos,
+  });
 }
 
-/// Widget principal que muestra el gráfico de actividad financiera
+/// Widget para mostrar un gráfico de barras comparativo de ingresos y egresos
+///
+/// Este widget es responsivo y se adapta al filtro actual (mensual, trimestral, anual o personalizado)
+/// Muestra una visualización clara de los movimientos financieros del usuario
 class ActivityChart extends ConsumerWidget {
   const ActivityChart({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Obtener el filtro actual y los datos asincrónicos
     final filtro = ref.watch(filterProvider);
-    final ingresosAsync = ref.watch(filteredIngresosProvider);
-    final egresosAsync = ref.watch(filteredEgresosProvider);
+    final ingresosAsync = ref.watch(ingresosFiltradosProvider);
+    final egresosAsync = ref.watch(egresosFiltradosProvider);
 
+    // Esperamos a que ingresos y egresos estén listos antes de dibujar el gráfico
     return ingresosAsync.when(
       data: (ingresos) => egresosAsync.when(
         data: (egresos) => _buildChartContent(ingresos, egresos, filtro),
-        loading: _buildLoading,
-        error: (err, _) => _buildError('Error en egresos: $err'),
+        loading: () => _buildLoading(),
+        error: (err, stack) => _buildError('Error en egresos: $err'),
       ),
-      loading: _buildLoading,
-      error: (err, _) => _buildError('Error en ingresos: $err'),
+      loading: () => _buildLoading(),
+      error: (err, stack) => _buildError('Error en ingresos: $err'),
     );
   }
 
-  /// Construye el contenido principal del gráfico
-  Widget _buildChartContent(double ingresos, double egresos, Filter filtro) {
+  /// Construye el contenido del gráfico
+  Widget _buildChartContent(
+      List<Ingreso> ingresos, List<Egreso> egresos, Filter filtro) {
     final periodos = _generarPeriodos(filtro);
-    final transacciones = _calcularTransacciones(ingresos, egresos, periodos);
+
+    // Calculamos ingresos y egresos por periodo usando las fechas REALES
+    final transacciones =
+        _calcularTransaccionesReal(ingresos, egresos, periodos);
 
     return Card(
       elevation: 0,
-      color: Color.fromARGB(255, 206, 230, 248),
+      color: const Color.fromARGB(255, 206, 230, 248),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -76,8 +73,8 @@ class ActivityChart extends ConsumerWidget {
           children: [
             _buildTitulo(filtro),
             const SizedBox(height: 15),
-            SizedBox(
-              height: 250,
+            AspectRatio(
+              aspectRatio: 1.7,
               child: BarChart(_crearDatosChart(transacciones, filtro)),
             ),
             const SizedBox(height: 10),
@@ -88,38 +85,24 @@ class ActivityChart extends ConsumerWidget {
     );
   }
 
-  /// Genera los períodos temporales según el filtro seleccionado
+  /// Genera periodos según el filtro (mensual, trimestral, etc.)
   List<DateTimeRange> _generarPeriodos(Filter filtro) {
     final rango = _calcularRango(filtro);
     final List<DateTimeRange> periodos = [];
 
     switch (filtro.type) {
       case FilterType.monthly:
-        var current = DateTime(rango.start.year, rango.start.month);
-        while (current.isBefore(rango.end)) {
-          final next = current.add(const Duration(days: 30));
-          periodos.add(DateTimeRange(
-            start: current,
-            end: next.isBefore(rango.end) ? next : rango.end,
-          ));
-          current = next.add(const Duration(days: 1));
+        var current = DateTime(rango.start.year, rango.start.month, 1);
+        while (current.isBefore(rango.end.add(const Duration(days: 1)))) {
+          periodos.add(DateTimeRange(start: current, end: current));
+          current = current.add(const Duration(days: 1));
         }
         break;
       case FilterType.quarterly:
-        var current = DateTime(rango.start.year, rango.start.month);
-        while (current.isBefore(rango.end)) {
-          final next = DateTime(current.year, current.month + 3, current.day);
-          periodos.add(DateTimeRange(
-            start: current,
-            end: next.isBefore(rango.end) ? next : rango.end,
-          ));
-          current = next.add(const Duration(days: 1));
-        }
-        break;
       case FilterType.annual:
-        var current = DateTime(rango.start.year, 1, 1);
+        var current = DateTime(rango.start.year, rango.start.month, 1);
         while (current.isBefore(rango.end)) {
-          final next = DateTime(current.year + 1, 1, 1);
+          final next = DateTime(current.year, current.month + 1, 1);
           periodos.add(DateTimeRange(
             start: current,
             end: next.isBefore(rango.end) ? next : rango.end,
@@ -130,9 +113,8 @@ class ActivityChart extends ConsumerWidget {
       case FilterType.custom:
         final duration = rango.duration.inDays;
         final step = _calcularPasoPersonalizado(duration);
-
         var current = rango.start;
-        while (current.isBefore(rango.end)) {
+        while (current.isBefore(rango.end.add(const Duration(days: 1)))) {
           final endDate = current.add(step);
           periodos.add(DateTimeRange(
             start: current,
@@ -145,51 +127,107 @@ class ActivityChart extends ConsumerWidget {
     return periodos;
   }
 
-  /// Calcula el intervalo para el filtro personalizado
   Duration _calcularPasoPersonalizado(int duration) {
     if (duration > 180) return const Duration(days: 30);
     if (duration > 60) return const Duration(days: 7);
     return const Duration(days: 1);
   }
 
-  /// Calcula las transacciones para cada período
-  List<PeriodData> _calcularTransacciones(
-      double totalIngresos, double totalEgresos, List<DateTimeRange> periodos) {
+  /// 🔹 CORRECCIÓN IMPORTANTE:
+  /// El método 'contains' no está disponible en todas las versiones de Flutter
+  /// En su lugar, implementamos nuestra propia verificación según el tipo de filtro
+  List<PeriodData> _calcularTransaccionesReal(List<Ingreso> ingresos,
+      List<Egreso> egresos, List<DateTimeRange> periodos) {
     if (periodos.isEmpty) return [];
 
-    final totalDias = periodos.fold<double>(
-        0, (sum, p) => sum + p.duration.inDays.toDouble());
+    return periodos
+        .map((periodo) {
+          double ingresosPeriodo = 0;
+          double egresosPeriodo = 0;
 
-    return periodos.map((periodo) {
-      final factor = periodo.duration.inDays / totalDias;
-      final ingresosPeriodo = totalIngresos * factor;
-      final egresosPeriodo = totalEgresos * factor;
-      return PeriodData(
-        start: periodo.start,
-        ingresos: ingresosPeriodo,
-        egresos: egresosPeriodo,
-      );
-    }).toList();
+          // --- INGRESOS ---
+          for (var ingreso in ingresos) {
+            final fechaIngreso = DateTime(
+              ingreso.fechaIngreso.year,
+              ingreso.fechaIngreso.month,
+              ingreso.fechaIngreso.day,
+            );
+
+            // 🔴 CORRECCIÓN: En lugar de periodo.contains(fechaIngreso)
+            // Usamos una verificación personalizada según el tipo de filtro
+            if (_fechaPerteneceAlPeriodo(fechaIngreso, periodo)) {
+              ingresosPeriodo += ingreso.valor;
+            }
+          }
+
+          // --- EGRESOS ---
+          for (var egreso in egresos) {
+            final fechaEgreso = DateTime(
+              egreso.fechaPago.year,
+              egreso.fechaPago.month,
+              egreso.fechaPago.day,
+            );
+
+            // 🔴 CORRECCIÓN: En lugar de periodo.contains(fechaEgreso)
+            // Usamos una verificación personalizada según el tipo de filtro
+            if (_fechaPerteneceAlPeriodo(fechaEgreso, periodo)) {
+              egresosPeriodo += egreso.valor;
+            }
+          }
+
+          return PeriodData(
+            start: periodo.start,
+            ingresos: ingresosPeriodo,
+            egresos: egresosPeriodo,
+          );
+        })
+        // Solo dejamos periodos que tengan datos
+        .where((pd) => pd.ingresos > 0 || pd.egresos > 0)
+        .toList();
   }
 
-  /// Crea la configuración del gráfico con validación de datos
+  /// Verifica si una fecha pertenece a un periodo específico
+  ///
+  /// Esta función reemplaza al método DateTimeRange.contains() que no está disponible
+  /// en todas las versiones de Flutter.
+  ///
+  /// Funcionamiento:
+  /// - Para filtro mensual: verifica si la fecha es igual al periodo (días específicos)
+  /// - Para filtro anual: verifica si la fecha está en el mismo mes y año que el periodo
+  bool _fechaPerteneceAlPeriodo(DateTime fecha, DateTimeRange periodo) {
+    // Para el filtro mensual, cada periodo representa un día específico
+    if (periodo.start.day != periodo.end.day) {
+      // Si el periodo tiene más de un día (caso de filtro anual)
+      return fecha.isAtSameMomentAs(periodo.start) ||
+          (fecha.isAfter(periodo.start) && fecha.isBefore(periodo.end));
+    } else {
+      // Para el filtro mensual, cada periodo es un día específico
+      return fecha.year == periodo.start.year &&
+          fecha.month == periodo.start.month &&
+          fecha.day == periodo.start.day;
+    }
+  }
+
+  /// Configura el gráfico de barras
   BarChartData _crearDatosChart(List<PeriodData> periodosData, Filter filtro) {
     if (periodosData.isEmpty) return BarChartData(barGroups: []);
 
     return BarChartData(
-      borderData: FlBorderData(
-        show: false,
-      ),
+      borderData: FlBorderData(show: false),
       barTouchData: BarTouchData(
         enabled: true,
         touchTooltipData: BarTouchTooltipData(
-          getTooltipItem: (group, _, rod, __) {
-            final index = group.x.toInt();
-            final pd = periodosData[index];
-            final isIncome = group.barRods.indexOf(rod) == 0;
+          getTooltipItem: (barGroup, groupIndex, rod, rodIndex) {
+            final pd = periodosData[groupIndex];
+            final isIncome = rodIndex == 0;
+
             return BarTooltipItem(
-              '${rod.toY.toStringAsFixed(2)}\n${_formatoFecha(pd.start, filtro)}\n${isIncome ? 'Ingreso' : 'Egreso'}',
-              const TextStyle(color: Colors.white, fontSize: 12),
+              '${formatCurrency(rod.toY)}\n${_formatoFecha(pd.start, filtro)}\n${isIncome ? 'Ingreso' : 'Egreso'}',
+              const TextStyle(
+                color: Colors.white,
+                fontSize: 12,
+                fontWeight: FontWeight.bold,
+              ),
             );
           },
         ),
@@ -203,59 +241,48 @@ class ActivityChart extends ConsumerWidget {
               child: Text(
                 _buildEtiquetaEjeX(value, periodosData, filtro),
                 style: const TextStyle(fontSize: 10),
+                textAlign: TextAlign.center,
               ),
             ),
             reservedSize: 28,
           ),
         ),
+        // 🔹 AQUÍ SE ELIMINAN LOS VALORES DEL EJE IZQUIERDO
         leftTitles: AxisTitles(
           sideTitles: SideTitles(
-            showTitles: true,
-            getTitlesWidget: (value, meta) => Padding(
-              padding: const EdgeInsets.only(right: 10),
-              /* child: Text(
-                //formatCurrency(value),
-                //style: const TextStyle(fontSize: 10),
-              ),*/
-            ),
-            reservedSize: 40,
+            showTitles: false, // <--- OCULTAMOS LOS TÍTULOS DEL EJE IZQUIERDO
+            reservedSize: 0, // <--- ELIMINAMOS EL ESPACIO RESERVADO
           ),
         ),
-        rightTitles: AxisTitles(
-          sideTitles: SideTitles(showTitles: false),
-        ),
-        topTitles: AxisTitles(
-          sideTitles: SideTitles(showTitles: false),
-        ),
+        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
       ),
       barGroups: periodosData.asMap().entries.map((entry) {
-        final index = entry.key;
         final pd = entry.value;
         return BarChartGroupData(
-          x: index,
+          x: entry.key,
           barRods: [
             BarChartRodData(
               toY: pd.ingresos,
               color: Colors.green[400]!,
-              width: 15,
+              width: 8,
               borderRadius: BorderRadius.circular(4),
             ),
             BarChartRodData(
               toY: pd.egresos,
               color: Colors.red[400]!,
-              width: 15,
+              width: 8,
               borderRadius: BorderRadius.circular(4),
             ),
           ],
         );
       }).toList(),
       gridData: const FlGridData(show: false),
-      alignment: BarChartAlignment.spaceAround,
+      alignment: BarChartAlignment.center,
       maxY: _calcularMaxY(periodosData),
     );
   }
 
-  /// Calcula el valor máximo para el eje Y
   double _calcularMaxY(List<PeriodData> periodosData) {
     if (periodosData.isEmpty) return 0;
     final maxIngreso = periodosData.map((pd) => pd.ingresos).reduce(max);
@@ -263,26 +290,51 @@ class ActivityChart extends ConsumerWidget {
     return max(maxIngreso, maxEgreso) * 1.15;
   }
 
-  /// Formatea la fecha según el tipo de filtro
+  /// 🔹 FORMATEO MEJORADO PARA NOMBRES DE MESES
+  ///
+  /// Ahora muestra los nombres de los meses en español y en mayúsculas
+  /// Ejemplo: "ENE", "FEB", "MAR", etc. para el filtro anual
   String _formatoFecha(DateTime fecha, Filter filtro) {
     switch (filtro.type) {
       case FilterType.monthly:
-        return DateFormat('dd/MM').format(fecha);
+        return DateFormat('dd').format(fecha);
       case FilterType.quarterly:
-        return DateFormat('MMM').format(fecha);
       case FilterType.annual:
-        return 'T${((fecha.month - 1) ~/ 3) + 1}';
+        // SOLUCIÓN ALTERNATIVA: Nombres de meses hardcodeados
+        // Esto no requiere initializeDateFormatting()
+        final meses = [
+          'ENE',
+          'FEB',
+          'MAR',
+          'ABR',
+          'MAY',
+          'JUN',
+          'JUL',
+          'AGO',
+          'SEP',
+          'OCT',
+          'NOV',
+          'DIC'
+        ];
+        return meses[fecha.month - 1];
       case FilterType.custom:
         return DateFormat('dd/MM').format(fecha);
     }
   }
 
-  /// Construye el título con rango de fechas
+  String formatCurrency(double value) {
+    final formatter = NumberFormat.currency(
+      locale: 'es_CO',
+      symbol: '\$',
+      decimalDigits: 0,
+    );
+    return formatter.format(value);
+  }
+
   Widget _buildTitulo(Filter filtro) {
     final rango = _calcularRango(filtro);
     return Text(
-      '${DateFormat('dd/MM/yyyy').format(rango.start)} - '
-      '${DateFormat('dd/MM/yyyy').format(rango.end)}',
+      '${DateFormat('dd/MM/yyyy').format(rango.start)} - ${DateFormat('dd/MM/yyyy').format(rango.end)}',
       style: const TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.bold,
@@ -291,15 +343,16 @@ class ActivityChart extends ConsumerWidget {
     );
   }
 
-  /// Construye etiquetas del eje X con validación
   String _buildEtiquetaEjeX(
       double value, List<PeriodData> periodosData, Filter filtro) {
     final index = value.toInt();
     if (index < 0 || index >= periodosData.length) return '';
-    return _formatoFecha(periodosData[index].start, filtro);
+    final pd = periodosData[index];
+    return (pd.ingresos > 0 || pd.egresos > 0)
+        ? _formatoFecha(pd.start, filtro)
+        : '';
   }
 
-  /// Calcula el rango de fechas según el filtro
   DateTimeRange _calcularRango(Filter filtro) {
     final hoy = DateTime.now();
     switch (filtro.type) {
@@ -327,7 +380,6 @@ class ActivityChart extends ConsumerWidget {
     }
   }
 
-  /// Construye la leyenda del gráfico
   Widget _buildLeyenda() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -339,7 +391,6 @@ class ActivityChart extends ConsumerWidget {
     );
   }
 
-  /// Componente individual de la leyenda
   Widget _buildItemLeyenda(Color color, String texto) {
     return Row(
       children: [
@@ -357,10 +408,12 @@ class ActivityChart extends ConsumerWidget {
     );
   }
 
-  /// Estados de carga y error
   Widget _buildLoading() => const Center(child: CircularProgressIndicator());
+
   Widget _buildError(String mensaje) => Center(
-        child: Text(mensaje,
-            style: const TextStyle(color: Colors.red, fontSize: 14)),
+        child: Text(
+          mensaje,
+          style: const TextStyle(color: Colors.red, fontSize: 14),
+        ),
       );
 }
