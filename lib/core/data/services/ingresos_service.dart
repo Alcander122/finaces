@@ -1,10 +1,12 @@
+// lib/core/data/services/ingresos_service.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finances/core/data/models/ingreso.model.dart';
 
+/// Servicio para manejar operaciones CRUD y consultas de ingresos
 class IngresosService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  // Guardar un nuevo ingreso
+  /// Guarda un nuevo ingreso en Firestore
   Future<String> guardarIngreso(String userId, Ingreso ingreso) async {
     try {
       final docRef = await _firestore
@@ -24,7 +26,43 @@ class IngresosService {
     }
   }
 
-  // Obtener todos los ingresos
+  /// Método actualizado para obtener el total de ingresos del mes actual
+  ///
+  /// IMPORTANTE: Usa DateUtils para consistencia con otros cálculos
+  Stream<double> streamTotalIngresosMesActual(String userId) {
+    try {
+      final now = DateTime.now();
+      final firstDayOfMonth = DateTime(now.year, now.month, 1);
+      // Calcular el último día del mes a las 23:59:59.999 para incluir todos los datos del último día
+      final lastDayOfMonth = DateTime(now.year, now.month + 1, 0)
+          .add(const Duration(days: 1))
+          .subtract(const Duration(microseconds: 1));
+
+      return _firestore
+          .collection('users')
+          .doc(userId)
+          .collection('ingresos')
+          .where('fechaIngreso',
+              isGreaterThanOrEqualTo: Timestamp.fromDate(firstDayOfMonth))
+          .where('fechaIngreso',
+              isLessThanOrEqualTo: Timestamp.fromDate(lastDayOfMonth))
+          .snapshots()
+          .map((snapshot) {
+        double totalIngresos = 0.0;
+        for (var doc in snapshot.docs) {
+          final valor = doc.data()['valor'];
+          totalIngresos += valor is num ? valor.toDouble() : 0.0;
+        }
+        return totalIngresos;
+      }).handleError((error) {
+        throw Exception("Error en streamTotalIngresosMesActual: $error");
+      });
+    } catch (e) {
+      throw Exception("Error en streamTotalIngresosMesActual: $e");
+    }
+  }
+
+  /// Obtiene todos los ingresos del usuario
   Future<List<Ingreso>> obtenerIngresos(String userId) async {
     try {
       final snapshot = await _firestore
@@ -40,6 +78,7 @@ class IngresosService {
     }
   }
 
+  /// Actualiza un ingreso existente en Firestore
   Future<void> actualizarIngreso(
       String userId, String ingresoId, Ingreso ingreso) async {
     try {
@@ -54,7 +93,7 @@ class IngresosService {
     }
   }
 
-  // Eliminar un ingreso por su ID
+  /// Elimina un ingreso de Firestore
   Future<void> eliminarIngreso(String userId, String ingresoId) async {
     try {
       await _firestore
@@ -68,32 +107,9 @@ class IngresosService {
     }
   }
 
-  // Total de ingresos en tiempo real (Stream)
-  Stream<double> streamTotalIngresos(String userId) {
-    try {
-      return _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('ingresos')
-          .snapshots()
-          .map((snapshot) {
-        double totalIngresos = 0.0;
-        for (var doc in snapshot.docs) {
-          final valor = doc.data()['valor'];
-          totalIngresos += valor is num ? valor.toDouble() : 0.0;
-        }
-        return totalIngresos;
-      }).handleError((error) {
-        // Manejar el error si es necesario
-        //print("Error en streamTotalIngresos: $error");
-        throw Exception("Error en streamTotalIngresos: $error");
-      });
-    } catch (e) {
-      throw Exception("Error en streamTotalIngresos: $e");
-    }
-  }
-
-  // Total de ingresos en un rango de fechas
+  /// Obtiene el total de ingresos en un rango de fechas específico
+  ///
+  /// Este es el método clave que se usa en filteredIngresosProvider
   Stream<double> streamTotalIngresosInRange(
       String userId, DateTime start, DateTime end) {
     try {
@@ -113,14 +129,15 @@ class IngresosService {
         }
         return total;
       }).handleError((error) {
-        //print("Error en streamTotalIngresosInRange: $error");
         throw Exception("Error en streamTotalIngresosInRange: $error");
       });
     } catch (e) {
       throw Exception("Error en streamTotalIngresosInRange: $e");
     }
   }
+  
 
+  /// Obtiene los ingresos filtrados por rango de fechas (usado por la gráfica)
   Stream<List<Ingreso>> obtenerIngresosFiltrados(
     String userId,
     DateTime? startDate,
@@ -148,7 +165,6 @@ class IngresosService {
           });
         }).toList();
       }).handleError((error) {
-        //print("Error en obtenerIngresosFiltrados: $error");
         throw Exception("Error en obtenerIngresosFiltrados: $error");
       });
     } catch (e) {
@@ -156,46 +172,12 @@ class IngresosService {
     }
   }
 
+  /// Calcula el total de una lista de ingresos
   double calcularTotalIngresos(List<Ingreso> ingresos) {
     try {
       return ingresos.fold(0.0, (sum, ingreso) => sum + ingreso.valor);
     } catch (e) {
       throw Exception("Error al calcular el total de ingresos: $e");
-    }
-  }
-
-  // Método actualizado para obtener el total de ingresos del mes actual
-  Stream<double> streamTotalIngresosMesActual(String userId) {
-    try {
-      final now = DateTime.now();
-      final firstDayOfMonth = DateTime(now.year, now.month, 1);
-      // Calcular el último día del mes a las 23:59:59.999 para incluir todos los datos del último día
-      final lastDayOfMonth = DateTime(now.year, now.month + 1, 0)
-          .add(const Duration(days: 1))
-          .subtract(const Duration(microseconds: 1));
-
-      return _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('ingresos')
-          .where('fechaIngreso',
-              isGreaterThanOrEqualTo: Timestamp.fromDate(firstDayOfMonth))
-          .where('fechaIngreso',
-              isLessThanOrEqualTo: Timestamp.fromDate(lastDayOfMonth))
-          .snapshots()
-          .map((snapshot) {
-        double totalIngresos = 0.0;
-        for (var doc in snapshot.docs) {
-          final valor = doc.data()['valor'];
-          totalIngresos += valor is num ? valor.toDouble() : 0.0;
-        }
-        return totalIngresos;
-      }).handleError((error) {
-        //print("Error en streamTotalIngresosMesActual: $error");
-        throw Exception("Error en streamTotalIngresosMesActual: $error");
-      });
-    } catch (e) {
-      throw Exception("Error en streamTotalIngresosMesActual: $e");
     }
   }
 }

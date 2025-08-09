@@ -38,6 +38,12 @@
       "languageVersion": "3.4"
     },
     {
+      "name": "auto_size_text",
+      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/auto_size_text-3.0.0",
+      "packageUri": "lib/",
+      "languageVersion": "2.12"
+    },
+    {
       "name": "boolean_selector",
       "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/boolean_selector-2.1.2",
       "packageUri": "lib/",
@@ -998,7 +1004,7 @@
       "languageVersion": "3.6"
     }
   ],
-  "generated": "2025-08-07T15:54:22.234907Z",
+  "generated": "2025-08-09T16:50:52.531172Z",
   "generator": "pub",
   "generatorVersion": "3.7.2",
   "flutterRoot": "file:///C:/Users/ANDRES%20AYALA/dev/flutter",

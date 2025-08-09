@@ -1,11 +1,11 @@
 // lib/presentations/screens/Estadistica/Statistics_Screen.dart
-
 import 'package:finances/core/data/models/filter.dart';
 import 'package:finances/core/data/providers/ingreso_provider.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
 import 'package:finances/core/data/providers/filter_provider.dart';
 import 'package:finances/presentations/screens/Estadistica/widgets/activity_chart.dart';
 import 'package:finances/presentations/screens/Estadistica/widgets/category_summary.dart';
+import 'package:finances/presentations/screens/Estadistica/widgets/summary_cards.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:finances/routes/app_routes.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +13,13 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:intl/intl.dart';
 
+/// Pantalla principal de estadísticas financieras
+///
+/// Muestra:
+/// - Gráfico de actividad financiera
+/// - Filtros para seleccionar período
+/// - Tarjetas resumen de ingresos, gastos y balance
+/// - Resumen por categorías
 class StatisticScreen extends ConsumerStatefulWidget {
   const StatisticScreen({super.key});
 
@@ -26,8 +33,10 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+
+    /// Obtenemos los valores de ingresos y gastos filtrados
     final ingresosAsync = ref.watch(filteredIngresosProvider);
-    final egresosAsync = ref.watch(filteredEgresosProvider);
+    final egresosAsync = ref.watch(filteredTotalGastosProvider);
 
     return Scaffold(
       backgroundColor: Themes.light,
@@ -46,7 +55,9 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
                 const SizedBox(height: 8),
                 _buildFilterRow(),
                 const SizedBox(height: 12),
-                _buildFinancialCards(ingresosAsync, egresosAsync),
+
+                /// Usamos SummaryCards en lugar de _buildFinancialCards
+                const SummaryCards(),
                 const SizedBox(height: 16),
                 _buildCategorySection(theme),
               ],
@@ -57,7 +68,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     );
   }
 
-  // Sección del gráfico de actividad financiera
+  /// Sección del gráfico de actividad financiera
   Widget _buildFinancialActivitySection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -84,7 +95,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     );
   }
 
-  // Fila de botones para seleccionar el tipo de filtro
+  /// Fila de botones para seleccionar el tipo de filtro
   Widget _buildFilterRow() {
     final currentFilter = ref.watch(filterProvider).type;
     return SizedBox(
@@ -118,7 +129,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     );
   }
 
-  // Botón individual de filtro
+  /// Botón individual de filtro
   Widget _buildFilterChip({
     required String label,
     required bool isSelected,
@@ -144,7 +155,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     );
   }
 
-  // Botón especial para filtro personalizado
+  /// Botón especial para filtro personalizado
   Widget _buildCustomFilterChip(FilterType currentFilter) {
     final isCustomSelected = currentFilter == FilterType.custom;
     return Padding(
@@ -174,8 +185,9 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     );
   }
 
-// Tarjetas con datos de Ingresos, Gastos y Balance
-  Widget _buildFinancialCards(
+  /// Tarjetas con datos de Ingresos, Gastos y Balance
+  /// NOTA: Este método ya no se usa, se reemplazó por SummaryCards
+  Widget buildFinancialCards(
       AsyncValue<double> ingresos, AsyncValue<double> gastos) {
     return SizedBox(
       height: 120,
@@ -200,15 +212,15 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child:
-                _buildBalanceCard(), // Asegúrate de que este método no use width.
+            child: _buildBalanceCard(),
           ),
         ],
       ),
     );
   }
 
-// Construye una tarjeta individual de estadística
+  /// Construye una tarjeta individual de estadística
+  /// NOTA: Este método ya no se usa, se reemplazó por SummaryCards
   Widget _buildFinanceCard({
     required String title,
     required AsyncValue<double> value,
@@ -229,12 +241,13 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     );
   }
 
-// Contenido interno de cada tarjeta
+  /// Contenido interno de cada tarjeta
+  /// NOTA: Este método ya no se usa, se reemplazó por SummaryCards
   Widget _buildCardContent(
       String title, IconData icon, Color color, double amount) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.center, // Centrado horizontal
-      mainAxisAlignment: MainAxisAlignment.center, // Centrado vertical
+      crossAxisAlignment: CrossAxisAlignment.center,
+      mainAxisAlignment: MainAxisAlignment.center,
       children: [
         Icon(icon, color: color),
         const SizedBox(height: 8),
@@ -247,8 +260,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
           ),
           overflow: TextOverflow.ellipsis,
           softWrap: false,
-          textAlign:
-              TextAlign.center, // Asegura que el texto también esté centrado
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
         Text(
@@ -264,7 +276,8 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     );
   }
 
-  // Tarjeta del balance general
+  /// Tarjeta del balance general
+  /// NOTA: Este método ya no se usa, se reemplazó por SummaryCards
   Widget _buildBalanceCard() {
     return SizedBox(
       child: Card(
@@ -273,7 +286,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: ref.watch(filteredIngresosProvider).when(
-                data: (ing) => ref.watch(filteredEgresosProvider).when(
+                data: (ing) => ref.watch(filteredTotalGastosProvider).when(
                       data: (gas) => _buildBalanceContent(ing - gas),
                       loading: () =>
                           const Center(child: CircularProgressIndicator()),
@@ -287,7 +300,8 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     );
   }
 
-  // Contenido dinámico de la tarjeta de balance
+  /// Contenido dinámico de la tarjeta de balance
+  /// NOTA: Este método ya no se usa, se reemplazó por SummaryCards
   Widget _buildBalanceContent(double balance) {
     final color = balance >= 0 ? Colors.blue : Colors.red;
     return Column(
@@ -373,23 +387,24 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     );
   }
 
-  // Abre el selector de rango de fechas y actualiza el filtro
+  /// Abre el selector de rango de fechas y actualiza el filtro
   void selectDateRange() async {
     final initialDate = DateTime.now().subtract(const Duration(days: 30));
     final firstDate = DateTime.now().subtract(const Duration(days: 365));
     final lastDate = DateTime.now();
-
     final picked = await showDateRangePicker(
       context: context,
       initialDateRange: DateTimeRange(start: initialDate, end: DateTime.now()),
       firstDate: firstDate,
       lastDate: lastDate,
     );
-
     if (picked != null) {
       DateTime startDate = picked.start;
       DateTime endDate = picked.end;
-      endDate = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
+
+      /// Asegurar que el rango cubre todo el día final
+      endDate =
+          DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59, 999);
       ref.read(filterProvider.notifier).update((state) => state.copyWith(
             type: FilterType.custom,
             startDate: startDate,
@@ -398,7 +413,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     }
   }
 
-  // Cambia el tipo de filtro y reinicia las fechas personalizadas si es necesario
+  /// Cambia el tipo de filtro y reinicia las fechas personalizadas si es necesario
   void _changeFilter(FilterType type) {
     ref.read(filterProvider.notifier).update((state) => state.copyWith(
           type: type,
@@ -407,13 +422,13 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
         ));
   }
 
-  // Formatea un número a formato de moneda local
+  /// Formatea un número a formato de moneda local
   String formatCurrency(double value) {
     final formatter = NumberFormat.decimalPattern('es_CO');
     return '\$${formatter.format(value)}';
   }
 
-  // Título principal de la sección
+  /// Título principal de la sección
   Widget buildHeaderSection(ThemeData theme) {
     return Text(
       'Balance General',

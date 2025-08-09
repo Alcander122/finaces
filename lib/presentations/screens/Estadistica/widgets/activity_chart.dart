@@ -9,13 +9,10 @@ import 'package:finances/core/data/models/egreso_model.dart';
 import 'package:finances/core/data/providers/ingreso_provider.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
 import 'dart:math';
+import 'package:finances/core/data/utils/date_utils.dart'
+    as AppDateUtils; // Importación con prefijo para evitar conflictos
 
 /// Clase que representa un periodo con datos de ingresos y egresos
-///
-/// Almacena los datos necesarios para mostrar en cada barra del gráfico:
-/// - Fecha de inicio del periodo
-/// - Total de ingresos en ese periodo
-/// - Total de egresos en ese periodo
 class PeriodData {
   final DateTime start;
   final double ingresos;
@@ -29,9 +26,6 @@ class PeriodData {
 }
 
 /// Widget para mostrar un gráfico de barras comparativo de ingresos y egresos
-///
-/// Este widget es responsivo y se adapta al filtro actual (mensual, trimestral, anual o personalizado)
-/// Muestra una visualización clara de los movimientos financieros del usuario
 class ActivityChart extends ConsumerWidget {
   const ActivityChart({super.key});
 
@@ -41,7 +35,7 @@ class ActivityChart extends ConsumerWidget {
     final ingresosAsync = ref.watch(ingresosFiltradosProvider);
     final egresosAsync = ref.watch(egresosFiltradosProvider);
 
-    // Esperamos a que ingresos y egresos estén listos antes de dibujar el gráfico
+    // ✅ CORRECCIÓN: Especificar explícitamente 'data:' para la función de datos
     return ingresosAsync.when(
       data: (ingresos) => egresosAsync.when(
         data: (egresos) => _buildChartContent(ingresos, egresos, filtro),
@@ -53,12 +47,9 @@ class ActivityChart extends ConsumerWidget {
     );
   }
 
-  /// Construye el contenido del gráfico
   Widget _buildChartContent(
       List<Ingreso> ingresos, List<Egreso> egresos, Filter filtro) {
     final periodos = _generarPeriodos(filtro);
-
-    // Calculamos ingresos y egresos por periodo usando las fechas REALES
     final transacciones =
         _calcularTransaccionesReal(ingresos, egresos, periodos);
 
@@ -85,7 +76,11 @@ class ActivityChart extends ConsumerWidget {
     );
   }
 
-  /// Genera periodos según el filtro (mensual, trimestral, etc.)
+  /// Genera los periodos específicos según el tipo de filtro seleccionado
+  ///
+  /// ¡CORRECCIÓN CRÍTICA PARA FILTRO TRIMESTRAL!
+  /// Antes, para filtros trimestrales, el código siempre comenzaba en el primer día del mes,
+  /// incluso si el trimestre no comenzaba en el primer día del mes.
   List<DateTimeRange> _generarPeriodos(Filter filtro) {
     final rango = _calcularRango(filtro);
     final List<DateTimeRange> periodos = [];
@@ -98,18 +93,31 @@ class ActivityChart extends ConsumerWidget {
           current = current.add(const Duration(days: 1));
         }
         break;
+
       case FilterType.quarterly:
       case FilterType.annual:
-        var current = DateTime(rango.start.year, rango.start.month, 1);
+        // ✅ CORRECCIÓN PRINCIPAL: Comenzar exactamente en el inicio del rango
+        var current = rango.start;
+
         while (current.isBefore(rango.end)) {
-          final next = DateTime(current.year, current.month + 1, 1);
+          // Calcular el último día del mes actual a las 23:59:59.999
+          final lastDayOfMonth =
+              DateTime(current.year, current.month + 1, 0, 23, 59, 59, 999);
+
+          // El final del periodo es el mínimo entre el último día del mes y el final del rango
+          final endDate =
+              lastDayOfMonth.isBefore(rango.end) ? lastDayOfMonth : rango.end;
+
           periodos.add(DateTimeRange(
             start: current,
-            end: next.isBefore(rango.end) ? next : rango.end,
+            end: endDate,
           ));
-          current = next;
+
+          // Avanzar al primer día del próximo mes
+          current = DateTime(current.year, current.month + 1, 1);
         }
         break;
+
       case FilterType.custom:
         final duration = rango.duration.inDays;
         final step = _calcularPasoPersonalizado(duration);
@@ -133,9 +141,6 @@ class ActivityChart extends ConsumerWidget {
     return const Duration(days: 1);
   }
 
-  /// 🔹 CORRECCIÓN IMPORTANTE:
-  /// El método 'contains' no está disponible en todas las versiones de Flutter
-  /// En su lugar, implementamos nuestra propia verificación según el tipo de filtro
   List<PeriodData> _calcularTransaccionesReal(List<Ingreso> ingresos,
       List<Egreso> egresos, List<DateTimeRange> periodos) {
     if (periodos.isEmpty) return [];
@@ -153,8 +158,6 @@ class ActivityChart extends ConsumerWidget {
               ingreso.fechaIngreso.day,
             );
 
-            // 🔴 CORRECCIÓN: En lugar de periodo.contains(fechaIngreso)
-            // Usamos una verificación personalizada según el tipo de filtro
             if (_fechaPerteneceAlPeriodo(fechaIngreso, periodo)) {
               ingresosPeriodo += ingreso.valor;
             }
@@ -168,8 +171,6 @@ class ActivityChart extends ConsumerWidget {
               egreso.fechaPago.day,
             );
 
-            // 🔴 CORRECCIÓN: En lugar de periodo.contains(fechaEgreso)
-            // Usamos una verificación personalizada según el tipo de filtro
             if (_fechaPerteneceAlPeriodo(fechaEgreso, periodo)) {
               egresosPeriodo += egreso.valor;
             }
@@ -181,25 +182,21 @@ class ActivityChart extends ConsumerWidget {
             egresos: egresosPeriodo,
           );
         })
-        // Solo dejamos periodos que tengan datos
         .where((pd) => pd.ingresos > 0 || pd.egresos > 0)
         .toList();
   }
 
   /// Verifica si una fecha pertenece a un periodo específico
   ///
-  /// Esta función reemplaza al método DateTimeRange.contains() que no está disponible
-  /// en todas las versiones de Flutter.
-  ///
-  /// Funcionamiento:
-  /// - Para filtro mensual: verifica si la fecha es igual al periodo (días específicos)
-  /// - Para filtro anual: verifica si la fecha está en el mismo mes y año que el periodo
+  /// CORRECCIÓN IMPORTANTE PARA FILTRO TRIMESTRAL:
+  /// Antes, para periodos que no son días específicos, la verificación excluía
+  /// transacciones en el último milisegundo del periodo.
   bool _fechaPerteneceAlPeriodo(DateTime fecha, DateTimeRange periodo) {
     // Para el filtro mensual, cada periodo representa un día específico
     if (periodo.start.day != periodo.end.day) {
-      // Si el periodo tiene más de un día (caso de filtro anual)
-      return fecha.isAtSameMomentAs(periodo.start) ||
-          (fecha.isAfter(periodo.start) && fecha.isBefore(periodo.end));
+      // Si el periodo tiene más de un día (caso de filtro anual/trimestral)
+      // ✅ CORRECCIÓN: Incluimos el último milisegundo del periodo
+      return !fecha.isBefore(periodo.start) && !fecha.isAfter(periodo.end);
     } else {
       // Para el filtro mensual, cada periodo es un día específico
       return fecha.year == periodo.start.year &&
@@ -208,7 +205,6 @@ class ActivityChart extends ConsumerWidget {
     }
   }
 
-  /// Configura el gráfico de barras
   BarChartData _crearDatosChart(List<PeriodData> periodosData, Filter filtro) {
     if (periodosData.isEmpty) return BarChartData(barGroups: []);
 
@@ -220,7 +216,6 @@ class ActivityChart extends ConsumerWidget {
           getTooltipItem: (barGroup, groupIndex, rod, rodIndex) {
             final pd = periodosData[groupIndex];
             final isIncome = rodIndex == 0;
-
             return BarTooltipItem(
               '${formatCurrency(rod.toY)}\n${_formatoFecha(pd.start, filtro)}\n${isIncome ? 'Ingreso' : 'Egreso'}',
               const TextStyle(
@@ -247,11 +242,10 @@ class ActivityChart extends ConsumerWidget {
             reservedSize: 28,
           ),
         ),
-        // 🔹 AQUÍ SE ELIMINAN LOS VALORES DEL EJE IZQUIERDO
         leftTitles: AxisTitles(
           sideTitles: SideTitles(
-            showTitles: false, // <--- OCULTAMOS LOS TÍTULOS DEL EJE IZQUIERDO
-            reservedSize: 0, // <--- ELIMINAMOS EL ESPACIO RESERVADO
+            showTitles: false,
+            reservedSize: 0,
           ),
         ),
         rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
@@ -290,18 +284,12 @@ class ActivityChart extends ConsumerWidget {
     return max(maxIngreso, maxEgreso) * 1.15;
   }
 
-  /// 🔹 FORMATEO MEJORADO PARA NOMBRES DE MESES
-  ///
-  /// Ahora muestra los nombres de los meses en español y en mayúsculas
-  /// Ejemplo: "ENE", "FEB", "MAR", etc. para el filtro anual
   String _formatoFecha(DateTime fecha, Filter filtro) {
     switch (filtro.type) {
       case FilterType.monthly:
         return DateFormat('dd').format(fecha);
       case FilterType.quarterly:
       case FilterType.annual:
-        // SOLUCIÓN ALTERNATIVA: Nombres de meses hardcodeados
-        // Esto no requiere initializeDateFormatting()
         final meses = [
           'ENE',
           'FEB',
@@ -358,19 +346,18 @@ class ActivityChart extends ConsumerWidget {
     switch (filtro.type) {
       case FilterType.monthly:
         return DateTimeRange(
-          start: DateTime(hoy.year, hoy.month, 1),
-          end: DateTime(hoy.year, hoy.month + 1, 0),
+          start: AppDateUtils.DateUtils.getStartOfMonth(hoy),
+          end: AppDateUtils.DateUtils.getEndOfMonth(hoy),
         );
       case FilterType.quarterly:
-        final trimestre = ((hoy.month - 1) ~/ 3) + 1;
         return DateTimeRange(
-          start: DateTime(hoy.year, (trimestre - 1) * 3 + 1, 1),
-          end: DateTime(hoy.year, trimestre * 3 + 1, 0),
+          start: AppDateUtils.DateUtils.getStartOfQuarter(hoy),
+          end: AppDateUtils.DateUtils.getEndOfQuarter(hoy),
         );
       case FilterType.annual:
         return DateTimeRange(
-          start: DateTime(hoy.year, 1, 1),
-          end: DateTime(hoy.year, 12, 31),
+          start: AppDateUtils.DateUtils.getStartOfYear(hoy),
+          end: AppDateUtils.DateUtils.getEndOfYear(hoy),
         );
       case FilterType.custom:
         return DateTimeRange(
