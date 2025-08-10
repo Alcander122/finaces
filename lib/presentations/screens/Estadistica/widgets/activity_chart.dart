@@ -1,3 +1,4 @@
+// lib/presentations/widgets/activity_chart.dart
 import 'package:finances/core/data/models/filter.dart';
 import 'package:finances/core/data/providers/filter_provider.dart';
 import 'package:flutter/material.dart';
@@ -10,9 +11,9 @@ import 'package:finances/core/data/providers/ingreso_provider.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
 import 'dart:math';
 import 'package:finances/core/data/utils/date_utils.dart'
-    as AppDateUtils; // Importación con prefijo para evitar conflictos
+    as AppDateUtils; // Usamos prefijo para evitar conflictos
 
-/// Clase que representa un periodo con datos de ingresos y egresos
+/// Clase que representa un periodo con ingresos y egresos
 class PeriodData {
   final DateTime start;
   final double ingresos;
@@ -25,7 +26,7 @@ class PeriodData {
   });
 }
 
-/// Widget para mostrar un gráfico de barras comparativo de ingresos y egresos
+/// Widget para mostrar un gráfico de barras comparativo
 class ActivityChart extends ConsumerWidget {
   const ActivityChart({super.key});
 
@@ -35,15 +36,14 @@ class ActivityChart extends ConsumerWidget {
     final ingresosAsync = ref.watch(ingresosFiltradosProvider);
     final egresosAsync = ref.watch(egresosFiltradosProvider);
 
-    // ✅ CORRECCIÓN: Especificar explícitamente 'data:' para la función de datos
     return ingresosAsync.when(
       data: (ingresos) => egresosAsync.when(
         data: (egresos) => _buildChartContent(ingresos, egresos, filtro),
-        loading: () => _buildLoading(),
-        error: (err, stack) => _buildError('Error en egresos: $err'),
+        loading: _buildLoading,
+        error: (err, _) => _buildError('Error en egresos: $err'),
       ),
-      loading: () => _buildLoading(),
-      error: (err, stack) => _buildError('Error en ingresos: $err'),
+      loading: _buildLoading,
+      error: (err, _) => _buildError('Error en ingresos: $err'),
     );
   }
 
@@ -76,17 +76,16 @@ class ActivityChart extends ConsumerWidget {
     );
   }
 
-  /// Genera los periodos específicos según el tipo de filtro seleccionado
+  /// Genera los periodos que se mostrarán en la gráfica
   ///
-  /// ¡CORRECCIÓN CRÍTICA PARA FILTRO TRIMESTRAL!
-  /// Antes, para filtros trimestrales, el código siempre comenzaba en el primer día del mes,
-  /// incluso si el trimestre no comenzaba en el primer día del mes.
+  /// 🔹 En el caso de "quarterly" (trimestral) ahora usa TRIMESTRE MÓVIL.
   List<DateTimeRange> _generarPeriodos(Filter filtro) {
     final rango = _calcularRango(filtro);
     final List<DateTimeRange> periodos = [];
 
     switch (filtro.type) {
       case FilterType.monthly:
+        // Cada barra representa un día del mes
         var current = DateTime(rango.start.year, rango.start.month, 1);
         while (current.isBefore(rango.end.add(const Duration(days: 1)))) {
           periodos.add(DateTimeRange(start: current, end: current));
@@ -96,29 +95,20 @@ class ActivityChart extends ConsumerWidget {
 
       case FilterType.quarterly:
       case FilterType.annual:
-        // ✅ CORRECCIÓN PRINCIPAL: Comenzar exactamente en el inicio del rango
+        // Cada barra representa un mes dentro del rango
         var current = rango.start;
-
         while (current.isBefore(rango.end)) {
-          // Calcular el último día del mes actual a las 23:59:59.999
           final lastDayOfMonth =
               DateTime(current.year, current.month + 1, 0, 23, 59, 59, 999);
-
-          // El final del periodo es el mínimo entre el último día del mes y el final del rango
           final endDate =
               lastDayOfMonth.isBefore(rango.end) ? lastDayOfMonth : rango.end;
-
-          periodos.add(DateTimeRange(
-            start: current,
-            end: endDate,
-          ));
-
-          // Avanzar al primer día del próximo mes
+          periodos.add(DateTimeRange(start: current, end: endDate));
           current = DateTime(current.year, current.month + 1, 1);
         }
         break;
 
       case FilterType.custom:
+        // Agrupación dinámica según la duración total
         final duration = rango.duration.inDays;
         final step = _calcularPasoPersonalizado(duration);
         var current = rango.start;
@@ -143,35 +133,18 @@ class ActivityChart extends ConsumerWidget {
 
   List<PeriodData> _calcularTransaccionesReal(List<Ingreso> ingresos,
       List<Egreso> egresos, List<DateTimeRange> periodos) {
-    if (periodos.isEmpty) return [];
-
     return periodos
         .map((periodo) {
           double ingresosPeriodo = 0;
           double egresosPeriodo = 0;
 
-          // --- INGRESOS ---
           for (var ingreso in ingresos) {
-            final fechaIngreso = DateTime(
-              ingreso.fechaIngreso.year,
-              ingreso.fechaIngreso.month,
-              ingreso.fechaIngreso.day,
-            );
-
-            if (_fechaPerteneceAlPeriodo(fechaIngreso, periodo)) {
+            if (_fechaPerteneceAlPeriodo(ingreso.fechaIngreso, periodo)) {
               ingresosPeriodo += ingreso.valor;
             }
           }
-
-          // --- EGRESOS ---
           for (var egreso in egresos) {
-            final fechaEgreso = DateTime(
-              egreso.fechaPago.year,
-              egreso.fechaPago.month,
-              egreso.fechaPago.day,
-            );
-
-            if (_fechaPerteneceAlPeriodo(fechaEgreso, periodo)) {
+            if (_fechaPerteneceAlPeriodo(egreso.fechaPago, periodo)) {
               egresosPeriodo += egreso.valor;
             }
           }
@@ -186,28 +159,14 @@ class ActivityChart extends ConsumerWidget {
         .toList();
   }
 
-  /// Verifica si una fecha pertenece a un periodo específico
-  ///
-  /// CORRECCIÓN IMPORTANTE PARA FILTRO TRIMESTRAL:
-  /// Antes, para periodos que no son días específicos, la verificación excluía
-  /// transacciones en el último milisegundo del periodo.
   bool _fechaPerteneceAlPeriodo(DateTime fecha, DateTimeRange periodo) {
-    // Para el filtro mensual, cada periodo representa un día específico
-    if (periodo.start.day != periodo.end.day) {
-      // Si el periodo tiene más de un día (caso de filtro anual/trimestral)
-      // ✅ CORRECCIÓN: Incluimos el último milisegundo del periodo
-      return !fecha.isBefore(periodo.start) && !fecha.isAfter(periodo.end);
-    } else {
-      // Para el filtro mensual, cada periodo es un día específico
-      return fecha.year == periodo.start.year &&
-          fecha.month == periodo.start.month &&
-          fecha.day == periodo.start.day;
-    }
+    final fechaNormalizada =
+        DateTime(fecha.year, fecha.month, fecha.day); // Sin hora
+    return !fechaNormalizada.isBefore(periodo.start) &&
+        !fechaNormalizada.isAfter(periodo.end);
   }
 
   BarChartData _crearDatosChart(List<PeriodData> periodosData, Filter filtro) {
-    if (periodosData.isEmpty) return BarChartData(barGroups: []);
-
     return BarChartData(
       borderData: FlBorderData(show: false),
       barTouchData: BarTouchData(
@@ -218,11 +177,7 @@ class ActivityChart extends ConsumerWidget {
             final isIncome = rodIndex == 0;
             return BarTooltipItem(
               '${formatCurrency(rod.toY)}\n${_formatoFecha(pd.start, filtro)}\n${isIncome ? 'Ingreso' : 'Egreso'}',
-              const TextStyle(
-                color: Colors.white,
-                fontSize: 12,
-                fontWeight: FontWeight.bold,
-              ),
+              const TextStyle(color: Colors.white, fontSize: 12),
             );
           },
         ),
@@ -231,23 +186,17 @@ class ActivityChart extends ConsumerWidget {
         bottomTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            getTitlesWidget: (value, meta) => Padding(
+            reservedSize: 28,
+            getTitlesWidget: (value, _) => Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
                 _buildEtiquetaEjeX(value, periodosData, filtro),
                 style: const TextStyle(fontSize: 10),
-                textAlign: TextAlign.center,
               ),
             ),
-            reservedSize: 28,
           ),
         ),
-        leftTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: false,
-            reservedSize: 0,
-          ),
-        ),
+        leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
         rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
         topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
       ),
@@ -258,13 +207,13 @@ class ActivityChart extends ConsumerWidget {
           barRods: [
             BarChartRodData(
               toY: pd.ingresos,
-              color: Colors.green[400]!,
+              color: Colors.green[400],
               width: 8,
               borderRadius: BorderRadius.circular(4),
             ),
             BarChartRodData(
               toY: pd.egresos,
-              color: Colors.red[400]!,
+              color: Colors.red[400],
               width: 8,
               borderRadius: BorderRadius.circular(4),
             ),
@@ -277,11 +226,13 @@ class ActivityChart extends ConsumerWidget {
     );
   }
 
-  double _calcularMaxY(List<PeriodData> periodosData) {
-    if (periodosData.isEmpty) return 0;
-    final maxIngreso = periodosData.map((pd) => pd.ingresos).reduce(max);
-    final maxEgreso = periodosData.map((pd) => pd.egresos).reduce(max);
-    return max(maxIngreso, maxEgreso) * 1.15;
+  double _calcularMaxY(List<PeriodData> data) {
+    if (data.isEmpty) return 0;
+    return max(
+          data.map((e) => e.ingresos).reduce(max),
+          data.map((e) => e.egresos).reduce(max),
+        ) *
+        1.15;
   }
 
   String _formatoFecha(DateTime fecha, Filter filtro) {
@@ -290,7 +241,7 @@ class ActivityChart extends ConsumerWidget {
         return DateFormat('dd').format(fecha);
       case FilterType.quarterly:
       case FilterType.annual:
-        final meses = [
+        const meses = [
           'ENE',
           'FEB',
           'MAR',
@@ -311,12 +262,11 @@ class ActivityChart extends ConsumerWidget {
   }
 
   String formatCurrency(double value) {
-    final formatter = NumberFormat.currency(
+    return NumberFormat.currency(
       locale: 'es_CO',
       symbol: '\$',
       decimalDigits: 0,
-    );
-    return formatter.format(value);
+    ).format(value);
   }
 
   Widget _buildTitulo(Filter filtro) {
@@ -335,12 +285,10 @@ class ActivityChart extends ConsumerWidget {
       double value, List<PeriodData> periodosData, Filter filtro) {
     final index = value.toInt();
     if (index < 0 || index >= periodosData.length) return '';
-    final pd = periodosData[index];
-    return (pd.ingresos > 0 || pd.egresos > 0)
-        ? _formatoFecha(pd.start, filtro)
-        : '';
+    return _formatoFecha(periodosData[index].start, filtro);
   }
 
+  /// 🔹 Ahora, para trimestral, devuelve trimestre móvil
   DateTimeRange _calcularRango(Filter filtro) {
     final hoy = DateTime.now();
     switch (filtro.type) {
@@ -351,8 +299,8 @@ class ActivityChart extends ConsumerWidget {
         );
       case FilterType.quarterly:
         return DateTimeRange(
-          start: AppDateUtils.DateUtils.getStartOfQuarter(hoy),
-          end: AppDateUtils.DateUtils.getEndOfQuarter(hoy),
+          start: AppDateUtils.DateUtils.getStartOfRollingQuarter(hoy),
+          end: AppDateUtils.DateUtils.getEndOfRollingQuarter(hoy),
         );
       case FilterType.annual:
         return DateTimeRange(
@@ -381,14 +329,7 @@ class ActivityChart extends ConsumerWidget {
   Widget _buildItemLeyenda(Color color, String texto) {
     return Row(
       children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(3),
-          ),
-        ),
+        Container(width: 12, height: 12, color: color),
         const SizedBox(width: 5),
         Text(texto, style: const TextStyle(fontSize: 12)),
       ],
@@ -397,10 +338,6 @@ class ActivityChart extends ConsumerWidget {
 
   Widget _buildLoading() => const Center(child: CircularProgressIndicator());
 
-  Widget _buildError(String mensaje) => Center(
-        child: Text(
-          mensaje,
-          style: const TextStyle(color: Colors.red, fontSize: 14),
-        ),
-      );
+  Widget _buildError(String mensaje) =>
+      Center(child: Text(mensaje, style: const TextStyle(color: Colors.red)));
 }

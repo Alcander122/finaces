@@ -2,15 +2,6 @@
 import 'package:intl/intl.dart';
 
 /// Clase de utilidades para manejar fechas de manera consistente en toda la aplicación
-///
-/// Propósito:
-/// - Proporcionar métodos estáticos para calcular rangos de fecha
-/// - Asegurar consistencia en el cálculo de fechas entre diferentes componentes
-/// - Eliminar la duplicación de lógica de cálculo de fechas
-///
-/// Importancia:
-/// Sin esta clase, los diferentes componentes calcularían fechas de manera inconsistente,
-/// causando valores incorrectos al aplicar filtros (especialmente en el último día del mes)
 class DateUtils {
   /// Obtiene el primer día del mes actual con hora mínima (00:00:00)
   ///
@@ -35,7 +26,7 @@ class DateUtils {
     return DateTime(date.year, date.month + 1, 0, 23, 59, 59, 999);
   }
 
-  /// Obtiene el primer día del trimestre actual
+  /// Obtiene el primer día del trimestre actual (trimestre de calendario)
   ///
   /// Un trimestre es un período de 3 meses:
   /// - Trimestre 1: Enero-Marzo
@@ -59,6 +50,28 @@ class DateUtils {
     int quarter = ((date.month - 1) ~/ 3) + 1;
     int endMonth = quarter * 3;
     return DateTime(date.year, endMonth + 1, 0, 23, 59, 59, 999);
+  }
+
+  /// 🔹 Obtiene el primer día del TRIMESTRE MÓVIL (últimos 3 meses completos antes del mes actual)
+  ///
+  /// Ejemplo:
+  /// - Hoy: 15/08/2025 → 01/05/2025
+  /// - Hoy: 10/01/2025 → 01/10/2024
+  ///
+  /// Uso:
+  /// - Para definir un trimestre basado en últimos 3 meses completos
+  /// - Más intuitivo para el usuario que un trimestre de calendario
+  static DateTime getStartOfRollingQuarter(DateTime date) {
+    return DateTime(date.year, date.month - 3, 1);
+  }
+
+  /// 🔹 Obtiene el último día del TRIMESTRE MÓVIL con hora máxima (23:59:59.999)
+  ///
+  /// Ejemplo:
+  /// - Hoy: 15/08/2025 → 31/07/2025 23:59:59.999
+  /// - Hoy: 10/01/2025 → 31/12/2024 23:59:59.999
+  static DateTime getEndOfRollingQuarter(DateTime date) {
+    return DateTime(date.year, date.month, 0, 23, 59, 59, 999);
   }
 
   /// Obtiene el primer día del año actual

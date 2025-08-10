@@ -17,12 +17,13 @@ final ingresosServiceProvider = Provider<IngresosService>((ref) {
 
 /// Proveedor de ingresos filtrados (total)
 ///
-/// Este proveedor ahora usa DateUtils para calcular rangos de fecha consistentes
-/// con los filtros aplicados, asegurando que los valores sean correctos
+/// ✅ Ajustado para que el filtro "Trimestral" use el TRIMESTRE MÓVIL.
+///    Esto significa que si hoy es agosto, mostrará mayo, junio y julio.
+///    Si es enero, mostrará octubre, noviembre y diciembre del año anterior.
 ///
-/// Importancia:
-/// - Antes, los valores se calculaban inconsistentemente para diferentes filtros
-/// - Ahora, usa la misma lógica de cálculo para todos los tipos de filtro
+/// Beneficio:
+/// - Más intuitivo para el usuario final.
+/// - Evita mostrar meses incompletos que distorsionen los datos.
 final filteredIngresosProvider = StreamProvider.autoDispose<double>((ref) {
   final authState = ref.watch(authProvider);
   final filter = ref.watch(filterProvider);
@@ -33,24 +34,37 @@ final filteredIngresosProvider = StreamProvider.autoDispose<double>((ref) {
 
   switch (filter.type) {
     case FilterType.monthly:
+      // Mes actual
       final inicioMes = DateUtils.getStartOfMonth(now);
       final finMes = DateUtils.getEndOfMonth(now);
       return service.streamTotalIngresosInRange(
-          authState.user!.uid, inicioMes, finMes);
+        authState.user!.uid,
+        inicioMes,
+        finMes,
+      );
 
     case FilterType.quarterly:
-      final inicioTrimestre = DateUtils.getStartOfQuarter(now);
-      final finTrimestre = DateUtils.getEndOfQuarter(now);
+      // 🔹 Trimestre móvil: últimos 3 meses completos antes del mes actual
+      final inicioTrimestre = DateUtils.getStartOfRollingQuarter(now);
+      final finTrimestre = DateUtils.getEndOfRollingQuarter(now);
       return service.streamTotalIngresosInRange(
-          authState.user!.uid, inicioTrimestre, finTrimestre);
+        authState.user!.uid,
+        inicioTrimestre,
+        finTrimestre,
+      );
 
     case FilterType.annual:
+      // Año actual
       final inicioAnio = DateUtils.getStartOfYear(now);
       final finAnio = DateUtils.getEndOfYear(now);
       return service.streamTotalIngresosInRange(
-          authState.user!.uid, inicioAnio, finAnio);
+        authState.user!.uid,
+        inicioAnio,
+        finAnio,
+      );
 
     case FilterType.custom:
+      // Rango personalizado
       if (filter.startDate != null && filter.endDate != null) {
         return service.streamTotalIngresosInRange(
           authState.user!.uid,
@@ -64,7 +78,7 @@ final filteredIngresosProvider = StreamProvider.autoDispose<double>((ref) {
 
 /// Proveedor de ingresos filtrados por rango de fechas (usado por la gráfica)
 ///
-/// Este proveedor ya funcionaba correctamente y no requiere cambios
+/// Este proveedor ya funcionaba correctamente y no requiere cambios.
 final ingresosFiltradosProvider =
     StreamProvider.autoDispose<List<Ingreso>>((ref) {
   final authState = ref.watch(authProvider);
@@ -81,10 +95,9 @@ final ingresosFiltradosProvider =
   }
 });
 
-/// Proveedor para ingresos del mes actual con try-catch
+/// Proveedor para ingresos del mes actual
 ///
-/// IMPORTANTE: Este proveedor se mantiene para pantallas como el Home
-/// que siempre necesitan mostrar el mes actual, sin importar el filtro global
+/// Siempre muestra el mes actual, sin importar el filtro global.
 final totalIngresosMesActualProvider =
     StreamProvider.autoDispose<double>((ref) {
   final authState = ref.watch(authProvider);
@@ -98,6 +111,8 @@ final totalIngresosMesActualProvider =
 });
 
 /// Proveedor de ingresos por categoría (usado en CategorySummary)
+///
+/// Filtra los ingresos por categoría, respetando el rango de fechas filtrado.
 final ingresosPorCategoriaProvider =
     Provider.family<AsyncValue<List<Ingreso>>, String>(
   (ref, categoria) => ref.watch(ingresosFiltradosProvider).whenData(
@@ -105,7 +120,9 @@ final ingresosPorCategoriaProvider =
       ),
 );
 
-/// Total de ingresos basado en filtro actual
+/// Total de ingresos basado en el filtro actual
+///
+/// Suma todos los ingresos filtrados por fecha.
 final totalIngresosProvider = StreamProvider.autoDispose<double>((ref) {
   final authState = ref.watch(authProvider);
   if (authState.user == null) return Stream.value(0.0);
