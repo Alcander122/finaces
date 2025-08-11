@@ -6,7 +6,6 @@ import 'package:finances/presentations/screens/portafolio/portafolio_form_screen
 import 'package:finances/presentations/screens/portafolio/widgets/investment_chart.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
-import 'package:finances/utils/utilities.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tuple/tuple.dart';

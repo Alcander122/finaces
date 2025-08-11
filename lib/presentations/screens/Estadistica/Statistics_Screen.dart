@@ -412,15 +412,4 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     final formatter = NumberFormat.decimalPattern('es_CO');
     return '\$${formatter.format(value)}';
   }
-
-  // Título principal de la sección
-  Widget _buildHeaderSection(ThemeData theme) {
-    return Text(
-      'Balance General',
-      style: theme.textTheme.headlineSmall?.copyWith(
-        fontWeight: FontWeight.w700,
-        color: Colors.blueGrey[800],
-      ),
-    );
-  }
 }
