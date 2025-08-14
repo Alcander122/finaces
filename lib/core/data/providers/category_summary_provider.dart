@@ -7,7 +7,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:rxdart/rxdart.dart';
 
 /// Proveedor principal que combina ingresos y egresos filtrados por categoría
-final ingresosEgresosCategoryStreamProvider = StreamProvider<Map<String, Map<String, double>>>((ref) {
+final ingresosEgresosCategoryStreamProvider =
+    StreamProvider<Map<String, Map<String, double>>>((ref) {
   final ingresosStream = ref.watch(ingresosFiltradosProvider.stream);
   final egresosStream = ref.watch(egresosFiltradosProvider.stream);
 
@@ -25,14 +26,15 @@ final ingresosEgresosCategoryStreamProvider = StreamProvider<Map<String, Map<Str
 });
 
 /// Función auxiliar para agrupar transacciones por categoría
-Map<String, double> _groupByCategory(List<dynamic> transactions, bool isExpense) {
+Map<String, double> _groupByCategory(
+    List<dynamic> transactions, bool isExpense) {
   final categoryMap = <String, double>{};
 
   for (final transaction in transactions) {
     // Extraer datos según el tipo de transacción
     final String category;
     final double amount;
-    
+
     if (isExpense) {
       final egreso = transaction as Egreso;
       category = egreso.categoria;
@@ -50,6 +52,6 @@ Map<String, double> _groupByCategory(List<dynamic> transactions, bool isExpense)
       ifAbsent: () => amount,
     );
   }
-  
+
   return categoryMap;
 }

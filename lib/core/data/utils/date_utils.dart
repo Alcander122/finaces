@@ -88,4 +88,17 @@ class DateUtils {
   static String formatDate(DateTime date) {
     return DateFormat('dd/MM/yyyy').format(date);
   }
+
+  static DateTime getStartOfRollingQuarterAlternative(DateTime date) {
+    final currentMonth = date.month;
+    final quarterStartMonth = currentMonth - ((currentMonth - 1) % 3);
+    return DateTime(date.year, quarterStartMonth, 1);
+  }
+
+  static DateTime getEndOfRollingQuarterAlternative(DateTime date) {
+    final startOfQuarter = getStartOfRollingQuarter(date);
+    final endOfQuarter =
+        DateTime(startOfQuarter.year, startOfQuarter.month + 3, 0);
+    return endOfQuarter;
+  }
 }

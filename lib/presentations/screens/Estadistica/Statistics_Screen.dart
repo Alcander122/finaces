@@ -1,25 +1,25 @@
 // lib/presentations/screens/Estadistica/Statistics_Screen.dart
+
 import 'package:finances/core/data/models/filter.dart';
 import 'package:finances/core/data/providers/ingreso_provider.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
 import 'package:finances/core/data/providers/filter_provider.dart';
 import 'package:finances/presentations/screens/Estadistica/widgets/activity_chart.dart';
 import 'package:finances/presentations/screens/Estadistica/widgets/category_summary.dart';
-import 'package:finances/presentations/screens/Estadistica/widgets/summary_cards.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:finances/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:intl/intl.dart';
+// SOLUCIÓN: Usamos un prefijo para evitar el conflicto de nombres con DateUtils
+import 'package:finances/core/data/utils/date_utils.dart' as MyDateUtils;
 
-/// Pantalla principal de estadísticas financieras
-///
-/// Muestra:
-/// - Gráfico de actividad financiera
-/// - Filtros para seleccionar período
-/// - Tarjetas resumen de ingresos, gastos y balance
-/// - Resumen por categorías
+/// Pantalla principal de estadísticas que muestra:
+/// - Actividad financiera
+/// - Filtros (mensual, trimestral, anual, personalizado)
+/// - Tarjetas de resumen (ingresos, gastos, balance)
+/// - Resumen por categoría
 class StatisticScreen extends ConsumerStatefulWidget {
   const StatisticScreen({super.key});
 
@@ -33,10 +33,9 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
-    /// Obtenemos los valores de ingresos y gastos filtrados
+    // Observamos los proveedores de ingresos y egresos filtrados
     final ingresosAsync = ref.watch(filteredIngresosProvider);
-    final egresosAsync = ref.watch(filteredTotalGastosProvider);
+    final egresosAsync = ref.watch(filteredEgresosProvider);
 
     return Scaffold(
       backgroundColor: Themes.light,
@@ -55,9 +54,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
                 const SizedBox(height: 8),
                 _buildFilterRow(),
                 const SizedBox(height: 12),
-
-                /// Usamos SummaryCards en lugar de _buildFinancialCards
-                const SummaryCards(),
+                _buildFinancialCards(ingresosAsync, egresosAsync),
                 const SizedBox(height: 16),
                 _buildCategorySection(theme),
               ],
@@ -68,7 +65,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     );
   }
 
-  /// Sección del gráfico de actividad financiera
+  /// Construye la sección del gráfico de actividad financiera
   Widget _buildFinancialActivitySection() {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -95,9 +92,11 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     );
   }
 
-  /// Fila de botones para seleccionar el tipo de filtro
+  /// Construye la fila de botones para seleccionar el tipo de filtro
   Widget _buildFilterRow() {
+    // Obtenemos el tipo de filtro actual para mostrar el estado seleccionado
     final currentFilter = ref.watch(filterProvider).type;
+
     return SizedBox(
       height: 50,
       child: SingleChildScrollView(
@@ -129,7 +128,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     );
   }
 
-  /// Botón individual de filtro
+  /// Construye un botón individual de filtro
   Widget _buildFilterChip({
     required String label,
     required bool isSelected,
@@ -155,7 +154,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     );
   }
 
-  /// Botón especial para filtro personalizado
+  /// Construye el botón especial para filtro personalizado
   Widget _buildCustomFilterChip(FilterType currentFilter) {
     final isCustomSelected = currentFilter == FilterType.custom;
     return Padding(
@@ -185,9 +184,8 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     );
   }
 
-  /// Tarjetas con datos de Ingresos, Gastos y Balance
-  /// NOTA: Este método ya no se usa, se reemplazó por SummaryCards
-  Widget buildFinancialCards(
+  /// Construye las tarjetas con datos de Ingresos, Gastos y Balance
+  Widget _buildFinancialCards(
       AsyncValue<double> ingresos, AsyncValue<double> gastos) {
     return SizedBox(
       height: 120,
@@ -212,7 +210,8 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
           ),
           const SizedBox(width: 8),
           Expanded(
-            child: _buildBalanceCard(),
+            child:
+                _buildBalanceCard(), // Asegúrate de que este método no use width.
           ),
         ],
       ),
@@ -220,7 +219,6 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
   }
 
   /// Construye una tarjeta individual de estadística
-  /// NOTA: Este método ya no se usa, se reemplazó por SummaryCards
   Widget _buildFinanceCard({
     required String title,
     required AsyncValue<double> value,
@@ -233,21 +231,21 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
       child: Padding(
         padding: const EdgeInsets.all(12),
         child: value.when(
+          // CORRECCIÓN: Especificamos explícitamente los parámetros nombrados
           data: (data) => _buildCardContent(title, icon, color, data),
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (_, __) => const Text("Error al cargar datos"),
+          error: (error, stackTrace) => const Text("Error al cargar datos"),
         ),
       ),
     );
   }
 
   /// Contenido interno de cada tarjeta
-  /// NOTA: Este método ya no se usa, se reemplazó por SummaryCards
   Widget _buildCardContent(
       String title, IconData icon, Color color, double amount) {
     return Column(
-      crossAxisAlignment: CrossAxisAlignment.center,
-      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center, // Centrado horizontal
+      mainAxisAlignment: MainAxisAlignment.center, // Centrado vertical
       children: [
         Icon(icon, color: color),
         const SizedBox(height: 8),
@@ -260,7 +258,8 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
           ),
           overflow: TextOverflow.ellipsis,
           softWrap: false,
-          textAlign: TextAlign.center,
+          textAlign:
+              TextAlign.center, // Asegura que el texto también esté centrado
         ),
         const SizedBox(height: 8),
         Text(
@@ -276,8 +275,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     );
   }
 
-  /// Tarjeta del balance general
-  /// NOTA: Este método ya no se usa, se reemplazó por SummaryCards
+  /// Construye la tarjeta del balance general
   Widget _buildBalanceCard() {
     return SizedBox(
       child: Card(
@@ -286,14 +284,16 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
         child: Padding(
           padding: const EdgeInsets.all(12),
           child: ref.watch(filteredIngresosProvider).when(
-                data: (ing) => ref.watch(filteredTotalGastosProvider).when(
+                // CORRECCIÓN: Especificamos explícitamente los parámetros nombrados
+                data: (ing) => ref.watch(filteredEgresosProvider).when(
                       data: (gas) => _buildBalanceContent(ing - gas),
                       loading: () =>
                           const Center(child: CircularProgressIndicator()),
-                      error: (_, __) => const Text("Error en gastos"),
+                      error: (error, stackTrace) =>
+                          const Text("Error en gastos"),
                     ),
                 loading: () => const Center(child: CircularProgressIndicator()),
-                error: (_, __) => const Text("Error en ingresos"),
+                error: (error, stackTrace) => const Text("Error en ingresos"),
               ),
         ),
       ),
@@ -301,7 +301,6 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
   }
 
   /// Contenido dinámico de la tarjeta de balance
-  /// NOTA: Este método ya no se usa, se reemplazó por SummaryCards
   Widget _buildBalanceContent(double balance) {
     final color = balance >= 0 ? Colors.blue : Colors.red;
     return Column(
@@ -343,6 +342,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     );
   }
 
+  /// Construye la sección de resumen por categoría
   Widget _buildCategorySection(ThemeData theme) {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -392,37 +392,94 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     final initialDate = DateTime.now().subtract(const Duration(days: 30));
     final firstDate = DateTime.now().subtract(const Duration(days: 365));
     final lastDate = DateTime.now();
+
     final picked = await showDateRangePicker(
       context: context,
       initialDateRange: DateTimeRange(start: initialDate, end: DateTime.now()),
       firstDate: firstDate,
       lastDate: lastDate,
     );
+
     if (picked != null) {
       DateTime startDate = picked.start;
       DateTime endDate = picked.end;
-
-      /// Asegurar que el rango cubre todo el día final
-      endDate =
-          DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59, 999);
+      // Ajustamos la fecha final al último momento del día
+      endDate = DateTime(endDate.year, endDate.month, endDate.day, 23, 59, 59);
       ref.read(filterProvider.notifier).update((state) => state.copyWith(
             type: FilterType.custom,
             startDate: startDate,
             endDate: endDate,
           ));
+
+      // Agregamos un log para verificar las fechas seleccionadas
+      print(
+          'Filtro personalizado: ${startDate.toString()} - ${endDate.toString()}');
     }
   }
 
-  /// Cambia el tipo de filtro y reinicia las fechas personalizadas si es necesario
+  /// CAMBIO CRÍTICO: Método modificado para calcular las fechas correctas
+  ///
+  /// ANTES: Establecía startDate y endDate en null, lo que impedía que los proveedores
+  ///        de datos filtrados obtuvieran los datos correctos para el resumen por categoría
+  ///
+  /// AHORA: Calcula las fechas adecuadas para cada tipo de filtro usando DateUtils
+  ///
+  /// IMPORTANTE: Este cambio es esencial para que el resumen por categoría se actualice
+  ///             correctamente cuando el usuario selecciona un filtro diferente
   void _changeFilter(FilterType type) {
+    final now = DateTime.now();
+    DateTime? startDate;
+    DateTime? endDate;
+
+    // SOLUCIÓN: Usamos el prefijo MyDateUtils para referirnos a nuestra clase DateUtils
+    // Esto evita el conflicto con la clase DateUtils de Flutter
+    switch (type) {
+      case FilterType.monthly:
+        // Obtiene el primer y último día del mes actual
+        startDate = MyDateUtils.DateUtils.getStartOfMonth(now);
+        endDate = MyDateUtils.DateUtils.getEndOfMonth(now);
+        break;
+      case FilterType.quarterly:
+        // Usa el trimestre móvil (últimos 3 meses completos)
+        // Ejemplo: Si hoy es agosto, devuelve mayo, junio y julio
+        // Si es enero, devuelve octubre, noviembre y diciembre del año anterior
+        startDate = MyDateUtils.DateUtils.getStartOfRollingQuarter(now);
+        endDate = MyDateUtils.DateUtils.getEndOfRollingQuarter(now);
+        break;
+      case FilterType.annual:
+        // Obtiene el primer y último día del año actual
+        startDate = MyDateUtils.DateUtils.getStartOfYear(now);
+        endDate = MyDateUtils.DateUtils.getEndOfYear(now);
+        break;
+      case FilterType.custom:
+        // Para personalizado, mantenemos las fechas actuales si existen
+        // Esto evita perder el rango seleccionado previamente
+        final currentFilter = ref.read(filterProvider);
+        startDate = currentFilter.startDate;
+        endDate = currentFilter.endDate;
+        break;
+    }
+
+    // Agregamos logs para depurar y verificar que las fechas se calculan correctamente
+    print('Cambiando filtro a: $type');
+    if (startDate != null && endDate != null) {
+      print(
+          'Rango de fechas calculado: ${startDate.toString()} - ${endDate.toString()}');
+    } else {
+      print('Sin rango de fechas definido');
+    }
+
+    // Actualizamos el estado del filtro con las fechas calculadas
+    // Esto notificará a todos los widgets que están observando filterProvider
+    // y activará la reconstrucción necesaria para mostrar los datos actualizados
     ref.read(filterProvider.notifier).update((state) => state.copyWith(
           type: type,
-          startDate: null,
-          endDate: null,
+          startDate: startDate,
+          endDate: endDate,
         ));
   }
 
-  /// Formatea un número a formato de moneda local
+  /// Formatea un número a formato de moneda local (COP)
   String formatCurrency(double value) {
     final formatter = NumberFormat.decimalPattern('es_CO');
     return '\$${formatter.format(value)}';
