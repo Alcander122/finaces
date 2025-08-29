@@ -1,6 +1,5 @@
-// lib/presentations/screens/Estadistica/Statistics_Screen.dart
 
-import 'package:finances/core/data/models/filter.dart';
+import '../../../core/data/models/filter.dart';
 import 'package:finances/core/data/providers/ingreso_provider.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
 import 'package:finances/core/data/providers/filter_provider.dart';
@@ -412,8 +411,8 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
           ));
 
       // Agregamos un log para verificar las fechas seleccionadas
-      print(
-          'Filtro personalizado: ${startDate.toString()} - ${endDate.toString()}');
+     /* print(
+          'Filtro personalizado: ${startDate.toString()} - ${endDate.toString()}');*/
     }
   }
 
@@ -461,13 +460,13 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     }
 
     // Agregamos logs para depurar y verificar que las fechas se calculan correctamente
-    print('Cambiando filtro a: $type');
+   /* print('Cambiando filtro a: $type');
     if (startDate != null && endDate != null) {
       print(
           'Rango de fechas calculado: ${startDate.toString()} - ${endDate.toString()}');
     } else {
       print('Sin rango de fechas definido');
-    }
+    }*/
 
     // Actualizamos el estado del filtro con las fechas calculadas
     // Esto notificará a todos los widgets que están observando filterProvider

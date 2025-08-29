@@ -256,7 +256,7 @@ class HomeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      formatter.format(saldo),
+                      formatCurrency(saldo),
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -276,7 +276,6 @@ class HomeScreen extends ConsumerWidget {
   // Tarjeta personalizada para estadísticas
   Widget _customStatCard(
       String label, double amount, IconData icon, Color iconColor) {
-    final formatter = NumberFormat.currency(locale: 'es_CO', symbol: '\$');
     return Container(
       width: 140,
       padding: const EdgeInsets.all(12),
@@ -302,7 +301,7 @@ class HomeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            formatter.format(amount),
+            formatCurrency(amount),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -589,4 +588,10 @@ class _AppBarDelegate extends SliverPersistentHeaderDelegate {
         minHeight != oldDelegate.minHeight ||
         onBuildTitle != oldDelegate.onBuildTitle;
   }
+}
+
+/// Formatea un número a formato de moneda local (COP)
+String formatCurrency(double value) {
+  final formatter = NumberFormat.decimalPattern('es_CO');
+  return '\$${formatter.format(value)}';
 }
