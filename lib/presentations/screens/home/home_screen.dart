@@ -1,7 +1,6 @@
 import 'package:finances/core/data/providers/egreso_provider.dart';
 import 'package:finances/core/data/providers/Ingreso_provider.dart';
 import 'package:finances/presentations/screens/Ahorro/ahorro_screen.dart';
-import 'package:finances/presentations/screens/Auth/LoginScreen.dart';
 import 'package:finances/presentations/screens/Bancos/banks_screen.dart';
 import 'package:finances/presentations/screens/Egreso/egresos_screen.dart';
 import 'package:finances/presentations/screens/Estadistica/Statistics_Screen.dart';
@@ -26,27 +25,23 @@ class HomeScreen extends ConsumerWidget {
 
     // Mostrar un indicador de carga si el estado de autenticación está cargando
     if (authState.isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    // Redirigir al login si no está autenticado
-    if (!authState.isAuthenticated) {
-      return const LoginScreen();
+      return const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 20),
+              Text('Cargando...'),
+            ],
+          ),
+        ),
+      );
     }
 
     // Obtener datos financieros del usuario
     final totalIngresosMesAsync = ref.watch(totalIngresosMesActualProvider);
     final totalGastosAsync = ref.watch(totalEgresoMesActualProvider);
-
-    final totalIngresos = totalIngresosMesAsync.maybeWhen(
-      data: (value) => value,
-      orElse: () => 0.0,
-    );
-
-    final totalGastos = totalGastosAsync.maybeWhen(
-      data: (value) => value,
-      orElse: () => 0.0,
-    );
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -54,7 +49,6 @@ class HomeScreen extends ConsumerWidget {
         backgroundImagePath: 'assets/images/bg3.jpg',
         child: CustomScrollView(
           slivers: [
-            // AppBar persistente
             SliverPersistentHeader(
               pinned: true,
               delegate: _AppBarDelegate(
@@ -73,8 +67,6 @@ class HomeScreen extends ConsumerWidget {
                 },
               ),
             ),
-
-            // Contenido principal
             SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,10 +93,19 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 25),
 
-                  // Resumen financiero
+                  // Resumen financiero con manejo de estados de carga
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: _buildFinancialSummary(totalIngresos, totalGastos),
+                    child: totalIngresosMesAsync.when(
+                      data: (ingresos) => totalGastosAsync.when(
+                        data: (gastos) =>
+                            _buildFinancialSummary(ingresos, gastos),
+                        loading: () => _buildLoadingFinancialSummary(),
+                        error: (error, _) => _buildErrorFinancialSummary(error),
+                      ),
+                      loading: () => _buildLoadingFinancialSummary(),
+                      error: (error, _) => _buildErrorFinancialSummary(error),
+                    ),
                   ),
                   const SizedBox(height: 25),
 
@@ -185,7 +186,6 @@ class HomeScreen extends ConsumerWidget {
   Widget _buildFinancialSummary(double ingresos, double gastos) {
     final saldo = ingresos - gastos;
     final isPositive = saldo >= 0;
-    final formatter = NumberFormat.currency(locale: 'es_CO', symbol: '\$');
 
     return Container(
       width: double.infinity,
@@ -273,6 +273,49 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
+  // Widget para mostrar carga de resumen financiero
+  Widget _buildLoadingFinancialSummary() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Themes.infoBlue,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+
+  // Widget para mostrar error en resumen financiero
+  Widget _buildErrorFinancialSummary(Object error) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Themes.infoBlue,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          const Icon(Icons.error, color: Colors.red),
+          const SizedBox(height: 10),
+          Text('Error al cargar datos: $error'),
+          const SizedBox(height: 10),
+          ElevatedButton(
+            onPressed: () {
+              // Recargar los providers
+              // ref.invalidate(totalIngresosMesActualProvider);
+              // ref.invalidate(totalEgresoMesActualProvider);
+            },
+            child: const Text('Reintentar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Tarjeta personalizada para estadísticas
   Widget _customStatCard(
       String label, double amount, IconData icon, Color iconColor) {
@@ -341,7 +384,7 @@ class HomeScreen extends ConsumerWidget {
               )),
           child: CircleAvatar(
             radius: 28,
-            backgroundColor: color.withValues(alpha: 0.2),
+            backgroundColor: color.withAlpha(50),
             child: Icon(icon, color: color, size: 28),
           ),
         ),
@@ -358,12 +401,8 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  // Tarjetas de acceso rápido
-  // Sección mejorada de tarjetas de acceso rápido
-// Esta implementación resuelve el problema de que el usuario no se dé cuenta
-// que debe desplazar horizontalmente para ver todas las opciones
+  // Tarjetas de acceso rápido - VERSIÓN CORREGIDA
   Widget _buildMenuCardsSeccion(BuildContext context) {
-    // Definimos los datos de las tarjetas de acceso rápido
     final List<Map<String, dynamic>> tips = [
       {
         'icon': const Icon(FontAwesomeIcons.piggyBank, color: Colors.orange),
@@ -378,8 +417,7 @@ class HomeScreen extends ConsumerWidget {
         'screen': PantallaBancos(),
       },
       {
-        'icon': const Icon(FontAwesomeIcons.chartLine,
-            color: Color.fromARGB(255, 77, 235, 103)),
+        'icon': const Icon(FontAwesomeIcons.chartLine, color: Colors.green),
         'title': 'Portafolio',
         'description': 'Visualiza tu portafolio.',
         'screen': PortafolioScreen(),
@@ -391,59 +429,40 @@ class HomeScreen extends ConsumerWidget {
         'description': 'Gestiona pagos y fechas.',
         'screen': PagosScreen(),
       },
-      /*{
-      'icon': const Icon(FontAwesomeIcons.clockRotateLeft, color: Colors.red),
-      'title': 'Historial',
-      'description': 'Historial de movimientos.',
-      'screen': AhorroScreen(),
-    },*/
     ];
 
-    // Verificamos si hay más tarjetas de las que caben en la pantalla
-    // (asumiendo que caben aproximadamente 3 en pantalla completa)
     final bool hayMasOpciones = tips.length > 3;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Título de la sección con indicador visual de que hay más opciones
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
             const Text('Accesos rápidos',
                 style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-
-            // Mostramos un indicador solo si hay más opciones que las que caben en pantalla
             if (hayMasOpciones)
               Row(
                 children: [
                   const Text('Más opciones ',
                       style: TextStyle(color: Colors.blue, fontSize: 14)),
                   const Icon(Icons.arrow_forward_ios,
-                      size: 14, color: Colors.blue)
+                      size: 14, color: Colors.blue),
                 ],
-              )
+              ),
           ],
         ),
-
         const SizedBox(height: 10),
-
-        // Contenedor principal de las tarjetas
         SizedBox(
           height: 150,
           child: Stack(
             children: [
-              // ListView horizontal con las tarjetas
               ListView.builder(
                 scrollDirection: Axis.horizontal,
-                // Añadimos padding para mostrar parcialmente la siguiente tarjeta
-                // Esto ayuda al usuario a entender que hay más contenido
                 padding: const EdgeInsets.only(left: 8, right: 16),
                 itemCount: tips.length,
                 itemBuilder: (context, index) {
                   final item = tips[index];
-
-                  // Determinamos si es el último elemento
                   final bool esUltimoElemento = index == tips.length - 1;
 
                   return GestureDetector(
@@ -454,34 +473,29 @@ class HomeScreen extends ConsumerWidget {
                         )),
                     child: Container(
                       width: 180,
-                      // Ajustamos el margen para mostrar un "peek" del siguiente elemento
-                      // Si es el último elemento, no añadimos margen derecho
                       margin: EdgeInsets.only(
                           right: esUltimoElemento ? 0 : 24,
-                          // Para el primer elemento, añadimos un pequeño desplazamiento
-                          // para mostrar que hay espacio para desplazar
                           left: index == 0 ? 8 : 0),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
                           colors: [
                             Themes.degradientLight,
-                            Themes.degradientDark
+                            Themes.degradientDark,
                           ],
                           begin: Alignment.topLeft,
                           end: Alignment.bottomRight,
                         ),
                         borderRadius: BorderRadius.circular(20),
-                        boxShadow: [
+                        boxShadow: const [
                           BoxShadow(
                               color: Colors.black26,
                               blurRadius: 4,
-                              offset: const Offset(0, 2)),
+                              offset: Offset(0, 2)),
                         ],
                       ),
                       child: Stack(
                         children: [
-                          // Contenido principal de la tarjeta
                           Column(
                             crossAxisAlignment: CrossAxisAlignment.start,
                             children: [
@@ -502,9 +516,6 @@ class HomeScreen extends ConsumerWidget {
                               ),
                             ],
                           ),
-
-                          // Efecto de desvanecimiento en el borde derecho para el último elemento
-                          // Esto indica visualmente que hay más contenido a la derecha
                           if (index == tips.length - 1 && hayMasOpciones)
                             const Align(
                               alignment: Alignment.centerRight,
@@ -520,16 +531,13 @@ class HomeScreen extends ConsumerWidget {
                                 child: SizedBox(
                                     width: 30, height: double.infinity),
                               ),
-                            )
+                            ),
                         ],
                       ),
                     ),
                   );
                 },
               ),
-
-              // Indicador visual adicional en el borde derecho
-              // Solo se muestra si hay más opciones
               if (hayMasOpciones)
                 Positioned(
                   right: 12,
@@ -544,7 +552,7 @@ class HomeScreen extends ConsumerWidget {
                     child: const Icon(Icons.chevron_right,
                         color: Colors.white, size: 20),
                   ),
-                )
+                ),
             ],
           ),
         ),
@@ -554,12 +562,10 @@ class HomeScreen extends ConsumerWidget {
 }
 
 // Delegado para el AppBar persistente
-typedef BuildTitle = Widget Function(double shrinkOffset);
-
 class _AppBarDelegate extends SliverPersistentHeaderDelegate {
   final double minHeight;
   final double maxHeight;
-  final BuildTitle onBuildTitle;
+  final Widget Function(double shrinkOffset) onBuildTitle;
 
   _AppBarDelegate({
     required this.minHeight,
@@ -585,8 +591,7 @@ class _AppBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(covariant _AppBarDelegate oldDelegate) {
     return maxHeight != oldDelegate.maxHeight ||
-        minHeight != oldDelegate.minHeight ||
-        onBuildTitle != oldDelegate.onBuildTitle;
+        minHeight != oldDelegate.minHeight;
   }
 }
 

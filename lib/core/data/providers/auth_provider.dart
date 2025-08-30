@@ -7,7 +7,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
-//import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+import 'dart:async';
 
 /// Maneja almacenamiento local (token, estado de logout)
 class AuthStorage {
@@ -90,19 +90,29 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final GoogleSignIn googleSignIn = GoogleSignIn();
   final AuthStorage _storage = AuthStorage();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  StreamSubscription<User?>? _authSubscription;
 
   AuthNotifier() : super(const AuthState.initial()) {
     _initAuthListener();
   }
 
-  /// Escucha los cambios de sesión de Firebase
+  @override
+  void dispose() {
+    // Cancelar suscripción para evitar memory leaks
+    _authSubscription?.cancel();
+    super.dispose();
+  }
+
+  /// Escucha los cambios de sesión de Firebase con manejo mejorado
   void _initAuthListener() {
-    _auth.authStateChanges().listen((User? user) async {
+    _authSubscription = _auth.authStateChanges().listen((User? user) async {
       try {
         if (user != null) {
+          // Recargar usuario para obtener información actualizada
           await user.reload();
           final updatedUser = _auth.currentUser;
-          if (updatedUser != null) {
+
+          if (updatedUser != null && updatedUser.uid == user.uid) {
             final token = await updatedUser.getIdToken();
             await _storage.saveToken(token ?? '');
             state = AuthState.authenticated(updatedUser);
@@ -111,13 +121,37 @@ class AuthNotifier extends StateNotifier<AuthState> {
           await _storage.deleteToken();
           state = const AuthState.unauthenticated();
         }
-      } catch (_) {
-        state = AuthState.error(ErrorStrings.unexpectedError);
+      } catch (error) {
+        debugPrint('Error en authStateChanges: $error');
+        // En caso de error, verificar manualmente el estado
+        checkAuthStatus();
       }
+    }, onError: (error) {
+      debugPrint('Error en stream de autenticación: $error');
+      state = AuthState.error(ErrorStrings.unexpectedError);
     });
   }
 
-  /// Login con email y contraseña
+  /// Verificar manualmente el estado de autenticación
+  Future<void> checkAuthStatus() async {
+    try {
+      final user = _auth.currentUser;
+      if (user != null) {
+        await user.reload();
+        final token = await user.getIdToken();
+        await _storage.saveToken(token ?? '');
+        state = AuthState.authenticated(user);
+      } else {
+        await _storage.deleteToken();
+        state = const AuthState.unauthenticated();
+      }
+    } catch (error) {
+      debugPrint('Error al verificar estado de auth: $error');
+      state = const AuthState.unauthenticated();
+    }
+  }
+
+  /// Login con email y contraseña con timeout
   Future<void> signIn(String email, String password) async {
     try {
       state = const AuthState.loading();
@@ -128,8 +162,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
         await _auth.setSettings(appVerificationDisabledForTesting: true);
       }
 
-      await _auth.signInWithEmailAndPassword(email: email, password: password);
-      await _auth.currentUser?.reload();
+      // Timeout para evitar bloqueos infinitos
+      final userCredential = await _auth
+          .signInWithEmailAndPassword(email: email, password: password)
+          .timeout(const Duration(seconds: 15));
+
+      await userCredential.user?.reload();
+    } on TimeoutException {
+      state = AuthState.error('Tiempo de espera agotado');
+      throw 'Tiempo de espera agotado';
     } on FirebaseAuthException catch (e) {
       final message = AuthErrorHandler.handle(e);
       state = AuthState.error(message);
@@ -207,81 +248,55 @@ class AuthNotifier extends StateNotifier<AuthState> {
         .update({'displayName': displayName});
   }
 
-  /// LOGIN con Google (no crea documento si es nuevo)
-  ///
-  /// Retorna `true` si el usuario NO tiene documento en Firestore (es nuevo)
+  /// LOGIN con Google con mejor manejo de tiempo
   Future<bool> signInWithGoogle() async {
     try {
-      // Crear una nueva instancia para asegurar el selector de cuenta
+      state = const AuthState.loading();
+
       final GoogleSignIn googleSignIn = GoogleSignIn(
         scopes: ['email', 'profile'],
-        // Esto fuerza una nueva autenticación, evitando sesión previa
         forceCodeForRefreshToken: true,
       );
 
-      // Cierra cualquier sesión previa para que siempre salga el diálogo
       await googleSignIn.signOut();
 
-      // Muestra el diálogo de selección de cuenta de Google
-      final GoogleSignInAccount? googleUser = await googleSignIn.signIn();
-      if (googleUser == null) throw Exception("Inicio de sesión cancelado");
+      final GoogleSignInAccount? googleUser =
+          await googleSignIn.signIn().timeout(const Duration(seconds: 15));
 
-      // Autenticación con Google
+      if (googleUser == null) {
+        state = const AuthState.unauthenticated();
+        throw Exception("Inicio de sesión cancelado");
+      }
+
       final GoogleSignInAuthentication googleAuth =
           await googleUser.authentication;
 
-      // Genera las credenciales de Firebase
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
 
-      // Inicia sesión en Firebase con las credenciales de Google
-      final userCredential = await _auth.signInWithCredential(credential);
+      final userCredential = await _auth
+          .signInWithCredential(credential)
+          .timeout(const Duration(seconds: 15));
+
       final user = userCredential.user;
-      if (user == null) throw Exception("Usuario no encontrado");
+      if (user == null) {
+        state = const AuthState.unauthenticated();
+        throw Exception("Usuario no encontrado");
+      }
 
-      // Verifica si el documento del usuario ya existe en Firestore
       final exists = await _userService.userExists(user.uid);
+      state = AuthState.authenticated(user);
 
-      // Si no existe, se debe redirigir al registro
       return !exists;
+    } on TimeoutException {
+      state = AuthState.error('Tiempo de espera agotado');
+      throw Exception('Tiempo de espera agotado');
     } catch (e) {
+      state = AuthState.error(ErrorStrings.unexpectedError);
       debugPrint("Error en signInWithGoogle: $e");
       rethrow;
     }
   }
-
-  /// Login con Facebook
-  /*Future<void> signInWithFacebook() async {
-    try {
-      state = const AuthState.loading();
-      await _storage.clearLoggedOut();
-
-      final result = await FacebookAuth.instance.login();
-      if (result.status != LoginStatus.success) {
-        throw FirebaseAuthException(code: 'aborted-by-user');
-      }
-
-      final credential = FacebookAuthProvider.credential(
-        result.accessToken!.tokenString,
-      );
-
-      final userCredential = await _auth.signInWithCredential(credential);
-      final user = userCredential.user;
-
-      if (user != null) {
-        final token = await user.getIdToken();
-        await _storage.saveToken(token ?? '');
-        state = AuthState.authenticated(user);
-      }
-    } on FirebaseAuthException catch (e) {
-      final message = AuthErrorHandler.handle(e);
-      state = AuthState.error(message);
-      throw message;
-    } catch (_) {
-      state = AuthState.error(ErrorStrings.unexpectedError);
-      throw ErrorStrings.unexpectedError;
-    }
-  }*/
 }
