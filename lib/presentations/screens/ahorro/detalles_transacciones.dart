@@ -1,6 +1,9 @@
 import 'package:finances/core/data/models/objetivo_ahorro.dart';
+import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import '../../../core/data/utils/ui_helpers.dart';
 
 class DetallesTransacciones extends StatelessWidget {
   final ObjetivoAhorro meta;
@@ -10,8 +13,10 @@ class DetallesTransacciones extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('Detalles de ${meta.nombre}'),
+      backgroundColor: Themes.light,
+      appBar: AppBarFinances(
+        title: 'Detalles de ${meta.nombre}',
+        showProfileIcon: false,
       ),
       body: meta.transacciones.isEmpty
           ? const Center(
@@ -40,7 +45,7 @@ class DetallesTransacciones extends StatelessWidget {
                           : Colors.red,
                     ),
                     title: Text(
-                      '$tipoFormatted - \$${transaccion.monto.toStringAsFixed(2)}',
+                      '$tipoFormatted - ${UIHelpers.formatCurrency(transaccion.monto)}',
                       style: const TextStyle(fontWeight: FontWeight.bold),
                     ),
                     subtitle: Text(

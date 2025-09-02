@@ -1,5 +1,6 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 
+/// Clase que representa una transacción (depósito o retiro)
 class Transaccion {
   final String tipo; // 'deposito' o 'retiro'
   final double monto;
@@ -9,21 +10,24 @@ class Transaccion {
   Transaccion({
     required this.tipo,
     required this.monto,
-    DateTime? fecha, // Permite que fecha sea opcional
+    DateTime? fecha, // Permite que la fecha sea opcional
     this.descripcion,
-  }) : fecha = fecha ?? DateTime.now(); // Si fecha es null, usa la fecha actual
+  }) : fecha = fecha ??
+            DateTime
+                .now(); // Si no se pasa fecha, se asigna la fecha y hora actual
 
+  /// Convierte la transacción en un mapa para guardarla en Firestore
   Map<String, dynamic> toMap() {
-    final fechaValida = fecha;
     return {
       'tipo': tipo,
       'monto': monto,
-      'fecha': Timestamp.fromDate(fechaValida),
+      'fecha': Timestamp.fromDate(fecha), // Se guarda como Timestamp
       'descripcion': descripcion,
     };
   }
 }
 
+/// Clase que representa un objetivo de ahorro del usuario
 class ObjetivoAhorro {
   final String? id;
   final String usuarioId;
@@ -47,8 +51,14 @@ class ObjetivoAhorro {
     required this.fechaActualizacion,
   });
 
+  /// Getter que devuelve el progreso en porcentaje
   double get progreso => (montoActual / montoObjetivo) * 100;
 
+  /// Getter alternativo para compatibilidad con el código que usa `ahorroActual`
+  /// Básicamente es un alias de `montoActual`
+  double get ahorroActual => montoActual;
+
+  /// Crea un objeto ObjetivoAhorro a partir de un documento de Firestore
   factory ObjetivoAhorro.desdeFirestore(DocumentSnapshot doc) {
     Map data = doc.data() as Map<String, dynamic>;
 

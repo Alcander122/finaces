@@ -1,7 +1,8 @@
 import 'package:finances/core/data/models/objetivo_ahorro.dart';
 import 'package:finances/core/data/services/servicio_ahorro.dart';
 import 'package:finances/core/data/utils/ahorro_validator.dart';
-import 'package:finances/presentations/screens/egreso/utils/thousands_formatter.dart';
+import 'package:finances/core/data/utils/thousands_formatter.dart';
+import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:flutter/material.dart';
@@ -56,6 +57,44 @@ class AhorroScreenState extends State<AhorroScreen> {
                     _mostrarDialogo(context, meta.id!, tipo),
                 onVerDetalles: () =>
                     _mostrarDetallesTransacciones(context, meta),
+                onEliminar: () async {
+                  final confirmar = await showDialog<bool>(
+                    context: context,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('Eliminar meta'),
+                      content: Text(
+                          '¿Seguro que quieres eliminar la meta "${meta.nombre}"?'),
+                      actions: [
+                        TextButton(
+                          onPressed: () => Navigator.pop(ctx, false),
+                          child: const Text('Cancelar'),
+                        ),
+                        ElevatedButton(
+                          style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.red),
+                          onPressed: () => Navigator.pop(ctx, true),
+                          child: const Text('Eliminar'),
+                        ),
+                      ],
+                    ),
+                  );
+
+                  if (confirmar == true) {
+                    try {
+                      await _ahorroService.eliminarMeta(meta.id!);
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                            content: Text('Meta "${meta.nombre}" eliminada')),
+                      );
+                    } catch (e) {
+                      if (!mounted) return;
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Error al eliminar: $e')),
+                      );
+                    }
+                  }
+                },
               );
             },
           );
@@ -107,11 +146,33 @@ class AhorroScreenState extends State<AhorroScreen> {
             final metaSeleccionada = metas.firstWhere((m) => m.id == metaId);
 
             return DialogoTransaccion(
-              onGuardar: (monto, descripcion) => _manejarTransaccion(
-                  dialogContext, metaId, tipo, monto, descripcion),
-              maxMonto: tipo == 'retiro' ? metaSeleccionada.montoActual : null,
+              onGuardar: (monto, descripcion) {
+                // Validación adicional para depósitos
+                if (tipo == 'deposito') {
+                  final restante = metaSeleccionada.montoObjetivo -
+                      metaSeleccionada.montoActual;
+                  if (monto > restante) {
+                    ScaffoldMessenger.of(context).showSnackBar(
+                      SnackBar(
+                        content: Text(
+                          'No puedes depositar más de ${UIHelpers.formatCurrency(restante)}. '
+                          'La meta es de ${UIHelpers.formatCurrency(metaSeleccionada.montoObjetivo)}',
+                        ),
+                      ),
+                    );
+                    return; // ❌ no guarda la transacción
+                  }
+                }
+
+                _manejarTransaccion(
+                    dialogContext, metaId, tipo, monto, descripcion);
+              },
+              maxMonto: tipo == 'retiro'
+                  ? metaSeleccionada.montoActual
+                  : (metaSeleccionada.montoObjetivo -
+                      metaSeleccionada.montoActual),
               titulo:
-                  tipo == 'retiro' ? 'Realizar Retiro' : 'Nueva Transacción',
+                  tipo == 'retiro' ? 'Realizar Retiro' : 'Realizar Depósito',
             );
           },
         );

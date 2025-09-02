@@ -82,7 +82,7 @@ class BancoModelo {
     List<String>? safeLlaves;
     if (json['llaves'] is List) {
       safeLlaves = (json['llaves'] as List)
-          .where((item) => item is String && (item as String).isNotEmpty)
+          .where((item) => item is String && item.isNotEmpty)
           .map((item) => item as String)
           .toList();
 
