@@ -223,7 +223,7 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
       separatorBuilder: (_, __) => const SizedBox(height: 12),
       itemBuilder: (context, index) {
         final banco = bancos[index];
-        if (banco.nombre == null || banco.nombre.isEmpty) {
+        if (banco.nombre.isEmpty) {
           return const SizedBox.shrink();
         }
         return TarjetaBanco(

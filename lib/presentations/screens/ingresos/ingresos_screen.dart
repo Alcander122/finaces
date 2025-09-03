@@ -11,49 +11,58 @@ import 'package:finances/presentations/screens/ingresos/widgets/ingreso_table.da
 import 'package:finances/presentations/screens/ingresos/widgets/Ingreso_chart.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:intl/intl.dart'; // Para formatear fechas
+import 'package:finances/core/data/utils/ui_helpers.dart';
+// Importar UIHelpers
 
 // Definición de la clase IngresosScreen que extiende ConsumerStatefulWidget
 class IngresosScreen extends ConsumerStatefulWidget {
   const IngresosScreen({super.key});
 
-  // Método que crea el estado de la pantalla
   @override
   IngresosScreenState createState() => IngresosScreenState();
 }
 
-// Clase que maneja el estado de la pantalla de ingresos
 class IngresosScreenState extends ConsumerState<IngresosScreen> {
   // Controladores para los campos del formulario
   final _formKey = GlobalKey<FormState>();
   final _conceptoController = TextEditingController();
   final _valorController = TextEditingController();
   final notaController = TextEditingController();
+  final _fechaController = TextEditingController();
 
   // Variables para almacenar los ingresos y los filtros
   List<Map<String, dynamic>> _ingresos = [];
   String? _quincena, _categoria;
   String? _editId;
-  DateTime _fechaIngreso = DateTime.now(); // Nuevo campo
+  DateTime _fechaIngreso = DateTime.now();
 
   // Instancias de servicios y validadores
   final IngresosService _ingresosService = IngresosService();
   final IngresoValidator _validator = IngresoValidator();
 
-  // Lista de campos visibles en la tabla (sin 'mes' y 'anio')
+  // Lista de campos visibles en la tabla
   final List<String> _camposVisibles = [
     'fechaIngreso',
     'categoria',
     'valor',
-    // 'quincena' y 'concepto' disponibles pero no visibles por defecto
   ];
 
-  // Método que se ejecuta al inicializar la pantalla
   @override
   void initState() {
     super.initState();
     _quincena = 'Primera Quincena';
     _categoria = 'Salario';
+    _fechaController.text = DateFormat('dd/MM/yyyy').format(_fechaIngreso);
     _cargarIngresos();
+  }
+
+  @override
+  void dispose() {
+    _fechaController.dispose();
+    _conceptoController.dispose();
+    _valorController.dispose();
+    notaController.dispose();
+    super.dispose();
   }
 
   @override
@@ -78,7 +87,7 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Gráfico de dona (restaurado)
+              // Gráfico de dona
               IncomeChart(
                 ingresos: _ingresos
                     .map((ingreso) => Ingreso.fromMap(ingreso))
@@ -128,229 +137,388 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
     );
   }
 
-  // Cargar ingresos desde el servicio
   Future<void> _cargarIngresos() async {
     final authState = ref.read(authProvider);
     if (authState.user == null) return;
 
-    // Obtener los ingresos del servicio
     List<Ingreso> ingresos =
         await _ingresosService.obtenerIngresos(authState.user!.uid);
 
-    // Ordenar los ingresos por fechaIngreso
     ingresos.sort((a, b) => b.fechaIngreso.compareTo(a.fechaIngreso));
 
-    // Convertir los ingresos a un formato compatible con la tabla
     _ingresos = ingresos.map((ingreso) => ingreso.toMap()).toList();
 
-    // Actualizar el estado para reflejar los cambios
-    setState(() {});
+    if (mounted) {
+      setState(() {});
+    }
   }
 
-  // Método para guardar un ingreso
   Future<void> _guardarIngreso(BuildContext context) async {
     if (!_formKey.currentState!.validate()) return;
     final authState = ref.read(authProvider);
     if (authState.user == null) return;
 
-    // Crear el objeto Ingreso con los datos del formulario
+    // Manejo robusto del valor formateado
+    String valorLimpo = _valorController.text.replaceAll(RegExp(r'[^\d]'), '');
+    if (valorLimpo.isEmpty) {
+      UIHelpers.showErrorSnackBar(
+        context: context,
+        message: 'El valor no puede estar vacío',
+      );
+      return;
+    }
+
+    int valorNumerico = int.parse(valorLimpo);
+
     final ingreso = Ingreso(
-      id: _editId == null
-          ? DateTime.now().millisecondsSinceEpoch.toString()
-          : _editId!,
-      fecha: DateTime.now(), // Legacy
-      fechaIngreso: _fechaIngreso, // Nuevo campo
+      id: _editId ?? DateTime.now().millisecondsSinceEpoch.toString(),
+      fecha: DateTime.now(),
+      fechaIngreso: _fechaIngreso,
       quincena: _quincena!,
       categoria: _categoria!,
       concepto: _conceptoController.text,
-      valor: int.parse(_valorController.text),
+      valor: valorNumerico,
     );
 
     try {
-      // Guardar o actualizar el ingreso en el servicio
       if (_editId == null) {
         await _ingresosService.guardarIngreso(authState.user!.uid, ingreso);
       } else {
         await _ingresosService.actualizarIngreso(
             authState.user!.uid, _editId!, ingreso);
-        _editId = null;
       }
 
-      // Recargar los ingresos y mostrar un mensaje
-      _cargarIngresos();
+      await _cargarIngresos();
       Navigator.pop(context);
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Ingreso guardado correctamente')),
+      UIHelpers.showSuccessSnackBarNew(
+        context: context,
+        message: _editId == null
+            ? 'Ingreso creado correctamente'
+            : 'Ingreso actualizado correctamente',
       );
     } catch (e) {
-      // Mostrar un mensaje de error si ocurre algún problema
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Error al guardar el ingreso')),
+      UIHelpers.showErrorSnackBar(
+        context: context,
+        message: 'Error al guardar el ingreso: ${e.toString()}',
       );
     }
   }
 
-  // Método para mostrar el diálogo de edición de ingresos
   void _mostrarDialogo(BuildContext context,
       [Map<String, dynamic>? ingresoMap]) {
+    _resetFormulario();
+
     if (ingresoMap != null) {
-      // Poblar los campos del formulario con los datos del ingreso
       final ingreso = Ingreso.fromMap(ingresoMap);
       _editId = ingreso.id;
       _fechaIngreso = ingreso.fechaIngreso;
+      _fechaController.text =
+          DateFormat('dd/MM/yyyy').format(ingreso.fechaIngreso);
       _quincena = ingreso.quincena;
       _categoria = ingreso.categoria;
       _conceptoController.text = ingreso.concepto;
-      _valorController.text = ingreso.valor.toString();
+
+      // Asegurar formato correcto al editar
+      _valorController.text =
+          UIHelpers.formatCurrency(ingreso.valor.toDouble());
+
+      // Forzar actualización visual
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (mounted) {
+          setState(() {});
+        }
+      });
     } else {
-      // Limpiar los campos del formulario
       _editId = null;
       _fechaIngreso = DateTime.now();
-      _conceptoController.clear();
-      _valorController.clear();
+      _fechaController.text = DateFormat('dd/MM/yyyy').format(_fechaIngreso);
     }
 
-    // Mostrar el diálogo después de un pequeño delay
-    Future.delayed(const Duration(milliseconds: 300), () {
-      showDialog(
-        // ignore: use_build_context_synchronously
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(_editId == null ? 'Nuevo Ingreso' : 'Editar Ingreso'),
-          content: SingleChildScrollView(
-            child: _buildFormulario(),
-          ),
-          actions: [
-            TextButton(
-                onPressed: () => Navigator.pop(context),
-                child: const Text('Cancelar')),
-            ElevatedButton(
-                onPressed: () => _guardarIngreso(context),
-                child: const Text('Guardar')),
-          ],
-        ),
-      );
-    });
-  }
+    // SOLUCIÓN DEFINITIVA #1: Diálogo sin desbordamiento usando LayoutBuilder
+    showDialog(
+      context: context,
+      builder: (context) => LayoutBuilder(
+        builder: (context, constraints) {
+          // Calcular el ancho máximo disponible para el diálogo
+          double maxWidth = constraints.maxWidth * 0.9;
+          if (maxWidth > 500) maxWidth = 500; // Límite máximo
 
-// Método para construir el formulario de ingresos
-  Widget _buildFormulario() {
-    return Form(
-      key: _formKey,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Campo para seleccionar la fecha con estilo consistente
-          TextFormField(
-            readOnly: true,
-            onTap: () async {
-              final picked = await showDatePicker(
-                context: context,
-                initialDate: _fechaIngreso,
-                firstDate: DateTime(2000),
-                lastDate: DateTime(2100),
-              );
-              if (picked != null) {
-                setState(() => _fechaIngreso = picked);
-              }
-            },
-            decoration: InputDecoration(
-              labelText: 'Fecha Ingreso',
-              suffixIcon: const Icon(Icons.calendar_today),
-              border: const OutlineInputBorder(),
+          return ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: maxWidth),
+            child: AlertDialog(
+              title: Text(_editId == null ? 'Nuevo Ingreso' : 'Editar Ingreso'),
+              content: _buildFormulario(),
+              actions: [
+                TextButton(
+                  onPressed: () => Navigator.pop(context),
+                  child: const Text('Cancelar'),
+                ),
+                ElevatedButton(
+                  onPressed: () => _guardarIngreso(context),
+                  child: const Text('Guardar'),
+                ),
+              ],
             ),
-            controller: TextEditingController(
-              text: DateFormat('dd/MM/yyyy').format(_fechaIngreso),
-            ),
-          ),
-
-          const SizedBox(height: 12),
-
-          // Campo para seleccionar la quincena
-          DropdownButtonFormField<String>(
-            value: _quincena,
-            hint: const Text('Selecciona una quincena'),
-            items: const [
-              'Primera Quincena',
-              'Segunda Quincena',
-              'Diario',
-              'Mensual'
-            ].map((q) => DropdownMenuItem(value: q, child: Text(q))).toList(),
-            onChanged: (value) => setState(() => _quincena = value),
-            decoration: const InputDecoration(
-              labelText: 'Periodo',
-              border: OutlineInputBorder(),
-            ),
-            validator: (value) => _validator.validateQuincena(value),
-          ),
-
-          const SizedBox(height: 12),
-
-          // Campo para seleccionar la categoría
-          DropdownButtonFormField<String>(
-            value: _categoria,
-            hint: const Text('Selecciona una categoría'),
-            items: const [
-              'Salario',
-              'Bonificación',
-              'Reembolso',
-              'Intereses',
-              'Devolución',
-              'Transferencia',
-              'Otros'
-            ].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
-            onChanged: (value) => setState(() => _categoria = value),
-            decoration: const InputDecoration(
-              labelText: 'Categoría',
-              border: OutlineInputBorder(),
-            ),
-            validator: (value) => _validator.validateCategoria(value),
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _conceptoController,
-            keyboardType: TextInputType.multiline,
-            minLines: 3,
-            maxLines: null,
-            decoration: const InputDecoration(
-              labelText: 'Concepto',
-              border: OutlineInputBorder(),
-              alignLabelWithHint: true,
-            ),
-            validator: (value) => _validator.validateConcepto(value),
-          ),
-          const SizedBox(height: 12),
-          TextFormField(
-            controller: _valorController,
-            keyboardType: TextInputType.number,
-            decoration: const InputDecoration(
-              labelText: 'Valor',
-              border: OutlineInputBorder(),
-            ),
-            validator: (value) => _validator.validateValor(value),
-          ),
-        ],
+          );
+        },
       ),
     );
   }
 
-  // Método para eliminar un ingreso
+  void _resetFormulario() {
+    _editId = null;
+    _fechaIngreso = DateTime.now();
+    _fechaController.text = DateFormat('dd/MM/yyyy').format(_fechaIngreso);
+    _quincena = 'Primera Quincena';
+    _categoria = 'Salario';
+    _conceptoController.clear();
+    _valorController.clear();
+  }
+
+  // Método para construir el formulario de ingresos
+  Widget _buildFormulario() {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Calcular el ancho máximo para los campos
+        double fieldMaxWidth =
+            constraints.maxWidth * 0.9; // 90% del ancho disponible
+
+        return SingleChildScrollView(
+          child: Form(
+            key: _formKey,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Campo de Fecha Ingreso
+                _buildFieldContainer(
+                  fieldMaxWidth,
+                  TextFormField(
+                    controller: _fechaController,
+                    readOnly: true,
+                    onTap: () async {
+                      final picked = await showDatePicker(
+                        context: context,
+                        initialDate: _fechaIngreso,
+                        firstDate: DateTime(2000),
+                        lastDate: DateTime(2100),
+                      );
+                      if (picked != null) {
+                        setState(() {
+                          _fechaIngreso = picked;
+                          _fechaController.text =
+                              DateFormat('dd/MM/yyyy').format(picked);
+                        });
+                      }
+                    },
+                    decoration: InputDecoration(
+                      labelText: 'Fecha Ingreso',
+                      suffixIcon: const Icon(Icons.calendar_today),
+                      border: const OutlineInputBorder(),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 8, horizontal: 10),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Campo de Quincena
+                _buildFieldContainer(
+                  fieldMaxWidth,
+                  DropdownButtonFormField<String>(
+                    value: _quincena,
+                    hint: const Text('Selecciona una quincena'),
+                    items: const [
+                      'Primera Quincena',
+                      'Segunda Quincena',
+                      'Diario',
+                      'Mensual'
+                    ]
+                        .map((q) => DropdownMenuItem(value: q, child: Text(q)))
+                        .toList(),
+                    onChanged: (value) => setState(() => _quincena = value),
+                    decoration: InputDecoration(
+                      labelText: 'Periodo',
+                      border: const OutlineInputBorder(),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 8, horizontal: 10),
+                    ),
+                    validator: _validator.validateQuincena,
+                    isExpanded: true,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Campo de Categoría
+                _buildFieldContainer(
+                  fieldMaxWidth,
+                  DropdownButtonFormField<String>(
+                    value: _categoria,
+                    hint: const Text('Selecciona una categoría'),
+                    items: const [
+                      'Salario',
+                      'Bonificación',
+                      'Reembolso',
+                      'Intereses',
+                      'Devolución',
+                      'Transferencia',
+                      'Otros'
+                    ]
+                        .map((c) => DropdownMenuItem(value: c, child: Text(c)))
+                        .toList(),
+                    onChanged: (value) => setState(() => _categoria = value),
+                    decoration: InputDecoration(
+                      labelText: 'Categoría',
+                      border: const OutlineInputBorder(),
+                      isDense: true,
+                      contentPadding: const EdgeInsets.symmetric(
+                          vertical: 8, horizontal: 10),
+                    ),
+                    validator: _validator.validateCategoria,
+                    isExpanded: true,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // Campo de Concepto
+                _buildFieldContainer(
+                  fieldMaxWidth,
+                  TextFormField(
+                    controller: _conceptoController,
+                    keyboardType: TextInputType.multiline,
+                    minLines: 3,
+                    maxLines: null,
+                    decoration: const InputDecoration(
+                      labelText: 'Concepto',
+                      border: OutlineInputBorder(),
+                      alignLabelWithHint: true,
+                      isDense: true,
+                      contentPadding:
+                          EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+                    ),
+                    validator: _validator.validateConcepto,
+                  ),
+                ),
+                const SizedBox(height: 12),
+
+                // SOLUCIÓN DEFINITIVA: Campo de Valor con ancho fijo
+                _buildValorField(fieldMaxWidth),
+              ],
+            ),
+          ),
+        );
+      },
+    );
+  }
+
+// SOLUCIÓN DEFINITIVA #1: Campo de Valor con ancho controlado
+  Widget _buildValorField(double maxWidth) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: SizedBox(
+        width: double.infinity,
+        child: TextFormField(
+          controller: _valorController,
+          keyboardType: TextInputType.number,
+          decoration: InputDecoration(
+            labelText: 'Valor',
+            border: const OutlineInputBorder(),
+            isDense: true,
+            contentPadding:
+                const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+          ),
+          onChanged: (value) {
+            // Eliminar caracteres no numéricos
+            String cleanValue = value.replaceAll(RegExp(r'[^\d]'), '');
+
+            if (cleanValue.isEmpty) {
+              _valorController.text = '';
+              return;
+            }
+
+            // Convertir a número y formatear
+            int number = int.parse(cleanValue);
+            String formatted = UIHelpers.formatCurrency(number.toDouble());
+
+            // Actualizar solo si el valor formateado es diferente
+            if (formatted != _valorController.text) {
+              // Calcular posición del cursor
+              int cursorPosition = value.length - cleanValue.length;
+
+              _valorController.text = formatted;
+              _valorController.selection = TextSelection.collapsed(
+                  offset: formatted.length - cursorPosition);
+            }
+          },
+          validator: (value) {
+            // Validar usando el valor limpio
+            String cleanValue = value?.replaceAll(RegExp(r'[^\d]'), '') ?? '';
+            return _validator
+                .validateValor(cleanValue.isEmpty ? null : cleanValue);
+          },
+        ),
+      ),
+    );
+  }
+
+// Contenedor universal para campos sin desbordamiento
+  Widget _buildFieldContainer(double maxWidth, Widget child) {
+    return ConstrainedBox(
+      constraints: BoxConstraints(maxWidth: maxWidth),
+      child: child,
+    );
+  }
+
   Future<void> _eliminarIngreso(String id) async {
     final authState = ref.read(authProvider);
     if (authState.user == null) return;
-    await _ingresosService.eliminarIngreso(authState.user!.uid, id);
-    _cargarIngresos();
+
+    bool? confirm = await showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Confirmar eliminación'),
+        content:
+            const Text('¿Estás seguro de que deseas eliminar este ingreso?'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(context, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm == true) {
+      try {
+        await _ingresosService.eliminarIngreso(authState.user!.uid, id);
+        await _cargarIngresos();
+        UIHelpers.showSuccessSnackBarNew(
+          context: context,
+          message: 'Ingreso eliminado correctamente',
+        );
+      } catch (e) {
+        UIHelpers.showErrorSnackBar(
+          context: context,
+          message: 'Error al eliminar el ingreso',
+        );
+      }
+    }
   }
 
-  // Método para mostrar el diálogo de selección de columnas
   void _mostrarDialogoSeleccionColumnas(BuildContext context) {
     Set<String> camposDisponibles = {};
     if (_ingresos.isNotEmpty) {
       camposDisponibles = _ingresos.first.keys.toSet();
     }
-    // Excluir 'id' de los campos disponibles
-    camposDisponibles.remove('id');
-    camposDisponibles.remove('fecha');
+    camposDisponibles
+      ..remove('id')
+      ..remove('fecha');
 
     showDialog(
       context: context,
@@ -373,13 +541,15 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
                             value: _camposVisibles.contains(campo),
                             onChanged: (value) {
                               setStateDialog(() {
-                                if (value!) {
+                                if (value == true) {
                                   _camposVisibles.add(campo);
                                 } else {
                                   _camposVisibles.remove(campo);
                                 }
                               });
-                              setState(() {});
+                              if (mounted) {
+                                setState(() {});
+                              }
                             },
                           ))
                       .toList(),
