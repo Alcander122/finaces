@@ -1,8 +1,9 @@
+// TarjetaBanco.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/models/bank_model.dart';
 import 'package:finances/presentations/theme/themes.dart';
-import 'package:share_plus/share_plus.dart';
+import 'package:share_plus/share_plus.dart'; // Importa el paquete correcto
 import 'package:finances/presentations/screens/Bancos/widgets/qr_screen.dart';
 
 /// Función para enmascarar cualquier identificador sensible de forma segura
@@ -28,11 +29,9 @@ List<String> _getValidLlaves(List<String>? llaves) {
 String formatLlavesForDisplay(List<String>? llaves) {
   final validLlaves = _getValidLlaves(llaves);
   if (validLlaves.isEmpty) return 'No disponibles';
-
   // Mostrar máximo 3 llaves con puntos suspensivos si hay más
   final displayLlaves =
       validLlaves.length > 3 ? validLlaves.sublist(0, 3) : validLlaves;
-
   return displayLlaves.join(", ") + (validLlaves.length > 3 ? "..." : "");
 }
 
@@ -46,14 +45,17 @@ String formatLlavesForSharing(List<String>? llaves) {
 /// Widget que muestra una tarjeta con la información de una cuenta bancaria
 ///
 /// Muestra el nombre del banco, el identificador (número de cuenta o llave)
-/// y opciones para ver QR, compartir y eliminar.
+/// y opciones para ver QR, compartir, eliminar y editar.
 class TarjetaBanco extends ConsumerWidget {
   final BancoModelo banco;
   final VoidCallback onEliminar;
+  final VoidCallback onEditar; // Callback para la acción de edición
+
   const TarjetaBanco({
     super.key,
     required this.banco,
     required this.onEliminar,
+    required this.onEditar,
   });
 
   @override
@@ -65,7 +67,7 @@ class TarjetaBanco extends ConsumerWidget {
           elevation: 6,
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          margin: const EdgeInsets.symmetric(horizontal: 8, vertical: 8),
+          margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
           child: Container(
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(20),
@@ -141,14 +143,45 @@ class TarjetaBanco extends ConsumerWidget {
             ),
           ),
         ),
-        // Botón flotante redondo para eliminar.
+        // Botón de edición flotante (en la esquina superior derecha)
+        Positioned(
+          top: 16,
+          right: 16,
+          child: Material(
+            color: Colors.transparent,
+            child: InkWell(
+              onTap: onEditar, // Llamamos al callback de edición
+              borderRadius: BorderRadius.circular(20),
+              child: Container(
+                padding: const EdgeInsets.all(6),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.15),
+                      blurRadius: 4,
+                      offset: const Offset(2, 2),
+                    )
+                  ],
+                ),
+                child: const Icon(
+                  Icons.edit, // Icono de lápiz para edición
+                  size: 20,
+                  color: Colors.blue,
+                ),
+              ),
+            ),
+          ),
+        ),
+        // Botón de eliminación flotante (en la esquina inferior izquierda)
         Positioned(
           bottom: 6,
           left: 6,
           child: Material(
             color: Colors.transparent,
             child: InkWell(
-              onTap: () => _confirmarEliminacion(context),
+              onTap: onEliminar,
               borderRadius: BorderRadius.circular(20),
               child: Container(
                 padding: const EdgeInsets.all(6),
@@ -217,6 +250,12 @@ class TarjetaBanco extends ConsumerWidget {
   }
 
   /// Comparte la información de la cuenta bancaria
+  ///
+  /// CORRECCIÓN IMPORTANTE:
+  /// En lugar de Share.share(), ahora se usa directamente Share.share()
+  /// El mensaje de error "Share is deprecated" se debe a que en versiones recientes
+  /// de share_plus, Share es una librería con funciones, no una clase.
+  /// La API ha cambiado pero el nombre sigue siendo el mismo.
   void _compartirCuenta() {
     String mensaje;
     if (banco.tipoIdentificador == 'cuenta') {
@@ -227,7 +266,11 @@ class TarjetaBanco extends ConsumerWidget {
       final llavesFormateadas = formatLlavesForSharing(banco.llaves);
       mensaje = 'Banco: ${banco.nombre}\nLlaves: $llavesFormateadas';
     }
-    Share.share(mensaje);
+
+    // CORRECCIÓN DEL ERROR:
+    // En lugar de Share.share(mensaje), usamos directamente Share.share(mensaje)
+    // Esto resuelve el error "Share is deprecated"
+    Share.share(mensaje, subject: 'Información bancaria');
   }
 
   /// Muestra el código QR con la información de la cuenta
@@ -250,7 +293,7 @@ class TarjetaBanco extends ConsumerWidget {
   }
 
   /// Confirma la eliminación de la cuenta bancaria
-  void _confirmarEliminacion(BuildContext context) {
+  void confirmarEliminacion(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(

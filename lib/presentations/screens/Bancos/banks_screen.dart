@@ -136,6 +136,31 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
     );
   }
 
+  /// Muestra el diálogo para editar un banco existente
+  ///
+  /// FLUJO DE EDICIÓN:
+  /// 1. Recibe el banco existente que se quiere editar
+  /// 2. Dependiendo del tipo de identificador (cuenta o llave), muestra el diálogo correspondiente
+  /// 3. Los valores actuales del banco se cargan en los campos
+  /// 4. Al guardar, se llama a actualizarBanco() en lugar de crearBanco()
+  void _mostrarDialogoEditar(BuildContext context, BancoModelo banco) {
+    final authState = ref.watch(authProvider);
+    final userId = authState.user?.uid ?? '';
+
+    if (userId.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Usuario no autenticado')),
+      );
+      return;
+    }
+
+    if (banco.tipoIdentificador == 'cuenta') {
+      _mostrarDialogoNumeroCuentaEdicion(context, banco, userId);
+    } else {
+      _mostrarDialogoLlavesEdicion(context, banco, userId);
+    }
+  }
+
   /// Muestra el diálogo para seleccionar el tipo de identificador
   void _mostrarDialogoTipoIdentificador(
       BuildContext context, BancoModelo banco, String userId) {
@@ -154,7 +179,7 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
     );
   }
 
-  /// Muestra el diálogo para ingresar el número de cuenta
+  /// Muestra el diálogo para ingresar el número de cuenta (para CREAR)
   void _mostrarDialogoNumeroCuenta(
       BuildContext context, BancoModelo banco, String userId) {
     final controladorCuenta = TextEditingController();
@@ -183,7 +208,42 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
     );
   }
 
-  /// Muestra el diálogo para ingresar las 3 llaves
+  /// Muestra el diálogo para ingresar el número de cuenta (para EDITAR)
+  void _mostrarDialogoNumeroCuentaEdicion(
+      BuildContext context, BancoModelo banco, String userId) {
+    final controladorCuenta = TextEditingController();
+
+    // Cargar el valor existente en el controlador
+    if (banco.numeroCuenta != null) {
+      controladorCuenta.text = banco.numeroCuenta!;
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => DialogoNumeroCuenta(
+        banco: banco,
+        controladorCuenta: controladorCuenta,
+        onGuardar: () {
+          // Actualizamos el banco con los datos completos
+          final bancoCompleto = banco.copyWith(
+            tipoIdentificador: 'cuenta',
+            numeroCuenta: controladorCuenta.text,
+          );
+
+          ref
+              .read(bancoNotifierProvider(userId).notifier)
+              .actualizarBanco(bancoCompleto)
+              .then((_) {
+            Navigator.of(context).pop(); // Cierra el diálogo de cuenta
+            Navigator.of(context)
+                .pop(); // Cierra el diálogo de tipo (si está abierto)
+          });
+        },
+      ),
+    );
+  }
+
+  /// Muestra el diálogo para ingresar las 3 llaves (para CREAR)
   void _mostrarDialogoLlaves(
       BuildContext context, BancoModelo banco, String userId) {
     final controladores = List.generate(3, (_) => TextEditingController());
@@ -212,6 +272,43 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
     );
   }
 
+  /// Muestra el diálogo para ingresar las 3 llaves (para EDITAR)
+  void _mostrarDialogoLlavesEdicion(
+      BuildContext context, BancoModelo banco, String userId) {
+    final controladores = List.generate(3, (_) => TextEditingController());
+
+    // Cargar los valores existentes en los controladores
+    if (banco.llaves != null) {
+      for (int i = 0; i < banco.llaves!.length && i < 3; i++) {
+        controladores[i].text = banco.llaves![i];
+      }
+    }
+
+    showDialog(
+      context: context,
+      builder: (context) => DialogoLlaves(
+        banco: banco,
+        controladores: controladores,
+        onGuardar: () {
+          final llaves = controladores.map((c) => c.text).toList();
+          final bancoCompleto = banco.copyWith(
+            tipoIdentificador: 'llave',
+            llaves: llaves,
+          );
+
+          ref
+              .read(bancoNotifierProvider(userId).notifier)
+              .actualizarBanco(bancoCompleto)
+              .then((_) {
+            Navigator.of(context).pop(); // Cierra diálogo llaves
+            Navigator.of(context)
+                .pop(); // Cierra diálogo tipo (si está abierto)
+          });
+        },
+      ),
+    );
+  }
+
   /// Construye la pestaña de bancos
   Widget _buildBancosTab(List<BancoModelo> bancos, String userId) {
     if (bancos.isEmpty) {
@@ -233,6 +330,8 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
                 .read(bancoNotifierProvider(userId).notifier)
                 .eliminarBanco(banco.id, userId);
           },
+          onEditar: () => _mostrarDialogoEditar(
+              context, banco), // ¡Parámetro requerido agregado!
         );
       },
     );
