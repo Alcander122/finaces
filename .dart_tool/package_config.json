@@ -381,9 +381,9 @@
     },
     {
       "name": "font_awesome_flutter",
-      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/font_awesome_flutter-10.8.0",
+      "rootUri": "file:///C:/Users/ANDRES%20AYALA/AppData/Local/Pub/Cache/hosted/pub.dev/font_awesome_flutter-10.10.0",
       "packageUri": "lib/",
-      "languageVersion": "3.0"
+      "languageVersion": "3.9"
     },
     {
       "name": "freezed",

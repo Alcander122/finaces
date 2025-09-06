@@ -375,7 +375,7 @@
     },
     {
       "name": "font_awesome_flutter",
-      "version": "10.8.0",
+      "version": "10.10.0",
       "dependencies": [
         "flutter"
       ]

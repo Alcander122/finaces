@@ -1,9 +1,11 @@
 import 'dart:async';
+import 'package:finances/core/data/providers/tutorial_provider.dart';
+import 'package:finances/presentations/screens/Tutorial/TutorialScreen.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/routes/app_routes.dart';
-import 'package:finances/presentations/screens/splash_screen.dart'; // Importar el SplashScreen
+import 'package:finances/presentations/screens/splash_screen.dart';
 
 class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
@@ -31,21 +33,17 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     super.dispose();
   }
 
-  /// Inicialización controlada de la aplicación
   void _initializeApp() async {
     try {
-      // Pequeña pausa para asegurar que todo esté listo
       await Future.delayed(const Duration(milliseconds: 500));
-
       setState(() {
         _isAppInitialized = true;
       });
-
       _startInactivityTimer();
     } catch (e) {
       debugPrint('Error en inicialización: $e');
       setState(() {
-        _isAppInitialized = true; // Aún así marcamos como inicializado
+        _isAppInitialized = true;
       });
     }
   }
@@ -71,9 +69,27 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     authNotifier.signOut();
   }
 
+  Widget _buildNormalApp(AuthState authState) {
+    return Listener(
+      behavior: HitTestBehavior.translucent,
+      onPointerDown: (_) {
+        _resetInactivityTimer();
+      },
+      child: MaterialApp(
+        debugShowCheckedModeBanner: false,
+        home: SplashScreen(),
+        routes: AppRoutes.getRoutes(authState),
+        builder: (context, child) {
+          return child!;
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
+    final hasSeenTutorial = ref.watch(tutorialProvider);
 
     // Si la app no está inicializada, mostrar splash screen
     if (!_isAppInitialized) {
@@ -94,20 +110,51 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
       );
     }
 
-    return Listener(
-      behavior: HitTestBehavior.translucent,
-      onPointerDown: (_) {
-        _resetInactivityTimer();
+    // Manejo SEGURO del estado del tutorial con .when()
+    return hasSeenTutorial.when(
+      data: (hasSeen) {
+        // ✅ VERIFICACIÓN: Imprime el estado actual del tutorial y autenticación
+        debugPrint(
+            '>>> [MyApp.build] Usuario autenticado: ${authState.isAuthenticated}');
+        debugPrint('>>> [MyApp.build] ¿Ya vio el tutorial?: $hasSeen');
+
+        // Si está autenticado y NO ha visto el tutorial → mostrar TutorialScreen
+        if (authState.isAuthenticated && !hasSeen) {
+          debugPrint('>>> [MyApp.build] MOSTRANDO TUTORIAL POR PRIMERA VEZ');
+          return MaterialApp(
+            debugShowCheckedModeBanner: false,
+            home: const TutorialScreen(),
+            routes: AppRoutes.getRoutes(authState),
+          );
+        }
+
+        debugPrint('>>> [MyApp.build] MOSTRANDO APP NORMAL');
+        return _buildNormalApp(authState);
       },
-      child: MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: SplashScreen(), // Usar SplashScreen como pantalla inicial
-        routes: AppRoutes.getRoutes(authState),
-        // Evitar rebuilds innecesarios
-        builder: (context, child) {
-          return child!;
-        },
-      ),
+      loading: () {
+        debugPrint('>>> [MyApp.build] Cargando estado del tutorial...');
+        return MaterialApp(
+          debugShowCheckedModeBanner: false,
+          home: Scaffold(
+            body: Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  CircularProgressIndicator(),
+                  SizedBox(height: 20),
+                  Text('Cargando tutorial...'),
+                ],
+              ),
+            ),
+          ),
+          routes: AppRoutes.getRoutes(authState),
+        );
+      },
+      error: (error, stackTrace) {
+        debugPrint(
+            '>>> [MyApp.build] Error cargando estado del tutorial: $error');
+        return _buildNormalApp(authState);
+      },
     );
   }
 }
