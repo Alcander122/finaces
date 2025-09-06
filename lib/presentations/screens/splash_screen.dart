@@ -1,5 +1,7 @@
 // splash_screen.dart
+import 'package:finances/core/data/services/BiometricAuthService.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/routes/app_routes.dart';
@@ -7,13 +9,12 @@ import 'package:logger/logger.dart';
 
 final logger = Logger();
 
-// Estados para el SplashScreen
 enum SplashScreenStatus {
-  initializing, // Inicializando componentes
-  checkingAuth, // Verificando estado de autenticación
-  authenticated, // Usuario autenticado
-  unauthenticated, // Usuario no autenticado
-  error // Error en el proceso
+  initializing,
+  checkingAuth,
+  authenticated,
+  unauthenticated,
+  error
 }
 
 class SplashScreen extends ConsumerStatefulWidget {
@@ -36,19 +37,14 @@ class SplashScreenState extends ConsumerState<SplashScreen>
   @override
   void initState() {
     super.initState();
-
-    // Configurar animación de preloader
     _animationController = AnimationController(
       vsync: this,
       duration: const Duration(seconds: 2),
     )..repeat(reverse: true);
-
     _animation = CurvedAnimation(
       parent: _animationController,
       curve: Curves.easeInOut,
     );
-
-    // Iniciar el proceso de verificación
     _checkAppStatus();
   }
 
@@ -58,109 +54,137 @@ class SplashScreenState extends ConsumerState<SplashScreen>
     super.dispose();
   }
 
-  /// Función principal que verifica el estado de la aplicación
   Future<void> _checkAppStatus() async {
     try {
-      // Verificar si se excedió el número máximo de reintentos
       if (_retryCount >= _maxRetries) {
         _showFinalError();
         return;
       }
 
-      // Fase 1: Inicialización
       setState(() {
         _status = SplashScreenStatus.initializing;
         _statusMessage = 'Configurando servicios...';
       });
 
-      // Pequeña pausa para permitir que la UI se actualice
       await Future.delayed(const Duration(milliseconds: 300));
 
-      // Fase 2: Verificación de autenticación
       setState(() {
         _status = SplashScreenStatus.checkingAuth;
         _statusMessage = 'Verificando sesión...';
       });
 
-      // Obtener el estado actual de autenticación
       final authState = ref.read(authProvider);
 
-      // Si está cargando, esperar con timeout para evitar bloqueos
       if (authState.isLoading) {
         await Future.delayed(const Duration(seconds: 2))
             .timeout(const Duration(seconds: 5));
       }
 
-      // Obtener el estado actualizado después de la espera
       final updatedAuthState = ref.read(authProvider);
 
-      // Redirigir según el estado de autenticación
       if (updatedAuthState.isAuthenticated) {
-        _handleAuthenticated();
+        await _handleAuthenticated();
       } else {
         _handleUnauthenticated();
       }
     } catch (e) {
-      // Manejar cualquier error durante el proceso
       _handleError(e);
     }
   }
 
-  /// Maneja el estado de usuario autenticado
-  void _handleAuthenticated() async {
+  Future<void> _handleAuthenticated() async {
     setState(() {
       _status = SplashScreenStatus.authenticated;
-      _statusMessage = '¡Bienvenido de vuelta!';
+      _statusMessage = 'Verificando identidad...';
     });
 
-    // Pequeña pausa para mostrar el mensaje de bienvenida
-    await Future.delayed(const Duration(milliseconds: 800));
-    _navigateToHome();
+    try {
+      final biometricService = BiometricAuthService();
+      final isBiometricEnabled = await biometricService.isBiometricEnabled();
+      final isBiometricAvailable =
+          await biometricService.isBiometricAvailable();
+
+      logger.d(
+          'Biometría - Habilitada: $isBiometricEnabled, Disponible: $isBiometricAvailable');
+
+      // Solo proceder con biometría si está disponible y habilitada
+      if (isBiometricEnabled && isBiometricAvailable) {
+        try {
+          final authenticated = await biometricService.authenticate();
+
+          if (!authenticated) {
+            logger
+                .d('Autenticación biométrica fallida o cancelada por usuario');
+            // En lugar de cerrar sesión, permitimos el acceso normal
+            // ya que el usuario podría haber cancelado la autenticación
+            await Future.delayed(const Duration(milliseconds: 800));
+            _navigateToHome();
+            return;
+          }
+
+          logger.d('Autenticación biométrica exitosa');
+          await Future.delayed(const Duration(milliseconds: 800));
+          _navigateToHome();
+        } on PlatformException catch (e) {
+          if (e.code == 'no_fragment_activity') {
+            logger.e('ERROR: Configuración de actividad incorrecta');
+            // Mostrar mensaje de error temporal
+            setState(() {
+              _statusMessage = 'Error de configuración, continuando...';
+            });
+            await Future.delayed(const Duration(seconds: 2));
+            // Continuar sin biometría
+            _navigateToHome();
+          } else {
+            // Otros errores de plataforma
+            logger.e(
+                'Error de plataforma en autenticación biométrica: ${e.message}');
+            _navigateToHome();
+          }
+        } catch (e) {
+          logger.e('Error inesperado en autenticación biométrica: $e');
+          _navigateToHome();
+        }
+      } else {
+        // Biometría no configurada - proceder normalmente
+        logger.d('Biometría no configurada - procediendo directamente');
+        await Future.delayed(const Duration(milliseconds: 800));
+        _navigateToHome();
+      }
+    } catch (e) {
+      logger.e('Error verificando estado de biometría: $e');
+      // En caso de error, proceder al home por seguridad
+      _navigateToHome();
+    }
   }
 
-  /// Maneja el estado de usuario no autenticado
   void _handleUnauthenticated() async {
     setState(() {
       _status = SplashScreenStatus.unauthenticated;
-      _statusMessage = 'Listo para iniciar sesión';
+      _statusMessage = 'Redirigiendo al login...';
     });
-
-    // Pequeña pausa antes de redirigir al login
     await Future.delayed(const Duration(milliseconds: 800));
     _navigateToLogin();
   }
 
-  /// Maneja errores durante el proceso de verificación
   void _handleError(dynamic e) async {
-    // Registrar el error con el número de intento
     logger.e(
         'Error en SplashScreen (intento ${_retryCount + 1}/$_maxRetries): $e');
-
     setState(() {
       _status = SplashScreenStatus.error;
       _statusMessage = 'Error al iniciar. Reintentando...';
     });
-
-    // Incrementar contador de reintentos
     _retryCount++;
-
-    // Esperar antes de reintentar (con aumento progresivo del tiempo)
     await Future.delayed(Duration(seconds: 1 + _retryCount));
-
-    // Reintentar solo si el widget todavía está montado
-    if (mounted) {
-      _checkAppStatus();
-    }
+    if (mounted) _checkAppStatus();
   }
 
-  /// Muestra mensaje de error final después de múltiples intentos fallidos
   void _showFinalError() {
     setState(() {
       _statusMessage = 'Error crítico. Por favor, reinicie la aplicación.';
     });
   }
 
-  /// Navega a la pantalla principal
   void _navigateToHome() {
     if (mounted && !_isInitialized) {
       _isInitialized = true;
@@ -168,7 +192,6 @@ class SplashScreenState extends ConsumerState<SplashScreen>
     }
   }
 
-  /// Navega a la pantalla de login
   void _navigateToLogin() {
     if (mounted && !_isInitialized) {
       _isInitialized = true;
@@ -191,7 +214,6 @@ class SplashScreenState extends ConsumerState<SplashScreen>
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo con animación de pulsación
               ScaleTransition(
                 scale: _animation,
                 child: Container(
@@ -199,7 +221,7 @@ class SplashScreenState extends ConsumerState<SplashScreen>
                   height: 100,
                   padding: const EdgeInsets.all(15),
                   decoration: BoxDecoration(
-                    color: Colors.white.withValues(alpha: 0.1),
+                    color: Colors.white.withAlpha(25),
                     shape: BoxShape.circle,
                   ),
                   child: Image.asset(
@@ -210,8 +232,6 @@ class SplashScreenState extends ConsumerState<SplashScreen>
                 ),
               ),
               const SizedBox(height: 40),
-
-              // Indicador de progreso
               SizedBox(
                 width: 60,
                 height: 60,
@@ -224,8 +244,6 @@ class SplashScreenState extends ConsumerState<SplashScreen>
                 ),
               ),
               const SizedBox(height: 30),
-
-              // Mensaje de estado
               Text(
                 _statusMessage,
                 textAlign: TextAlign.center,
@@ -236,8 +254,6 @@ class SplashScreenState extends ConsumerState<SplashScreen>
                 ),
               ),
               const SizedBox(height: 10),
-
-              // Contador de reintentos (solo para estado de error)
               if (_status == SplashScreenStatus.error && _retryCount > 0)
                 Text(
                   'Reintento $_retryCount de $_maxRetries',
@@ -246,10 +262,7 @@ class SplashScreenState extends ConsumerState<SplashScreen>
                     fontSize: 12,
                   ),
                 ),
-
               const SizedBox(height: 20),
-
-              // Botón de reintento manual para errores
               if (_status == SplashScreenStatus.error)
                 TextButton(
                   onPressed: _checkAppStatus,

@@ -1,4 +1,7 @@
+// lib/presentations/screens/Auth/LoginScreen.dart
+
 import 'package:finances/core/data/providers/auth_provider.dart';
+import 'package:finances/core/data/services/BiometricAuthService.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/core/errors/handlers/auth_error_handler.dart';
@@ -31,6 +34,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
+  /// Valida que los campos no estén vacíos
   bool _validateFields() {
     if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
       UIHelpers.showErrorSnackBar(
@@ -42,6 +46,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     return true;
   }
 
+  /// Maneja y formatea los errores de Firebase Auth
   String _handleError(Object error) {
     if (error is FirebaseAuthException) {
       return AuthErrorHandler.handle(error);
@@ -49,11 +54,13 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     return error.toString();
   }
 
+  /// Muestra un SnackBar con el mensaje de error
   void _showErrorFeedback(String message) {
     if (!mounted) return;
     UIHelpers.showErrorSnackBar(context: context, message: message);
   }
 
+  /// Maneja el proceso de login con email y contraseña
   Future<void> _performLogin() async {
     if (!_validateFields() || _isLoading) return;
 
@@ -65,12 +72,23 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
             _passwordController.text.trim(),
           );
 
-      // La navegación se manejará automáticamente a través del authState listener
       if (mounted) {
         UIHelpers.showSuccessSnackBarNew(
           context: context,
           message: 'Inicio de sesión exitoso',
         );
+
+        // Verificar si la biometría está activada para decidir la redirección
+        final isBiometricEnabled =
+            await BiometricAuthService().isBiometricEnabled();
+
+        if (isBiometricEnabled) {
+          // Si la biometría está activada, ir al splash para verificarla
+          Navigator.pushReplacementNamed(context, '/');
+        } else {
+          // Si no está activada, ir directamente al home
+          Navigator.pushReplacementNamed(context, AppRoutes.home);
+        }
       }
     } catch (e) {
       debugPrint('Error en login: $e');
@@ -84,15 +102,20 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Escuchar cambios en el estado de autenticación
+    // Escuchamos el estado de autenticación
     final authState = ref.watch(authProvider);
 
-    // Redirigir si está autenticado
+    // ✅ NUEVO: COMENTAMOS LA REDIRECCIÓN AUTOMÁTICA
+    // Antes, esto redirigía directamente al Home si el usuario estaba autenticado.
+    // Eso rompía el flujo de la biometría, porque saltaba el SplashScreen.
+    // Ahora, controlamos la navegación manualmente en _performLogin.
+    /*
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (authState.isAuthenticated) {
         Navigator.pushReplacementNamed(context, AppRoutes.home);
       }
     });
+    */
 
     return CustomScaffold(
       child: Column(
@@ -124,7 +147,6 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 40.0),
-
                       // Mostrar indicador de carga si está autenticando
                       if (authState.isLoading || _isLoading)
                         const Column(
@@ -155,7 +177,6 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                                   'Correo', 'ejemplo@dominio.com'),
                             ),
                             const SizedBox(height: 25.0),
-
                             // Input de contraseña
                             TextFormField(
                               controller: _passwordController,
@@ -173,7 +194,6 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                                   _inputDecoration('Contraseña', '••••••••'),
                             ),
                             const SizedBox(height: 25.0),
-
                             // Botón de ingresar
                             SizedBox(
                               width: double.infinity,
@@ -184,11 +204,9 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                             ),
                           ],
                         ),
-
                       const SizedBox(height: 25.0),
                       _buildDivider(),
                       const SizedBox(height: 25.0),
-
                       // Botón de login con Google
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
@@ -196,7 +214,6 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                           GestureDetector(
                             onTap: () async {
                               if (_isLoading) return;
-
                               try {
                                 setState(() => _isLoading = true);
                                 final authNotifier =
@@ -204,6 +221,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                                 final isNewUser =
                                     await authNotifier.signInWithGoogle();
 
+                                // Si es un usuario nuevo, mostramos un diálogo
                                 if (isNewUser && mounted) {
                                   showDialog(
                                     context: context,
@@ -227,6 +245,11 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                                       ],
                                     ),
                                   );
+                                }
+
+                                // ✅ NUEVO: Después de un login con Google, también redirigimos al SplashScreen
+                                if (mounted) {
+                                  Navigator.pushReplacementNamed(context, '/');
                                 }
                               } catch (e) {
                                 _showErrorFeedback(e.toString());
