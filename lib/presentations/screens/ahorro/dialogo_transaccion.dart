@@ -1,4 +1,6 @@
 import 'package:finances/core/data/utils/ahorro_validator.dart';
+import 'package:finances/core/data/utils/thousands_formatter.dart';
+import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:flutter/material.dart';
 
 class DialogoTransaccion extends StatefulWidget {
@@ -38,6 +40,8 @@ class _DialogoTransaccionState extends State<DialogoTransaccion> {
 
   @override
   void dispose() {
+    _montoController.dispose();
+    _descripcionController.dispose();
     _montoFocusNode.dispose();
     _descripcionFocusNode.dispose();
     super.dispose();
@@ -56,14 +60,19 @@ class _DialogoTransaccionState extends State<DialogoTransaccion> {
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
+            // CAMPO DE MONTO - CORREGIDO
             TextFormField(
               controller: _montoController,
               keyboardType: TextInputType.number,
+              // Añadimos el formateador de miles SIN símbolo de moneda
+              inputFormatters: [ThousandsFormatter()],
               focusNode: _montoFocusNode,
               textInputAction: TextInputAction.next,
-              decoration: const InputDecoration(
+              decoration: InputDecoration(
                 labelText: 'Monto',
-                prefixIcon: Icon(Icons.attach_money),
+                // El símbolo $ se muestra aquí como prefijo, NO en el formateador
+                prefixText: '\$ ',
+                prefixStyle: TextStyle(color: Colors.black),
                 border: OutlineInputBorder(),
               ),
               onEditingComplete: () =>
@@ -96,15 +105,38 @@ class _DialogoTransaccionState extends State<DialogoTransaccion> {
         ElevatedButton(
           onPressed: () {
             if (_formKey.currentState!.validate()) {
-              final monto = double.parse(_montoController.text);
+              // PASO CRÍTICO: Limpiar los puntos del formato antes de convertir a número
+              // Ejemplo: "1.000.000" → "1000000"
+              final montoLimpio = _montoController.text.replaceAll('.', '');
+
+              // Usar tryParse para evitar excepciones si el valor no es numérico
+              final monto = double.tryParse(montoLimpio);
+
+              // Validar que el monto sea válido
+              if (monto == null || monto <= 0) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text(
+                        'El monto debe ser un número válido y mayor que cero'),
+                  ),
+                );
+                return;
+              }
+
+              // Verificar si es un retiro y si excede el monto disponible
+              if (widget.maxMonto != null && monto > widget.maxMonto!) {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  SnackBar(
+                    content: Text(
+                        'No puedes retirar más de ${UIHelpers.formatCurrency(widget.maxMonto!)}'),
+                  ),
+                );
+                return;
+              }
+
               final descripcion = _descripcionController.text.trim();
               widget.onGuardar(monto, descripcion);
               Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(
-                  content: Text('Transacción guardada correctamente'),
-                ),
-              );
             }
           },
           child: const Text('Guardar'),

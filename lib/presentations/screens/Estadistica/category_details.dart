@@ -4,6 +4,7 @@ import 'package:finances/core/data/providers/Ingreso_provider.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:finances/core/data/models/filter.dart';
+import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
@@ -22,6 +23,7 @@ class CategoryDetailsScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
+    //final theme = Theme.of(context);
     AsyncValue<List<Ingreso>>? ingresosAsync;
     AsyncValue<List<Egreso>>? egresosAsync;
 
@@ -32,7 +34,11 @@ class CategoryDetailsScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      appBar: const AppBarFinances(title: 'Categoria'),
+      backgroundColor: Themes.light,
+      appBar: const AppBarFinances(
+        title: 'Categoria',
+        showProfileIcon: false,
+      ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: isExpense
@@ -48,7 +54,7 @@ class CategoryDetailsScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Total: \$${ingresos.fold(0.0, (sum, i) => sum + i.valor).toStringAsFixed(2)}',
+            'Total: ${formatCurrency(ingresos.fold(0.0, (sum, i) => sum + i.valor))}',
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
@@ -58,7 +64,7 @@ class CategoryDetailsScreen extends ConsumerWidget {
                   title: Text(ingreso.concepto),
                   subtitle:
                       Text(DateFormat('dd/MM/yyyy').format(ingreso.fecha)),
-                  trailing: Text('\$${ingreso.valor.toStringAsFixed(2)}'),
+                  trailing: Text(formatCurrency(ingreso.valor.toDouble())),
                 ),
               )),
         ],
@@ -74,7 +80,7 @@ class CategoryDetailsScreen extends ConsumerWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Text(
-            'Total: \$${egresos.fold(0.0, (sum, e) => sum + e.valor).toStringAsFixed(2)}',
+            'Total: ${formatCurrency(egresos.fold(0.0, (sum, e) => sum + e.valor))}',
             style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 20),
@@ -83,7 +89,7 @@ class CategoryDetailsScreen extends ConsumerWidget {
                 child: ListTile(
                   title: Text(egreso.descripcion),
                   subtitle: Text(DateFormat('dd/MM/yyyy').format(egreso.fecha)),
-                  trailing: Text('\$${egreso.valor.toStringAsFixed(2)}'),
+                  trailing: Text(formatCurrency(egreso.valor.toDouble())),
                 ),
               )),
         ],
@@ -91,5 +97,19 @@ class CategoryDetailsScreen extends ConsumerWidget {
       loading: () => const Center(child: CircularProgressIndicator()),
       error: (error, _) => Text('Error: $error'),
     );
+  }
+
+  /// Formatea un número a formato de moneda local (COP)
+/* String formatCurrency(double value) {
+    final formatter = NumberFormat.currency(
+      locale: 'es_CO',
+      symbol: '\$', // puedes cambiar a 'COP' si prefieres
+      //decimalDigits: 0, // o 2 si quieres mostrar decimales
+    );
+    return '\$${formatter.format(value)}';
+  }*/
+  String formatCurrency(double value) {
+    final formatter = NumberFormat.decimalPattern('es_CO');
+    return '\$${formatter.format(value)}';
   }
 }

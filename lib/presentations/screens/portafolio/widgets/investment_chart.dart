@@ -1,4 +1,3 @@
-import 'package:finances/utils/utilities.dart';
 import 'package:flutter/material.dart';
 import 'package:finances/core/data/models/investment_model.dart';
 import 'package:fl_chart/fl_chart.dart';

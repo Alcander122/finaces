@@ -2,7 +2,6 @@ import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/core/data/services/user_service.dart';
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/core/errors/handlers/auth_error_handler.dart';
-import 'package:finances/presentations/screens/home/home_screen.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:flutter/material.dart';
 import 'LoginScreen.dart';
@@ -312,13 +311,13 @@ class _RegisterScreenState extends State<RegisterScreen> {
                                               ),
                                             );
                                           } else {
-                                            // Usuario existente puede ir directamente
-                                            Navigator.pushAndRemoveUntil(
-                                              context,
-                                              MaterialPageRoute(
-                                                  builder: (context) =>
-                                                      const HomeScreen()),
-                                              (route) => false,
+                                            // Mostrar mensaje de cuenta ya registrada
+                                            ScaffoldMessenger.of(context)
+                                                .showSnackBar(
+                                              const SnackBar(
+                                                content: Text(
+                                                    "Su cuenta ya se encuentra registrada."),
+                                              ),
                                             );
                                           }
                                         } catch (e) {

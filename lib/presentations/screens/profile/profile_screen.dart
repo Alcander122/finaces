@@ -1,3 +1,5 @@
+// profile_screen.dart
+import 'package:finances/core/data/services/BiometricAuthService.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -74,9 +76,97 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
                             borderRadius: BorderRadius.circular(12),
                           ),
                         ),
-                        validator: (value) => (value?.isEmpty ?? true)
-                            ? 'Por favor, ingresa un nombre'
-                            : null,
+                        validator: (value) {
+                          if (value == null || value.trim().isEmpty) {
+                            return 'Por favor, ingresa un nombre';
+                          }
+                          final trimmed = value.trim();
+                          if (trimmed.length < 3) {
+                            return 'El nombre debe tener al menos 3 caracteres';
+                          }
+                          if (trimmed.length > 30) {
+                            return 'El nombre no debe exceder los 30 caracteres';
+                          }
+                          final validNameRegExp = RegExp(r'^[a-zA-Z0-9\s]+$');
+                          if (!validNameRegExp.hasMatch(trimmed)) {
+                            return 'Solo se permiten letras, números y espacios';
+                          }
+                          return null;
+                        },
+                      ),
+                      const SizedBox(height: 24),
+                      FutureBuilder<bool>(
+                        future: BiometricAuthService().isBiometricAvailable(),
+                        builder: (context, snapshot) {
+                          if (snapshot.connectionState ==
+                              ConnectionState.waiting) {
+                            return const ListTile(
+                              title: Text('Autenticación Biométrica'),
+                              subtitle: Text('Verificando disponibilidad...'),
+                              trailing:
+                                  CircularProgressIndicator(strokeWidth: 2),
+                            );
+                          }
+                          if (snapshot.hasError || !snapshot.data!) {
+                            return const ListTile(
+                              title: Text('Autenticación Biométrica'),
+                              subtitle:
+                                  Text('No disponible en este dispositivo'),
+                              trailing: Icon(Icons.block, color: Colors.grey),
+                            );
+                          }
+                          return FutureBuilder<bool>(
+                            future: BiometricAuthService().isBiometricEnabled(),
+                            builder: (context, enabledSnapshot) {
+                              if (enabledSnapshot.connectionState ==
+                                  ConnectionState.waiting) {
+                                return const ListTile(
+                                  title: Text('Autenticación Biométrica'),
+                                  trailing:
+                                      CircularProgressIndicator(strokeWidth: 2),
+                                );
+                              }
+                              return SwitchListTile(
+                                title: const Text(
+                                    'Iniciar sesión con huella/rostro'),
+                                subtitle: const Text(
+                                    'Protege tu app con tu biometría'),
+                                value: enabledSnapshot.data ?? false,
+                                onChanged: (bool value) async {
+                                  try {
+                                    await BiometricAuthService()
+                                        .setBiometricEnabled(value);
+                                    if (mounted) {
+                                      setState(() {});
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        SnackBar(
+                                          content: Text(
+                                            value
+                                                ? '✅ Autenticación biométrica activada'
+                                                : '❌ Autenticación biométrica desactivada',
+                                          ),
+                                        ),
+                                      );
+                                    }
+                                  } catch (e) {
+                                    if (mounted) {
+                                      ScaffoldMessenger.of(context)
+                                          .showSnackBar(
+                                        const SnackBar(
+                                          content: Text(
+                                              '⚠️ Error al cambiar la configuración'),
+                                        ),
+                                      );
+                                    }
+                                  }
+                                },
+                                activeColor: Themes.primary,
+                                secondary: const Icon(Icons.fingerprint),
+                              );
+                            },
+                          );
+                        },
                       ),
                       const SizedBox(height: 24),
                       SizedBox(
@@ -92,7 +182,7 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
                                       await ref
                                           .read(authProvider.notifier)
                                           .updateDisplayName(
-                                              _nameController.text);
+                                              _nameController.text.trim());
                                       ScaffoldMessenger.of(context)
                                           .showSnackBar(
                                         const SnackBar(
@@ -224,6 +314,7 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
           ),
           TextButton(
             onPressed: () async {
+              // NOTA: Ya no desactivamos la biometría al cerrar sesión
               Navigator.pop(context);
               await ref.read(authProvider.notifier).signOut();
               Navigator.pushNamedAndRemoveUntil(

@@ -19,9 +19,10 @@ class EgresosScreen extends ConsumerStatefulWidget {
 }
 
 class EgresosScreenState extends ConsumerState<EgresosScreen> {
+  /// Todas las columnas posibles que puede mostrar la tabla
   final _allColumns = [
-    'Quincena',
-    'Fecha Pago', // Nuevo campo
+    'Periodo',
+    'Fecha Pago',
     'Categoría',
     'Concepto',
     'Valor',
@@ -29,21 +30,22 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
     'Estado',
   ];
 
+  /// Columnas visibles por defecto
   Set<String> _visibleColumns = {
-    'Quincena',
-    'Fecha Pago', // Nuevo campo
-    //'Concepto', //| No mostrar 'Concepto' en la tabla
+    'Periodo',
+    'Fecha Pago',
     'Valor',
     'Estado',
   };
 
+  /// Retorna el valor adecuado para cada celda en función de la columna
   String _getEgresoCellValue(Egreso egreso, String column) {
     switch (column) {
-      case 'Quincena':
-        return egreso.quincena;
+      case 'Periodo':
+        return _formatearPeriodo(egreso.quincena);
       case 'Fecha':
         return DateFormat('dd/MM/yyyy').format(egreso.fecha);
-      case 'Fecha Pago': // Nuevo campo
+      case 'Fecha Pago':
         return DateFormat('dd/MM/yyyy').format(egreso.fechaPago);
       case 'Categoría':
         return egreso.categoria;
@@ -51,7 +53,7 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
         return egreso.concepto;
       case 'Valor':
         final formatter = NumberFormat('#,##0', 'es_CO');
-        return formatter.format(egreso.valor);
+        return '\$${formatter.format(egreso.valor)}';
       case 'Descripción':
         return egreso.descripcion;
       case 'Estado':
@@ -61,6 +63,7 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
     }
   }
 
+  /// Muestra el diálogo para seleccionar las columnas visibles
   void _showColumnSelectionDialog() async {
     final selectedColumns = await showDialog<Set<String>>(
       context: context,
@@ -77,6 +80,7 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
     }
   }
 
+  /// Elimina un egreso del backend usando el proveedor
   void _deleteEgreso(Egreso egreso) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
@@ -86,6 +90,7 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Observa el estado de los egresos
     final egresosAsync = ref.watch(egresosProvider);
 
     return Scaffold(
@@ -97,7 +102,7 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
           IconButton(
             icon: const Icon(Icons.view_column),
             color: Colors.white,
-            onPressed: () => _showColumnSelectionDialog(),
+            onPressed: _showColumnSelectionDialog,
           ),
         ],
       ),
@@ -110,28 +115,19 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                // Gráfico de dona
+                // Gráfico de donut de egresos por categoría
                 EgresoChart(egresos: egresos),
                 const SizedBox(height: 16),
-                // Tarjeta con tabla
+
+                // Tarjeta contenedora de la tabla
                 ReusableCardTable(
                   topColorStart: Themes.degradientDark,
                   topColorEnd: Themes.degradientLight,
                   child: SingleChildScrollView(
                     scrollDirection: Axis.horizontal,
                     child: DataTable(
+                      // ✅ Columnas con acciones al principio
                       columns: [
-                        ..._allColumns.where(_visibleColumns.contains).map(
-                              (column) => DataColumn(
-                                label: Text(
-                                  column,
-                                  style: TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
                         const DataColumn(
                           label: Text(
                             'Acciones',
@@ -141,15 +137,25 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
                             ),
                           ),
                         ),
+                        // Columnas seleccionadas por el usuario
+                        ..._allColumns.where(_visibleColumns.contains).map(
+                              (column) => DataColumn(
+                                label: Text(
+                                  column,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
                       ],
+
+                      // ✅ Filas de datos con acciones primero
                       rows: egresos.map((egreso) {
                         return DataRow(
                           cells: [
-                            ..._allColumns
-                                .where(_visibleColumns.contains)
-                                .map((column) => DataCell(
-                                      Text(_getEgresoCellValue(egreso, column)),
-                                    )),
+                            // ✅ Primera celda: acciones
                             DataCell(
                               Row(
                                 children: [
@@ -172,6 +178,13 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
                                 ],
                               ),
                             ),
+
+                            // ✅ Celdas de datos en orden de columnas visibles
+                            ..._allColumns.where(_visibleColumns.contains).map(
+                                  (column) => DataCell(
+                                    Text(_getEgresoCellValue(egreso, column)),
+                                  ),
+                                ),
                           ],
                         );
                       }).toList(),
@@ -179,8 +192,9 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
                   ),
                 ),
 
-                // Botón de agregar egreso
                 const SizedBox(height: 24),
+
+                // Botón para agregar un nuevo egreso
                 Center(
                   child: ElevatedButton.icon(
                     icon: const Icon(Icons.add, color: Colors.white),
@@ -191,7 +205,8 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
                     onPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (context) => const EgresoForm()),
+                        builder: (context) => const EgresoForm(),
+                      ),
                     ),
                     style: ElevatedButton.styleFrom(
                       backgroundColor: Themes.primary,
@@ -212,5 +227,21 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
         ),
       ),
     );
+  }
+
+  /// Traduce los valores de la columna 'Periodo' a texto más descriptivo
+  String _formatearPeriodo(dynamic valor) {
+    switch (valor) {
+      case 'Primera':
+        return 'Primera Quincena';
+      case 'Segunda':
+        return 'Segunda Quincena';
+      case 'Diario':
+        return 'Diario';
+      case 'Mensual':
+        return 'Mensual';
+      default:
+        return valor?.toString() ?? '';
+    }
   }
 }

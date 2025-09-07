@@ -2,10 +2,14 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import '../models/objetivo_ahorro.dart';
 
+/// Servicio que maneja todas las operaciones relacionadas con
+/// las metas de ahorro en Firestore.
 class AhorroService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   final User? _usuario = FirebaseAuth.instance.currentUser;
 
+  /// 🔹 Obtiene todas las metas de ahorro en tiempo real (Stream).
+  /// Se escucha la colección y se transforma en una lista de ObjetivoAhorro.
   Stream<List<ObjetivoAhorro>> obtenerMetas() {
     return _firestore
         .collection('users')
@@ -17,6 +21,8 @@ class AhorroService {
             .toList());
   }
 
+  /// 🔹 Crea una nueva meta de ahorro en Firestore.
+  /// Se inicializa con montoActual = 0 y sin transacciones.
   Future<void> crearMeta({
     required String nombre,
     required double montoObjetivo,
@@ -38,9 +44,11 @@ class AhorroService {
     });
   }
 
+  /// 🔹 Agrega una transacción (depósito o retiro) a una meta existente.
+  /// También actualiza el montoActual de la meta.
   Future<void> agregarTransaccion({
     required String metaId,
-    required String tipo,
+    required String tipo, // 'deposito' o 'retiro'
     required double monto,
     String? descripcion,
   }) async {
@@ -57,12 +65,15 @@ class AhorroService {
         .collection('ahorro')
         .doc(metaId)
         .update({
+      // 👉 incrementa o decrementa según sea depósito o retiro
       'montoActual': FieldValue.increment(tipo == 'deposito' ? monto : -monto),
+      // 👉 añade la transacción al historial
       'transacciones': FieldValue.arrayUnion([transaccion.toMap()]),
       'fechaActualizacion': FieldValue.serverTimestamp(),
     });
   }
 
+  /// 🔹 Elimina una meta de ahorro por su ID.
   Future<void> eliminarMeta(String metaId) async {
     await _firestore
         .collection('users')
@@ -70,5 +81,22 @@ class AhorroService {
         .collection('ahorro')
         .doc(metaId)
         .delete();
+  }
+
+  /// 🔹 Obtiene una meta de ahorro por su ID.
+  /// Esto se usa, por ejemplo, para calcular el maxMonto en el diálogo.
+  Future<ObjetivoAhorro> obtenerMetaPorId(String metaId) async {
+    final doc = await _firestore
+        .collection('users')
+        .doc(_usuario?.uid)
+        .collection('ahorro')
+        .doc(metaId)
+        .get();
+
+    if (!doc.exists) {
+      throw Exception("Meta no encontrada");
+    }
+
+    return ObjetivoAhorro.desdeFirestore(doc);
   }
 }

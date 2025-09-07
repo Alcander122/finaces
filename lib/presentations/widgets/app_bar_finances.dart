@@ -55,7 +55,7 @@ class AppBarFinances extends StatelessWidget implements PreferredSizeWidget {
           ),
       ],
       elevation: 4,
-      shadowColor: Colors.black.withOpacity(0.3),
+      shadowColor: Colors.black.withValues(alpha:0.3),
     );
   }
 

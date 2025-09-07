@@ -1,12 +1,12 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
-import 'package:finances/core/data/models/user_model.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:finances/core/data/models/user_model.dart';
 
 class UserService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
 
-  /// Registra un nuevo usuario con nombre, correo electrónico y contraseña
+  /// Registra un nuevo usuario con email y contraseña, y guarda sus datos en Firestore
   Future<UserModel> registerUser({
     required String name,
     required String displayName,
@@ -14,18 +14,17 @@ class UserService {
     required String password,
   }) async {
     try {
-      // Crear usuario en Firebase Authentication
+      // Crea el usuario en FirebaseAuth
       final UserCredential userCredential =
           await _auth.createUserWithEmailAndPassword(
         email: email,
         password: password,
       );
-      // Verificar que el usuario fue creado correctamente
+
       final User? user = userCredential.user;
-      if (user == null) {
-        throw Exception("No se pudo completar el registro del usuario.");
-      }
-      // Crear documento del usuario en Firestore
+      if (user == null) throw Exception("No se pudo completar el registro.");
+
+      // Guarda los datos adicionales del usuario en Firestore
       final userDoc = _firestore.collection('users').doc(user.uid);
       await userDoc.set({
         'uid': user.uid,
@@ -33,12 +32,12 @@ class UserService {
         'displayName': displayName,
         'email': email,
         'createdAt': FieldValue.serverTimestamp(),
-        // Agregar campo para rastrear la aceptación de términos
         'acceptedTerms': true,
       });
-      // Actualizar displayName del usuario
+
+      // Actualiza el nombre para mostrar en FirebaseAuth
       await user.updateDisplayName(name);
-      // Devolver el modelo de usuario completo
+
       return UserModel(
         uid: user.uid,
         name: name,
@@ -48,119 +47,111 @@ class UserService {
     } on FirebaseAuthException {
       rethrow;
     } catch (e) {
-      // print("❌ Error en registerUser: $e");
-      //print("🔍 StackTrace: $stackTrace");
       rethrow;
     }
   }
 
-  /// Actualiza la información del perfil de usuario
+  /// Actualiza el nombre del usuario en Firestore y FirebaseAuth
   Future<void> updateProfile({
     required String userId,
     required String newName,
   }) async {
     try {
-      // Actualizar información en Firestore
       await _firestore.collection('users').doc(userId).update({
         'name': newName,
       });
-      // Actualizar displayName en Auth
+
       final user = _auth.currentUser;
       if (user != null) {
         await user.updateDisplayName(newName);
       }
     } catch (e) {
-      //print("❌ Error al actualizar perfil: $e");
-      //print("🔍 StackTrace: $stackTrace");
       rethrow;
     }
   }
 
-  /// Obtiene la información del usuario actual
+  /// Obtiene los datos del usuario actual desde Firestore
   Future<UserModel?> getCurrentUser() async {
     try {
       final user = _auth.currentUser;
       if (user == null) return null;
+
       final userDoc = await _firestore.collection('users').doc(user.uid).get();
       if (!userDoc.exists) return null;
+
       return UserModel.fromMap(userDoc.data()!);
     } catch (e) {
-      //print("❌ Error al obtener usuario actual: $e");
-      //print("🔍 StackTrace: $stackTrace");
       return null;
     }
   }
 
-  /// Elimina la cuenta del usuario actual
+  /// Elimina el documento de usuario en Firestore y la cuenta de FirebaseAuth
   Future<void> deleteAccount() async {
     try {
       final user = _auth.currentUser;
-      if (user == null) {
-        throw Exception("No hay usuario autenticado.");
-      }
-      // Eliminar documento de Firestore
+      if (user == null) throw Exception("No hay usuario autenticado.");
+
       await _firestore.collection('users').doc(user.uid).delete();
-      // Eliminar usuario de Auth
       await user.delete();
     } catch (e) {
-      //print("❌ Error al eliminar cuenta: $e");
-      //print("🔍 StackTrace: $stackTrace");
       rethrow;
     }
   }
 
-  /// Verifica si un correo electrónico está disponible para registro
+  /// Verifica si un correo ya está registrado en FirebaseAuth
   Future<bool> isEmailAvailable(String email) async {
     try {
-      // ignore: deprecated_member_use
       final methods = await _auth.fetchSignInMethodsForEmail(email);
       return methods.isEmpty;
     } catch (e) {
-      //print("❌ Error al verificar disponibilidad de correo: $e");
-      //print("🔍 StackTrace: $stackTrace");
       rethrow;
     }
   }
 
-  Future<UserModel> handleGoogleUser(User user) async {
-    final userDoc = _firestore.collection('users').doc(user.uid);
-    final docSnapshot = await userDoc.get();
-    if (!docSnapshot.exists) {
-      await userDoc.set({
-        'uid': user.uid,
-        'name': user.displayName ?? 'Usuario Google',
-        'email': user.email ?? '',
-        'createdAt': FieldValue.serverTimestamp(),
-        // Agregar campo para rastrear la aceptación de términos
-        'acceptedTerms': false,
-      });
-    }
-    return UserModel(
-      uid: user.uid,
-      name: user.displayName ?? 'Usuario Google',
-      email: user.email ?? '',
-      createdAt: DateTime.now(),
-    );
+  // ========================================================
+  // MÉTODOS PARA USUARIOS GOOGLE
+  // ========================================================
+
+  /// Verifica si el documento del usuario existe en Firestore
+  Future<bool> userExists(String uid) async {
+    final userDoc = await _firestore.collection('users').doc(uid).get();
+    return userDoc.exists;
   }
 
-  Future<UserModel> handleSocialUser(User user) async {
-    final userDoc = _firestore.collection('users').doc(user.uid);
-    final docSnapshot = await userDoc.get();
-    if (!docSnapshot.exists) {
-      await userDoc.set({
-        'uid': user.uid,
-        'name': user.displayName ?? 'Usuario Social',
-        'email': user.email ?? '',
-        'createdAt': FieldValue.serverTimestamp(),
-        // Agregar campo para rastrear la aceptación de términos
+  /// Guarda el usuario de Google manualmente en Firestore después del registro
+  Future<void> saveGoogleUser(User user, String name) async {
+    await _firestore.collection('users').doc(user.uid).set({
+      'uid': user.uid,
+      'name': name,
+      'displayName': user.displayName ?? name,
+      'email': user.email ?? '',
+      'createdAt': FieldValue.serverTimestamp(),
+      'acceptedTerms': true,
+    });
+
+    // Actualiza el displayName en FirebaseAuth
+    await user.updateDisplayName(name);
+  }
+
+  /// Registra manualmente un usuario autenticado con Google en Firestore.
+  /// Este método **solo se debe llamar si ya se autenticó con Google**
+  /// y se confirmó que aún no existe su documento en Firestore.
+  Future<void> registerGoogleUser({
+    required String uid,
+    required String name,
+    required String email,
+  }) async {
+    final userRef = _firestore.collection('users').doc(uid);
+
+    final doc = await userRef.get();
+    if (!doc.exists) {
+      await userRef.set({
+        'uid': uid,
+        'name': name,
+        'email': email,
         'acceptedTerms': false,
+        'createdAt': FieldValue.serverTimestamp(),
       });
     }
-    return UserModel(
-      uid: user.uid,
-      name: user.displayName ?? 'Usuario Social',
-      email: user.email ?? '',
-      createdAt: DateTime.now(),
-    );
   }
 }

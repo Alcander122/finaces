@@ -1,7 +1,6 @@
 import 'package:finances/core/data/providers/egreso_provider.dart';
 import 'package:finances/core/data/providers/Ingreso_provider.dart';
 import 'package:finances/presentations/screens/Ahorro/ahorro_screen.dart';
-import 'package:finances/presentations/screens/Auth/LoginScreen.dart';
 import 'package:finances/presentations/screens/Bancos/banks_screen.dart';
 import 'package:finances/presentations/screens/Egreso/egresos_screen.dart';
 import 'package:finances/presentations/screens/Estadistica/Statistics_Screen.dart';
@@ -26,27 +25,23 @@ class HomeScreen extends ConsumerWidget {
 
     // Mostrar un indicador de carga si el estado de autenticación está cargando
     if (authState.isLoading) {
-      return const Scaffold(body: Center(child: CircularProgressIndicator()));
-    }
-
-    // Redirigir al login si no está autenticado
-    if (!authState.isAuthenticated) {
-      return const LoginScreen();
+      return const Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              CircularProgressIndicator(),
+              SizedBox(height: 20),
+              Text('Cargando...'),
+            ],
+          ),
+        ),
+      );
     }
 
     // Obtener datos financieros del usuario
     final totalIngresosMesAsync = ref.watch(totalIngresosMesActualProvider);
     final totalGastosAsync = ref.watch(totalEgresoMesActualProvider);
-
-    final totalIngresos = totalIngresosMesAsync.maybeWhen(
-      data: (value) => value,
-      orElse: () => 0.0,
-    );
-
-    final totalGastos = totalGastosAsync.maybeWhen(
-      data: (value) => value,
-      orElse: () => 0.0,
-    );
 
     return Scaffold(
       backgroundColor: Colors.transparent,
@@ -54,7 +49,6 @@ class HomeScreen extends ConsumerWidget {
         backgroundImagePath: 'assets/images/bg3.jpg',
         child: CustomScrollView(
           slivers: [
-            // AppBar persistente
             SliverPersistentHeader(
               pinned: true,
               delegate: _AppBarDelegate(
@@ -73,8 +67,6 @@ class HomeScreen extends ConsumerWidget {
                 },
               ),
             ),
-
-            // Contenido principal
             SliverToBoxAdapter(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
@@ -101,10 +93,19 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 25),
 
-                  // Resumen financiero
+                  // Resumen financiero con manejo de estados de carga
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                    child: _buildFinancialSummary(totalIngresos, totalGastos),
+                    child: totalIngresosMesAsync.when(
+                      data: (ingresos) => totalGastosAsync.when(
+                        data: (gastos) =>
+                            _buildFinancialSummary(ingresos, gastos),
+                        loading: () => _buildLoadingFinancialSummary(),
+                        error: (error, _) => _buildErrorFinancialSummary(error),
+                      ),
+                      loading: () => _buildLoadingFinancialSummary(),
+                      error: (error, _) => _buildErrorFinancialSummary(error),
+                    ),
                   ),
                   const SizedBox(height: 25),
 
@@ -185,7 +186,6 @@ class HomeScreen extends ConsumerWidget {
   Widget _buildFinancialSummary(double ingresos, double gastos) {
     final saldo = ingresos - gastos;
     final isPositive = saldo >= 0;
-    final formatter = NumberFormat.currency(locale: 'es_CO', symbol: '\$');
 
     return Container(
       width: double.infinity,
@@ -256,7 +256,7 @@ class HomeScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 4),
                     Text(
-                      formatter.format(saldo),
+                      formatCurrency(saldo),
                       style: TextStyle(
                         fontSize: 22,
                         fontWeight: FontWeight.bold,
@@ -273,10 +273,52 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
+  // Widget para mostrar carga de resumen financiero
+  Widget _buildLoadingFinancialSummary() {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Themes.infoBlue,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: const Center(
+        child: CircularProgressIndicator(),
+      ),
+    );
+  }
+
+  // Widget para mostrar error en resumen financiero
+  Widget _buildErrorFinancialSummary(Object error) {
+    return Container(
+      width: double.infinity,
+      decoration: BoxDecoration(
+        color: Themes.infoBlue,
+        borderRadius: BorderRadius.circular(16),
+      ),
+      padding: const EdgeInsets.all(20),
+      child: Column(
+        children: [
+          const Icon(Icons.error, color: Colors.red),
+          const SizedBox(height: 10),
+          Text('Error al cargar datos: $error'),
+          const SizedBox(height: 10),
+          ElevatedButton(
+            onPressed: () {
+              // Recargar los providers
+              // ref.invalidate(totalIngresosMesActualProvider);
+              // ref.invalidate(totalEgresoMesActualProvider);
+            },
+            child: const Text('Reintentar'),
+          ),
+        ],
+      ),
+    );
+  }
+
   // Tarjeta personalizada para estadísticas
   Widget _customStatCard(
       String label, double amount, IconData icon, Color iconColor) {
-    final formatter = NumberFormat.currency(locale: 'es_CO', symbol: '\$');
     return Container(
       width: 140,
       padding: const EdgeInsets.all(12),
@@ -302,7 +344,7 @@ class HomeScreen extends ConsumerWidget {
           ),
           const SizedBox(height: 4),
           Text(
-            formatter.format(amount),
+            formatCurrency(amount),
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.bold,
@@ -342,7 +384,7 @@ class HomeScreen extends ConsumerWidget {
               )),
           child: CircleAvatar(
             radius: 28,
-            backgroundColor: color.withValues(alpha: 0.2),
+            backgroundColor: color.withAlpha(50),
             child: Icon(icon, color: color, size: 28),
           ),
         ),
@@ -359,7 +401,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  // Tarjetas de acceso rápido
+  // Tarjetas de acceso rápido - VERSIÓN CORREGIDA
   Widget _buildMenuCardsSeccion(BuildContext context) {
     final List<Map<String, dynamic>> tips = [
       {
@@ -375,8 +417,7 @@ class HomeScreen extends ConsumerWidget {
         'screen': PantallaBancos(),
       },
       {
-        'icon': const Icon(FontAwesomeIcons.chartLine,
-            color: Color.fromARGB(255, 77, 235, 103)),
+        'icon': const Icon(FontAwesomeIcons.chartLine, color: Colors.green),
         'title': 'Portafolio',
         'description': 'Visualiza tu portafolio.',
         'screen': PortafolioScreen(),
@@ -388,76 +429,131 @@ class HomeScreen extends ConsumerWidget {
         'description': 'Gestiona pagos y fechas.',
         'screen': PagosScreen(),
       },
-      /*{
-        'icon': const Icon(FontAwesomeIcons.clockRotateLeft, color: Colors.red),
-        'title': 'Historial',
-        'description': 'Historial de movimientos.',
-        'screen': AhorroScreen(),
-      },*/
     ];
+
+    final bool hayMasOpciones = tips.length > 3;
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Padding(
-          padding: EdgeInsets.symmetric(vertical: 10),
-          child: Text('Accesos rápidos',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+          children: [
+            const Text('Accesos rápidos',
+                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            if (hayMasOpciones)
+              Row(
+                children: [
+                  const Text('Más opciones ',
+                      style: TextStyle(color: Colors.blue, fontSize: 14)),
+                  const Icon(Icons.arrow_forward_ios,
+                      size: 14, color: Colors.blue),
+                ],
+              ),
+          ],
         ),
+        const SizedBox(height: 10),
         SizedBox(
           height: 150,
-          child: ListView.builder(
-            scrollDirection: Axis.horizontal,
-            itemCount: tips.length,
-            itemBuilder: (context, index) {
-              final item = tips[index];
-              return GestureDetector(
-                onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                      builder: (_) => ProviderScope(child: item['screen']),
-                    )),
-                child: Container(
-                  width: 180,
-                  margin: const EdgeInsets.only(right: 12),
-                  padding: const EdgeInsets.all(12),
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Themes.degradientLight, Themes.degradientDark],
-                      begin: Alignment.topLeft,
-                      end: Alignment.bottomRight,
+          child: Stack(
+            children: [
+              ListView.builder(
+                scrollDirection: Axis.horizontal,
+                padding: const EdgeInsets.only(left: 8, right: 16),
+                itemCount: tips.length,
+                itemBuilder: (context, index) {
+                  final item = tips[index];
+                  final bool esUltimoElemento = index == tips.length - 1;
+
+                  return GestureDetector(
+                    onTap: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => ProviderScope(child: item['screen']),
+                        )),
+                    child: Container(
+                      width: 180,
+                      margin: EdgeInsets.only(
+                          right: esUltimoElemento ? 0 : 24,
+                          left: index == 0 ? 8 : 0),
+                      padding: const EdgeInsets.all(12),
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [
+                            Themes.degradientLight,
+                            Themes.degradientDark,
+                          ],
+                          begin: Alignment.topLeft,
+                          end: Alignment.bottomRight,
+                        ),
+                        borderRadius: BorderRadius.circular(20),
+                        boxShadow: const [
+                          BoxShadow(
+                              color: Colors.black26,
+                              blurRadius: 4,
+                              offset: Offset(0, 2)),
+                        ],
+                      ),
+                      child: Stack(
+                        children: [
+                          Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              item['icon'] as Widget,
+                              const SizedBox(height: 8),
+                              Text(
+                                item['title'],
+                                style: const TextStyle(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.bold,
+                                    color: Themes.white),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                item['description'],
+                                style: const TextStyle(
+                                    fontSize: 13, color: Colors.white70),
+                              ),
+                            ],
+                          ),
+                          if (index == tips.length - 1 && hayMasOpciones)
+                            const Align(
+                              alignment: Alignment.centerRight,
+                              child: DecoratedBox(
+                                decoration: BoxDecoration(
+                                  gradient: LinearGradient(
+                                    begin: Alignment.centerRight,
+                                    end: Alignment.centerLeft,
+                                    colors: [Colors.white, Colors.transparent],
+                                    stops: [0.3, 1.0],
+                                  ),
+                                ),
+                                child: SizedBox(
+                                    width: 30, height: double.infinity),
+                              ),
+                            ),
+                        ],
+                      ),
                     ),
-                    borderRadius: BorderRadius.circular(20),
-                    boxShadow: [
-                      BoxShadow(
-                          color: Colors.black26,
-                          blurRadius: 4,
-                          offset: const Offset(0, 2)),
-                    ],
-                  ),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      item['icon'] as Widget,
-                      const SizedBox(height: 8),
-                      Text(
-                        item['title'],
-                        style: const TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            color: Themes.white),
-                      ),
-                      const SizedBox(height: 4),
-                      Text(
-                        item['description'],
-                        style: const TextStyle(
-                            fontSize: 13, color: Colors.white70),
-                      ),
-                    ],
+                  );
+                },
+              ),
+              if (hayMasOpciones)
+                Positioned(
+                  right: 12,
+                  top: 50,
+                  bottom: 50,
+                  child: Container(
+                    padding: const EdgeInsets.all(6),
+                    decoration: BoxDecoration(
+                      color: Colors.black26,
+                      borderRadius: BorderRadius.circular(20),
+                    ),
+                    child: const Icon(Icons.chevron_right,
+                        color: Colors.white, size: 20),
                   ),
                 ),
-              );
-            },
+            ],
           ),
         ),
       ],
@@ -466,12 +562,10 @@ class HomeScreen extends ConsumerWidget {
 }
 
 // Delegado para el AppBar persistente
-typedef BuildTitle = Widget Function(double shrinkOffset);
-
 class _AppBarDelegate extends SliverPersistentHeaderDelegate {
   final double minHeight;
   final double maxHeight;
-  final BuildTitle onBuildTitle;
+  final Widget Function(double shrinkOffset) onBuildTitle;
 
   _AppBarDelegate({
     required this.minHeight,
@@ -497,7 +591,12 @@ class _AppBarDelegate extends SliverPersistentHeaderDelegate {
   @override
   bool shouldRebuild(covariant _AppBarDelegate oldDelegate) {
     return maxHeight != oldDelegate.maxHeight ||
-        minHeight != oldDelegate.minHeight ||
-        onBuildTitle != oldDelegate.onBuildTitle;
+        minHeight != oldDelegate.minHeight;
   }
+}
+
+/// Formatea un número a formato de moneda local (COP)
+String formatCurrency(double value) {
+  final formatter = NumberFormat.decimalPattern('es_CO');
+  return '\$${formatter.format(value)}';
 }

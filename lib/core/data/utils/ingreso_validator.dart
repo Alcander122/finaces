@@ -48,15 +48,21 @@ class IngresoValidator {
     return null;
   }
 
-  // Validar el valor
+  // Validar el valor - MODIFICADO PARA MANEJAR FORMATO DE MONEDA
   String? validateValor(String? value) {
     if (value == null || value.isEmpty) {
       return 'Por favor ingresa un valor';
     }
-    if (int.tryParse(value) == null) {
+
+    // SOLUCIÓN 3: Limpiar el valor de formato de moneda para validación
+    // Al eliminar caracteres no numéricos, podemos validar el valor correctamente [[24]]
+    String cleanValue = value.replaceAll(RegExp(r'[^\d]'), '');
+    if (cleanValue.isEmpty) {
       return 'Por favor ingresa un número válido';
     }
-    if (int.parse(value) <= 0) {
+
+    int? number = int.tryParse(cleanValue);
+    if (number == null || number <= 0) {
       return 'El valor debe ser mayor que cero';
     }
     return null;

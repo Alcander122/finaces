@@ -35,7 +35,8 @@ class SummaryCards extends ConsumerWidget {
       padding: const EdgeInsets.symmetric(horizontal: 20),
       // Creamos una fila para mostrar las tres tarjetas
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceEvenly, // Distribuimos las tarjetas equitativamente
+        mainAxisAlignment: MainAxisAlignment
+            .spaceEvenly, // Distribuimos las tarjetas equitativamente
         children: [
           // Tarjeta de ingresos
           _buildIngresosCard(context, ref),
@@ -104,7 +105,8 @@ class SummaryCards extends ConsumerWidget {
                   data: (gastos) {
                     double balance = ingresos - gastos; // Calculamos el balance
                     // Determinamos el color del balance (azul para positivo, rojo para negativo)
-                    Color balanceColor = balance >= 0 ? Colors.blue : Colors.red;
+                    Color balanceColor =
+                        balance >= 0 ? Colors.blue : Colors.red;
 
                     // Usamos formatCurrency para dar formato al valor del balance
                     return _buildSummaryCard(
@@ -131,10 +133,10 @@ class SummaryCards extends ConsumerWidget {
   // Método para construir una tarjeta resumen genérica
   Widget _buildSummaryCard(
     BuildContext context, {
-    required String title,  // Título de la tarjeta (ej: "Ingresos")
-    required String value,  // Valor formateado (ej: "\$1.234.567,89")
+    required String title, // Título de la tarjeta (ej: "Ingresos")
+    required String value, // Valor formateado (ej: "\$1.234.567,89")
     required IconData icon, // Ícono de la tarjeta
-    required Color color,   // Color de la tarjeta
+    required Color color, // Color de la tarjeta
   }) {
     // Devolvemos una tarjeta con elevación y bordes redondeados
     return Card(
@@ -151,7 +153,7 @@ class SummaryCards extends ConsumerWidget {
           gradient: LinearGradient(
             colors: [
               color.withValues(alpha: 0.2), // Color superior más transparente
-              color.withValues(alpha: 0.1)  // Color inferior más transparente
+              color.withValues(alpha: 0.1) // Color inferior más transparente
             ],
             begin: Alignment.topCenter, // Comienzo del degradado
             end: Alignment.bottomCenter, // Fin del degradado
@@ -161,9 +163,9 @@ class SummaryCards extends ConsumerWidget {
         child: Column(
           children: [
             Icon(icon, color: color, size: 20), // Ícono de la tarjeta
-            const SizedBox(height: 5),          // Espacio entre ícono y título
+            const SizedBox(height: 5), // Espacio entre ícono y título
             Text(title, style: const TextStyle(fontSize: 14)), // Título
-            const SizedBox(height: 5),          // Espacio entre título y valor
+            const SizedBox(height: 5), // Espacio entre título y valor
             Text(
               value, // Valor formateado
               style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),

@@ -1,53 +1,40 @@
-// activity_chart.dart
-// Gráfico de actividad financiera con manejo seguro de datos y formato de fechas
-
+// lib/presentations/widgets/activity_chart.dart
 import 'package:finances/core/data/models/filter.dart';
 import 'package:finances/core/data/providers/filter_provider.dart';
-//import 'package:finances/presentations/theme/themes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:finances/core/data/models/ingreso.model.dart';
+import 'package:finances/core/data/models/egreso_model.dart';
 import 'package:finances/core/data/providers/ingreso_provider.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
 import 'dart:math';
+import 'package:finances/core/data/utils/date_utils.dart'
+    as AppDateUtils; // Usamos prefijo para evitar conflictos
 
-/// Modelo que representa una transacción financiera
-/// - [fecha]: Fecha de la transacción
-/// - [monto]: Valor monetario (positivo para ingresos, negativo para egresos)
-/// - [esIngreso]: Bandera que indica si es un ingreso
-class Transaction {
-  final DateTime fecha;
-  final double monto;
-  final bool esIngreso;
-
-  const Transaction({
-    required this.fecha,
-    required this.monto,
-    required this.esIngreso,
-  });
-}
-
-/// Clase para almacenar datos por período con ingresos y egresos separados
+/// Clase que representa un periodo con ingresos y egresos
 class PeriodData {
   final DateTime start;
   final double ingresos;
   final double egresos;
 
-  PeriodData(
-      {required this.start, required this.ingresos, required this.egresos});
+  PeriodData({
+    required this.start,
+    required this.ingresos,
+    required this.egresos,
+  });
 }
 
-/// Widget principal que muestra el gráfico de actividad financiera
+/// Widget para mostrar un gráfico de barras comparativo
 class ActivityChart extends ConsumerWidget {
   const ActivityChart({super.key});
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    // Obtener el filtro actual y los datos asincrónicos
     final filtro = ref.watch(filterProvider);
-    final ingresosAsync = ref.watch(filteredIngresosProvider);
-    final egresosAsync = ref.watch(filteredEgresosProvider);
+    final ingresosAsync = ref.watch(ingresosFiltradosProvider);
+    final egresosAsync = ref.watch(egresosFiltradosProvider);
 
     return ingresosAsync.when(
       data: (ingresos) => egresosAsync.when(
@@ -60,14 +47,15 @@ class ActivityChart extends ConsumerWidget {
     );
   }
 
-  /// Construye el contenido principal del gráfico
-  Widget _buildChartContent(double ingresos, double egresos, Filter filtro) {
+  Widget _buildChartContent(
+      List<Ingreso> ingresos, List<Egreso> egresos, Filter filtro) {
     final periodos = _generarPeriodos(filtro);
-    final transacciones = _calcularTransacciones(ingresos, egresos, periodos);
+    final transacciones =
+        _calcularTransaccionesReal(ingresos, egresos, periodos);
 
     return Card(
       elevation: 0,
-      color: Color.fromARGB(255, 206, 230, 248),
+      color: const Color.fromARGB(255, 206, 230, 248),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       child: Padding(
         padding: const EdgeInsets.all(16),
@@ -76,8 +64,8 @@ class ActivityChart extends ConsumerWidget {
           children: [
             _buildTitulo(filtro),
             const SizedBox(height: 15),
-            SizedBox(
-              height: 250,
+            AspectRatio(
+              aspectRatio: 1.7,
               child: BarChart(_crearDatosChart(transacciones, filtro)),
             ),
             const SizedBox(height: 10),
@@ -88,51 +76,43 @@ class ActivityChart extends ConsumerWidget {
     );
   }
 
-  /// Genera los períodos temporales según el filtro seleccionado
+  /// Genera los periodos que se mostrarán en la gráfica
+  ///
+  /// 🔹 En el caso de "quarterly" (trimestral) ahora usa TRIMESTRE MÓVIL.
   List<DateTimeRange> _generarPeriodos(Filter filtro) {
     final rango = _calcularRango(filtro);
     final List<DateTimeRange> periodos = [];
 
     switch (filtro.type) {
       case FilterType.monthly:
-        var current = DateTime(rango.start.year, rango.start.month);
-        while (current.isBefore(rango.end)) {
-          final next = current.add(const Duration(days: 30));
-          periodos.add(DateTimeRange(
-            start: current,
-            end: next.isBefore(rango.end) ? next : rango.end,
-          ));
-          current = next.add(const Duration(days: 1));
+        // Cada barra representa un día del mes
+        var current = DateTime(rango.start.year, rango.start.month, 1);
+        while (current.isBefore(rango.end.add(const Duration(days: 1)))) {
+          periodos.add(DateTimeRange(start: current, end: current));
+          current = current.add(const Duration(days: 1));
         }
         break;
-      case FilterType.quarterly:
-        var current = DateTime(rango.start.year, rango.start.month);
-        while (current.isBefore(rango.end)) {
-          final next = DateTime(current.year, current.month + 3, current.day);
-          periodos.add(DateTimeRange(
-            start: current,
-            end: next.isBefore(rango.end) ? next : rango.end,
-          ));
-          current = next.add(const Duration(days: 1));
-        }
-        break;
-      case FilterType.annual:
-        var current = DateTime(rango.start.year, 1, 1);
-        while (current.isBefore(rango.end)) {
-          final next = DateTime(current.year + 1, 1, 1);
-          periodos.add(DateTimeRange(
-            start: current,
-            end: next.isBefore(rango.end) ? next : rango.end,
-          ));
-          current = next;
-        }
-        break;
-      case FilterType.custom:
-        final duration = rango.duration.inDays;
-        final step = _calcularPasoPersonalizado(duration);
 
+      case FilterType.quarterly:
+      case FilterType.annual:
+        // Cada barra representa un mes dentro del rango
         var current = rango.start;
         while (current.isBefore(rango.end)) {
+          final lastDayOfMonth =
+              DateTime(current.year, current.month + 1, 0, 23, 59, 59, 999);
+          final endDate =
+              lastDayOfMonth.isBefore(rango.end) ? lastDayOfMonth : rango.end;
+          periodos.add(DateTimeRange(start: current, end: endDate));
+          current = DateTime(current.year, current.month + 1, 1);
+        }
+        break;
+
+      case FilterType.custom:
+        // Agrupación dinámica según la duración total
+        final duration = rango.duration.inDays;
+        final step = _calcularPasoPersonalizado(duration);
+        var current = rango.start;
+        while (current.isBefore(rango.end.add(const Duration(days: 1)))) {
           final endDate = current.add(step);
           periodos.add(DateTimeRange(
             start: current,
@@ -145,50 +125,58 @@ class ActivityChart extends ConsumerWidget {
     return periodos;
   }
 
-  /// Calcula el intervalo para el filtro personalizado
   Duration _calcularPasoPersonalizado(int duration) {
     if (duration > 180) return const Duration(days: 30);
     if (duration > 60) return const Duration(days: 7);
     return const Duration(days: 1);
   }
 
-  /// Calcula las transacciones para cada período
-  List<PeriodData> _calcularTransacciones(
-      double totalIngresos, double totalEgresos, List<DateTimeRange> periodos) {
-    if (periodos.isEmpty) return [];
+  List<PeriodData> _calcularTransaccionesReal(List<Ingreso> ingresos,
+      List<Egreso> egresos, List<DateTimeRange> periodos) {
+    return periodos
+        .map((periodo) {
+          double ingresosPeriodo = 0;
+          double egresosPeriodo = 0;
 
-    final totalDias = periodos.fold<double>(
-        0, (sum, p) => sum + p.duration.inDays.toDouble());
+          for (var ingreso in ingresos) {
+            if (_fechaPerteneceAlPeriodo(ingreso.fechaIngreso, periodo)) {
+              ingresosPeriodo += ingreso.valor;
+            }
+          }
+          for (var egreso in egresos) {
+            if (_fechaPerteneceAlPeriodo(egreso.fechaPago, periodo)) {
+              egresosPeriodo += egreso.valor;
+            }
+          }
 
-    return periodos.map((periodo) {
-      final factor = periodo.duration.inDays / totalDias;
-      final ingresosPeriodo = totalIngresos * factor;
-      final egresosPeriodo = totalEgresos * factor;
-      return PeriodData(
-        start: periodo.start,
-        ingresos: ingresosPeriodo,
-        egresos: egresosPeriodo,
-      );
-    }).toList();
+          return PeriodData(
+            start: periodo.start,
+            ingresos: ingresosPeriodo,
+            egresos: egresosPeriodo,
+          );
+        })
+        .where((pd) => pd.ingresos > 0 || pd.egresos > 0)
+        .toList();
   }
 
-  /// Crea la configuración del gráfico con validación de datos
-  BarChartData _crearDatosChart(List<PeriodData> periodosData, Filter filtro) {
-    if (periodosData.isEmpty) return BarChartData(barGroups: []);
+  bool _fechaPerteneceAlPeriodo(DateTime fecha, DateTimeRange periodo) {
+    final fechaNormalizada =
+        DateTime(fecha.year, fecha.month, fecha.day); // Sin hora
+    return !fechaNormalizada.isBefore(periodo.start) &&
+        !fechaNormalizada.isAfter(periodo.end);
+  }
 
+  BarChartData _crearDatosChart(List<PeriodData> periodosData, Filter filtro) {
     return BarChartData(
-      borderData: FlBorderData(
-        show: false,
-      ),
+      borderData: FlBorderData(show: false),
       barTouchData: BarTouchData(
         enabled: true,
         touchTooltipData: BarTouchTooltipData(
-          getTooltipItem: (group, _, rod, __) {
-            final index = group.x.toInt();
-            final pd = periodosData[index];
-            final isIncome = group.barRods.indexOf(rod) == 0;
+          getTooltipItem: (barGroup, groupIndex, rod, rodIndex) {
+            final pd = periodosData[groupIndex];
+            final isIncome = rodIndex == 0;
             return BarTooltipItem(
-              '${rod.toY.toStringAsFixed(2)}\n${_formatoFecha(pd.start, filtro)}\n${isIncome ? 'Ingreso' : 'Egreso'}',
+              '${formatCurrency(rod.toY)}\n${_formatoFecha(pd.start, filtro)}\n${isIncome ? 'Ingreso' : 'Egreso'}',
               const TextStyle(color: Colors.white, fontSize: 12),
             );
           },
@@ -198,91 +186,93 @@ class ActivityChart extends ConsumerWidget {
         bottomTitles: AxisTitles(
           sideTitles: SideTitles(
             showTitles: true,
-            getTitlesWidget: (value, meta) => Padding(
+            reservedSize: 28,
+            getTitlesWidget: (value, _) => Padding(
               padding: const EdgeInsets.only(top: 8),
               child: Text(
                 _buildEtiquetaEjeX(value, periodosData, filtro),
                 style: const TextStyle(fontSize: 10),
               ),
             ),
-            reservedSize: 28,
           ),
         ),
-        leftTitles: AxisTitles(
-          sideTitles: SideTitles(
-            showTitles: true,
-            getTitlesWidget: (value, meta) => Padding(
-              padding: const EdgeInsets.only(right: 10),
-              /* child: Text(
-                //formatCurrency(value),
-                //style: const TextStyle(fontSize: 10),
-              ),*/
-            ),
-            reservedSize: 40,
-          ),
-        ),
-        rightTitles: AxisTitles(
-          sideTitles: SideTitles(showTitles: false),
-        ),
-        topTitles: AxisTitles(
-          sideTitles: SideTitles(showTitles: false),
-        ),
+        leftTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        rightTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
+        topTitles: AxisTitles(sideTitles: SideTitles(showTitles: false)),
       ),
       barGroups: periodosData.asMap().entries.map((entry) {
-        final index = entry.key;
         final pd = entry.value;
         return BarChartGroupData(
-          x: index,
+          x: entry.key,
           barRods: [
             BarChartRodData(
               toY: pd.ingresos,
-              color: Colors.green[400]!,
-              width: 15,
+              color: Colors.green[400],
+              width: 8,
               borderRadius: BorderRadius.circular(4),
             ),
             BarChartRodData(
               toY: pd.egresos,
-              color: Colors.red[400]!,
-              width: 15,
+              color: Colors.red[400],
+              width: 8,
               borderRadius: BorderRadius.circular(4),
             ),
           ],
         );
       }).toList(),
       gridData: const FlGridData(show: false),
-      alignment: BarChartAlignment.spaceAround,
+      alignment: BarChartAlignment.center,
       maxY: _calcularMaxY(periodosData),
     );
   }
 
-  /// Calcula el valor máximo para el eje Y
-  double _calcularMaxY(List<PeriodData> periodosData) {
-    if (periodosData.isEmpty) return 0;
-    final maxIngreso = periodosData.map((pd) => pd.ingresos).reduce(max);
-    final maxEgreso = periodosData.map((pd) => pd.egresos).reduce(max);
-    return max(maxIngreso, maxEgreso) * 1.15;
+  double _calcularMaxY(List<PeriodData> data) {
+    if (data.isEmpty) return 0;
+    return max(
+          data.map((e) => e.ingresos).reduce(max),
+          data.map((e) => e.egresos).reduce(max),
+        ) *
+        1.15;
   }
 
-  /// Formatea la fecha según el tipo de filtro
   String _formatoFecha(DateTime fecha, Filter filtro) {
     switch (filtro.type) {
       case FilterType.monthly:
-        return DateFormat('dd/MM').format(fecha);
+        return DateFormat('dd').format(fecha);
       case FilterType.quarterly:
-        return DateFormat('MMM').format(fecha);
       case FilterType.annual:
-        return 'T${((fecha.month - 1) ~/ 3) + 1}';
+        const meses = [
+          'ENE',
+          'FEB',
+          'MAR',
+          'ABR',
+          'MAY',
+          'JUN',
+          'JUL',
+          'AGO',
+          'SEP',
+          'OCT',
+          'NOV',
+          'DIC'
+        ];
+        return meses[fecha.month - 1];
       case FilterType.custom:
         return DateFormat('dd/MM').format(fecha);
     }
   }
 
-  /// Construye el título con rango de fechas
+  String formatCurrency(double value) {
+    return NumberFormat.currency(
+      locale: 'es_CO',
+      symbol: '\$',
+      decimalDigits: 0,
+    ).format(value);
+  }
+
   Widget _buildTitulo(Filter filtro) {
     final rango = _calcularRango(filtro);
     return Text(
-      '${DateFormat('dd/MM/yyyy').format(rango.start)} - '
-      '${DateFormat('dd/MM/yyyy').format(rango.end)}',
+      '${DateFormat('dd/MM/yyyy').format(rango.start)} - ${DateFormat('dd/MM/yyyy').format(rango.end)}',
       style: const TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.bold,
@@ -291,7 +281,6 @@ class ActivityChart extends ConsumerWidget {
     );
   }
 
-  /// Construye etiquetas del eje X con validación
   String _buildEtiquetaEjeX(
       double value, List<PeriodData> periodosData, Filter filtro) {
     final index = value.toInt();
@@ -299,25 +288,24 @@ class ActivityChart extends ConsumerWidget {
     return _formatoFecha(periodosData[index].start, filtro);
   }
 
-  /// Calcula el rango de fechas según el filtro
+  /// 🔹 Ahora, para trimestral, devuelve trimestre móvil
   DateTimeRange _calcularRango(Filter filtro) {
     final hoy = DateTime.now();
     switch (filtro.type) {
       case FilterType.monthly:
         return DateTimeRange(
-          start: DateTime(hoy.year, hoy.month, 1),
-          end: DateTime(hoy.year, hoy.month + 1, 0),
+          start: AppDateUtils.DateUtils.getStartOfMonth(hoy),
+          end: AppDateUtils.DateUtils.getEndOfMonth(hoy),
         );
       case FilterType.quarterly:
-        final trimestre = ((hoy.month - 1) ~/ 3) + 1;
         return DateTimeRange(
-          start: DateTime(hoy.year, (trimestre - 1) * 3 + 1, 1),
-          end: DateTime(hoy.year, trimestre * 3 + 1, 0),
+          start: AppDateUtils.DateUtils.getStartOfRollingQuarter(hoy),
+          end: AppDateUtils.DateUtils.getEndOfRollingQuarter(hoy),
         );
       case FilterType.annual:
         return DateTimeRange(
-          start: DateTime(hoy.year, 1, 1),
-          end: DateTime(hoy.year, 12, 31),
+          start: AppDateUtils.DateUtils.getStartOfYear(hoy),
+          end: AppDateUtils.DateUtils.getEndOfYear(hoy),
         );
       case FilterType.custom:
         return DateTimeRange(
@@ -327,7 +315,6 @@ class ActivityChart extends ConsumerWidget {
     }
   }
 
-  /// Construye la leyenda del gráfico
   Widget _buildLeyenda() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -339,28 +326,18 @@ class ActivityChart extends ConsumerWidget {
     );
   }
 
-  /// Componente individual de la leyenda
   Widget _buildItemLeyenda(Color color, String texto) {
     return Row(
       children: [
-        Container(
-          width: 12,
-          height: 12,
-          decoration: BoxDecoration(
-            color: color,
-            borderRadius: BorderRadius.circular(3),
-          ),
-        ),
+        Container(width: 12, height: 12, color: color),
         const SizedBox(width: 5),
         Text(texto, style: const TextStyle(fontSize: 12)),
       ],
     );
   }
 
-  /// Estados de carga y error
   Widget _buildLoading() => const Center(child: CircularProgressIndicator());
-  Widget _buildError(String mensaje) => Center(
-        child: Text(mensaje,
-            style: const TextStyle(color: Colors.red, fontSize: 14)),
-      );
+
+  Widget _buildError(String mensaje) =>
+      Center(child: Text(mensaje, style: const TextStyle(color: Colors.red)));
 }
