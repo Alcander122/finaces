@@ -4,6 +4,16 @@ import 'package:firebase_core/firebase_core.dart' show FirebaseOptions;
 import 'package:flutter/foundation.dart'
     show defaultTargetPlatform, kIsWeb, TargetPlatform;
 
+/// Default [FirebaseOptions] for use with your Firebase apps.
+///
+/// Example:
+/// ```dart
+/// import 'firebase_options.dart';
+/// // ...
+/// await Firebase.initializeApp(
+///   options: DefaultFirebaseOptions.currentPlatform,
+/// );
+/// ```
 class DefaultFirebaseOptions {
   static FirebaseOptions get currentPlatform {
     if (kIsWeb) {
@@ -15,7 +25,10 @@ class DefaultFirebaseOptions {
       case TargetPlatform.iOS:
         return ios;
       case TargetPlatform.macOS:
-        return macos;
+        throw UnsupportedError(
+          'DefaultFirebaseOptions have not been configured for macos - '
+          'you can reconfigure this by running the FlutterFire CLI again.',
+        );
       case TargetPlatform.windows:
         return windows;
       case TargetPlatform.linux:
@@ -41,8 +54,8 @@ class DefaultFirebaseOptions {
   );
 
   static const FirebaseOptions android = FirebaseOptions(
-    apiKey: 'AIzaSyBqCf1GTz_-znphLA1zG3XbastEsG76ev4',
-    appId: '1:301032499758:android:67670d7c95d6f5312f8dbf',
+    apiKey: 'AIzaSyDJPDXIY6vc2BegDPlkiM3HWF4EHRsRnhA',
+    appId: '1:301032499758:android:26024173c95bc62f2f8dbf',
     messagingSenderId: '301032499758',
     projectId: 'finance-a715f',
     storageBucket: 'finance-a715f.firebasestorage.app',
@@ -50,19 +63,12 @@ class DefaultFirebaseOptions {
 
   static const FirebaseOptions ios = FirebaseOptions(
     apiKey: 'AIzaSyAwiFqQk-dm_xYWKL8cy4RqvErA4gwW8us',
-    appId: '1:301032499758:ios:f1a82a5a2f881a702f8dbf',
+    appId: '1:301032499758:ios:bbd69ec1a798d9922f8dbf',
     messagingSenderId: '301032499758',
     projectId: 'finance-a715f',
     storageBucket: 'finance-a715f.firebasestorage.app',
-    iosBundleId: 'com.example.finances',
-  );
-
-  static const FirebaseOptions macos = FirebaseOptions(
-    apiKey: 'AIzaSyAwiFqQk-dm_xYWKL8cy4RqvErA4gwW8us',
-    appId: '1:301032499758:ios:f1a82a5a2f881a702f8dbf',
-    messagingSenderId: '301032499758',
-    projectId: 'finance-a715f',
-    storageBucket: 'finance-a715f.firebasestorage.app',
+    androidClientId: '301032499758-1n8ndk89d8hgftlajo5qojq9br3jo3tc.apps.googleusercontent.com',
+    iosClientId: '301032499758-v8v0adon09r7f3occ89unc5to76ofku6.apps.googleusercontent.com',
     iosBundleId: 'com.example.finances',
   );
 

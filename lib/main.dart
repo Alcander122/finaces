@@ -3,7 +3,6 @@ import 'package:finances/core/data/services/notification_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 
@@ -26,12 +25,12 @@ void main() async {
     await NotificationService().init();
 
     // Inicializar Facebook Auth
-    await FacebookAuth.i.webAndDesktopInitialize(
+   /* await FacebookAuth.i.webAndDesktopInitialize(
       appId: "642352742000792",
       cookie: true,
       xfbml: true,
       version: "v18.0",
-    );
+    );*/
   } catch (e) {
     debugPrint('Error durante la inicialización: $e');
     // No lanzamos excepción para evitar caída de la app

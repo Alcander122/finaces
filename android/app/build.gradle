@@ -6,11 +6,10 @@ plugins {
 }
 
 android {
-    namespace = "com.example.finances"
+    namespace = "com.billnance.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
-    // Configuración de firma (opcional, solo si quieres firmar la app)
     def keystoreProperties = new Properties()
     def keystorePropertiesFile = rootProject.file("key.properties")
     if (keystorePropertiesFile.exists()) {
@@ -18,7 +17,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.finances"
+        applicationId = "com.billnance.app"
         minSdkVersion 24
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -37,8 +36,9 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
-            minifyEnabled true                // Reduce tamaño del APK
-            shrinkResources true             // Elimina recursos no usados
+            // ⚠️ Desactivamos para probar (luego podemos reactivar con reglas ProGuard)
+            minifyEnabled false
+            shrinkResources false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -46,6 +46,8 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
+        // 🔹 Habilitar desugaring
+        coreLibraryDesugaringEnabled true
     }
 
     kotlinOptions {
@@ -58,13 +60,17 @@ flutter {
 }
 
 dependencies {
-    // Importa BoM de Firebase (control de versiones unificado)
-    implementation platform('com.google.firebase:firebase-bom:32.2.0')
-    implementation 'com.google.android.gms:play-services-auth:20.7.0'
-    // Firebase Analytics y Auth
+    // Importa BoM de Firebase (última versión estable)
+    implementation platform('com.google.firebase:firebase-bom:33.5.1')
+    implementation 'com.google.android.gms:play-services-auth:21.2.0'
+
+    // Firebase
     implementation 'com.google.firebase:firebase-analytics'
     implementation 'com.google.firebase:firebase-auth'
 
     // Kotlin stdlib
     implementation "org.jetbrains.kotlin:kotlin-stdlib:2.1.0"
+
+    // 🔹 Dependencia necesaria para desugaring
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.0.4"
 }

@@ -1,6 +1,6 @@
-import 'package:flutter/foundation.dart';
+/*import 'package:flutter/foundation.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
+#import 'package:flutter_facebook_auth/flutter_facebook_auth.dart';
 
 class FacebookAuthService {
   final FirebaseAuth _firebaseAuth = FirebaseAuth.instance;
@@ -56,4 +56,4 @@ class FacebookAuthService {
     await FacebookAuth.instance.logOut();
     await _firebaseAuth.signOut();
   }
-}
+}*/
