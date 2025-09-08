@@ -57,7 +57,13 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
     {
       'icon': Icons.bar_chart,
       'title': 'Estadísticas detalladas',
-      'description': 'Analiza tus gastos por categoría, gráficas mensuales y tendencias. Controla tu dinero con datos.',
+      'description': 'Analiza tus gastos por categoría, gráficas mensuales anuales o trimestral. Controla tu dinero con datos.',
+      'color': Colors.pink,
+    },
+    {
+      'icon': Icons.fingerprint,
+      'title': 'Inicia Session con tu huella ',
+      'description': 'Accede fácilmente con tu huella digital. Activa esta opción desde tu perfil para mayor seguridad y comodidad.',
       'color': Colors.pink,
     },
   ];

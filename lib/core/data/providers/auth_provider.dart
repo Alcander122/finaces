@@ -209,17 +209,46 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// Cierra la sesión
+  /// Cierra la sesión
   Future<void> signOut() async {
     try {
       state = const AuthState.loading();
+
+      // 🧹 1. Limpiar storage
       await _storage.setLoggedOut(true);
-      await _auth.signOut();
       await _storage.deleteToken();
-      state = const AuthState.unauthenticated();
-    } catch (_) {
+
+      // 🚫 2. Cerrar sesión en Google (si aplica)
+      try {
+        await googleSignIn.signOut();
+      } catch (e) {
+        debugPrint('Google Sign-In no estaba activo o ya cerrado: $e');
+      }
+
+      // 🚫 3. Cerrar sesión en Firebase
+      await _auth.signOut();
+
+      // 🔄 4. Verificar que realmente se cerró
+      if (_auth.currentUser != null) {
+        debugPrint(
+            '⚠️ Firebase currentUser aún existe después de signOut(). Forzando cierre.');
+        await _auth.signOut();
+      }
+
+      // ✅ 5. Actualizar estado solo si realmente no hay usuario
+      if (_auth.currentUser == null) {
+        state = const AuthState.unauthenticated();
+      } else {
+        debugPrint('❌ ERROR: No se pudo cerrar sesión en Firebase.');
+        state =
+            AuthState.error('No se pudo cerrar sesión. Inténtalo de nuevo.');
+        throw Exception('No se pudo cerrar sesión en Firebase.');
+      }
+    } catch (e) {
+      debugPrint('Error en signOut: $e');
       await _storage.deleteToken();
       state = AuthState.error(ErrorStrings.unexpectedError);
-      throw ErrorStrings.unexpectedError;
+      rethrow;
     }
   }
 

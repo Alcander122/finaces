@@ -1,5 +1,3 @@
-// lib/presentations/screens/Auth/LoginScreen.dart
-
 import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/core/data/services/BiometricAuthService.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
@@ -8,7 +6,6 @@ import 'package:finances/core/errors/handlers/auth_error_handler.dart';
 import 'package:finances/presentations/screens/Auth/register.screen.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/presentations/widgets/custom_scaffold.dart';
-import 'package:finances/routes/app_routes.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,6 +23,22 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
   final TextEditingController _passwordController = TextEditingController();
   final GlobalKey<FormState> _formSignInKey = GlobalKey<FormState>();
   bool _isLoading = false;
+  bool _biometricEnabled =
+      false; // 👈 para controlar si mostrar el botón de huella
+
+  @override
+  void initState() {
+    super.initState();
+    _checkBiometricStatus();
+  }
+
+  /// 🔹 Revisa si la biometría está activada en el dispositivo
+  Future<void> _checkBiometricStatus() async {
+    final enabled = await BiometricAuthService().isBiometricEnabled();
+    if (mounted) {
+      setState(() => _biometricEnabled = enabled);
+    }
+  }
 
   @override
   void dispose() {
@@ -60,7 +73,8 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     UIHelpers.showErrorSnackBar(context: context, message: message);
   }
 
-  /// Maneja el proceso de login con email y contraseña
+  /// 🔹 Login con email y contraseña
+  /// 🔹 Login con email y contraseña
   Future<void> _performLogin() async {
     if (!_validateFields() || _isLoading) return;
 
@@ -73,22 +87,14 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
           );
 
       if (mounted) {
+        // ✅ Mostrar mensaje de éxito
         UIHelpers.showSuccessSnackBarNew(
           context: context,
           message: 'Inicio de sesión exitoso',
         );
 
-        // Verificar si la biometría está activada para decidir la redirección
-        final isBiometricEnabled =
-            await BiometricAuthService().isBiometricEnabled();
-
-        if (isBiometricEnabled) {
-          // Si la biometría está activada, ir al splash para verificarla
-          Navigator.pushReplacementNamed(context, '/');
-        } else {
-          // Si no está activada, ir directamente al home
-          Navigator.pushReplacementNamed(context, AppRoutes.home);
-        }
+        // 🔹 Navegar al Home inmediatamente
+        Navigator.pushReplacementNamed(context, '/home');
       }
     } catch (e) {
       debugPrint('Error en login: $e');
@@ -100,22 +106,38 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
+  /// 🔹 Login con huella
+  /// 🔹 Login con huella
+  Future<void> _performBiometricLogin() async {
+    if (_isLoading) return;
+
+    setState(() => _isLoading = true);
+
+    try {
+      // ✅ Ahora pasamos el context al servicio
+      final success = await BiometricAuthService().authenticate(context);
+
+      if (success) {
+        final user = FirebaseAuth.instance.currentUser;
+        if (user != null && mounted) {
+          Navigator.pushReplacementNamed(context, '/home');
+        }
+      } else {
+        _showErrorFeedback("Autenticación cancelada o fallida");
+      }
+    } catch (e) {
+      debugPrint("Error en login biométrico: $e");
+      _showErrorFeedback("Error con la autenticación biométrica");
+    } finally {
+      if (mounted) {
+        setState(() => _isLoading = false);
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    // Escuchamos el estado de autenticación
     final authState = ref.watch(authProvider);
-
-    // ✅ NUEVO: COMENTAMOS LA REDIRECCIÓN AUTOMÁTICA
-    // Antes, esto redirigía directamente al Home si el usuario estaba autenticado.
-    // Eso rompía el flujo de la biometría, porque saltaba el SplashScreen.
-    // Ahora, controlamos la navegación manualmente en _performLogin.
-    /*
-    WidgetsBinding.instance.addPostFrameCallback((_) {
-      if (authState.isAuthenticated) {
-        Navigator.pushReplacementNamed(context, AppRoutes.home);
-      }
-    });
-    */
 
     return CustomScaffold(
       child: Column(
@@ -147,7 +169,8 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 40.0),
-                      // Mostrar indicador de carga si está autenticando
+
+                      // Loader cuando está autenticando
                       if (authState.isLoading || _isLoading)
                         const Column(
                           children: [
@@ -159,7 +182,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                       else
                         Column(
                           children: [
-                            // Input de email
+                            // Campo correo
                             TextFormField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
@@ -177,7 +200,8 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                                   'Correo', 'ejemplo@dominio.com'),
                             ),
                             const SizedBox(height: 25.0),
-                            // Input de contraseña
+
+                            // Campo contraseña
                             TextFormField(
                               controller: _passwordController,
                               obscureText: true,
@@ -186,14 +210,16 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                                 if (value == null || value.isEmpty) {
                                   return ErrorStrings.requiredField;
                                 }
-                                if (value.length < 6)
+                                if (value.length < 6) {
                                   return "Mínimo 6 caracteres";
+                                }
                                 return null;
                               },
                               decoration:
                                   _inputDecoration('Contraseña', '••••••••'),
                             ),
                             const SizedBox(height: 25.0),
+
                             // Botón de ingresar
                             SizedBox(
                               width: double.infinity,
@@ -202,12 +228,34 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                                 child: const Text('Ingresar'),
                               ),
                             ),
+
+                            const SizedBox(height: 15.0),
+
+                            // 👇 Botón de huella (solo si está activada)
+                            if (_biometricEnabled)
+                              SizedBox(
+                                width: double.infinity,
+                                child: ElevatedButton.icon(
+                                  style: ElevatedButton.styleFrom(
+                                    backgroundColor: Themes.primary,
+                                  ),
+                                  onPressed: _performBiometricLogin,
+                                  icon: const Icon(Icons.fingerprint,
+                                      color: Colors.white),
+                                  label: const Text(
+                                    "Ingresar con huella",
+                                    style: TextStyle(color: Colors.white),
+                                  ),
+                                ),
+                              ),
                           ],
                         ),
+
                       const SizedBox(height: 25.0),
                       _buildDivider(),
                       const SizedBox(height: 25.0),
-                      // Botón de login con Google
+
+                      // Botón login Google
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
@@ -221,7 +269,6 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                                 final isNewUser =
                                     await authNotifier.signInWithGoogle();
 
-                                // Si es un usuario nuevo, mostramos un diálogo
                                 if (isNewUser && mounted) {
                                   showDialog(
                                     context: context,
@@ -246,11 +293,6 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                                     ),
                                   );
                                 }
-
-                                // ✅ NUEVO: Después de un login con Google, también redirigimos al SplashScreen
-                                if (mounted) {
-                                  Navigator.pushReplacementNamed(context, '/');
-                                }
                               } catch (e) {
                                 _showErrorFeedback(e.toString());
                               } finally {
@@ -263,6 +305,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                           ),
                         ],
                       ),
+
                       const SizedBox(height: 25.0),
                       _buildRegisterSection(),
                     ],
@@ -276,7 +319,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  /// Sección de divider entre login tradicional y social login
+  /// Divider entre login tradicional y social login
   Widget _buildDivider() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -301,7 +344,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  /// Redirige al usuario a la pantalla de registro
+  /// Sección para ir a registro
   Widget _buildRegisterSection() {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
@@ -325,7 +368,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     );
   }
 
-  /// Estilo de los inputs del formulario
+  /// Estilo inputs
   InputDecoration _inputDecoration(String label, String hint) {
     return InputDecoration(
       label: Text(label),

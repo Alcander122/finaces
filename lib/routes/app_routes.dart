@@ -10,6 +10,8 @@ import 'package:finances/presentations/screens/Pagos/pagos_screen.dart';
 import 'package:finances/presentations/screens/Profile/profile_screen.dart';
 import 'package:finances/presentations/screens/Portafolio/portafolio_screen.dart';
 import 'package:finances/presentations/screens/Auth/welcome_screen.dart';
+import 'package:finances/presentations/screens/auth/app_blocked_screen.dart';
+import 'package:finances/presentations/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:finances/presentations/screens/Home/home_screen.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
@@ -28,6 +30,8 @@ class AppRoutes {
   static const String portafolio = '/portafolio';
   static const String ahorro = '/ahorro';
   static const String banco = '/banco';
+   static const String splash = '/splash';
+   static const String appBlocked = '/app-blocked';
   static const String pagos = '/pagos';
   static const String agregarPago = '/agregar-pago';
   static const String editarPago = '/editar-pago';
@@ -42,6 +46,8 @@ class AppRoutes {
       welcome: (context) =>
           authState.user == null ? const WelcomeScreen() : const HomeScreen(),
       login: (context) => const LoginScreen(),
+      splash: (context) => const SplashScreen(), // ✅ ¡Agrega esta línea!
+      appBlocked: (context) => const AppBlockedScreen(), // ← ¡Agrega esta línea!
       home: (context) => const HomeScreen(),
       profile: (context) => const ProfileScreen(),
       register: (context) => const RegisterScreen(),
