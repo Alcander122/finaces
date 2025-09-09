@@ -8,11 +8,11 @@ import 'package:flutter/services.dart';
 
 /// Resultado detallado para la autenticación biométrica
 enum BiometricAuthStatus {
-  success, // autenticado correctamente
-  failed, // intento fallido (huella no coincide)
-  canceled, // el usuario canceló el prompt
-  notAvailable, // dispositivo sin biometría o usuario no tiene huellas registradas
-  error, // error inesperado/plataforma
+  success, // Autenticado correctamente
+  failed, // Intento fallido (huella no coincide)
+  canceled, // El usuario canceló el prompt
+  notAvailable, // Dispositivo sin biometría o sin huellas registradas
+  error, // Error inesperado/plataforma
 }
 
 /// Servicio para manejar la autenticación biométrica con persistencia por usuario.
@@ -26,13 +26,14 @@ class BiometricAuthService {
   final LocalAuthentication _localAuth = LocalAuthentication();
   final FlutterSecureStorage _storage = const FlutterSecureStorage();
 
-  /// Clave por usuario para guardar si tiene biometría activada
+  /// Genera una clave única por usuario para guardar si tiene biometría activada.
+  /// Si no hay usuario, usa 'no_user' para evitar errores.
   String _getUserKey() {
     final user = FirebaseAuth.instance.currentUser;
     return 'biometric_enabled_${user?.uid ?? 'no_user'}';
   }
 
-  /// ¿El dispositivo puede usar biometría?
+  /// Verifica si el dispositivo soporta biometría y tiene al menos un método disponible.
   Future<bool> isBiometricAvailable() async {
     try {
       final deviceSupported = await _localAuth.isDeviceSupported();
@@ -44,7 +45,7 @@ class BiometricAuthService {
     }
   }
 
-  /// ¿El usuario activó biometría en la app (persistida)?
+  /// Verifica si el usuario actual tiene activada la biometría en la app (persistido en storage).
   Future<bool> isBiometricEnabled() async {
     try {
       final enabled = await _storage.read(key: _getUserKey());
@@ -55,7 +56,7 @@ class BiometricAuthService {
     }
   }
 
-  /// Activa / desactiva biometría (persistencia por usuario)
+  /// Activa o desactiva la biometría para el usuario actual (persiste en storage).
   Future<void> setBiometricEnabled(bool enabled) async {
     try {
       await _storage.write(key: _getUserKey(), value: enabled.toString());
@@ -66,7 +67,7 @@ class BiometricAuthService {
     }
   }
 
-  /// Limpia la configuración de biometría del usuario actual
+  /// Limpia la configuración de biometría del usuario actual (útil al cerrar sesión).
   Future<void> clearBiometricSetting() async {
     try {
       await _storage.delete(key: _getUserKey());
@@ -77,19 +78,21 @@ class BiometricAuthService {
   }
 
   /// Método robusto que intenta autenticar y devuelve un estado detallado.
+  /// NO cierra sesión ni desactiva biometría aquí.
   Future<BiometricAuthStatus> authenticateWithStatus() async {
     try {
       final deviceSupported = await _localAuth.isDeviceSupported();
       final availableBiometrics = await _localAuth.getAvailableBiometrics();
       final enabled = await isBiometricEnabled();
 
+      // Si no está activada en la app, o no hay hardware/dispositivo, devolvemos notAvailable
       if (!deviceSupported || availableBiometrics.isEmpty || !enabled) {
         debugPrint(
             'Biometría no disponible / no registrada o no activada en app');
         return BiometricAuthStatus.notAvailable;
       }
 
-      // detener autenticaciones previas para evitar errores
+      // Detener autenticaciones previas para evitar errores
       try {
         await _localAuth.stopAuthentication();
       } catch (_) {}
@@ -109,7 +112,8 @@ class BiometricAuthService {
       } else {
         debugPrint(
             'Autenticación biométrica retornó false (cancelada/fallida)');
-        return BiometricAuthStatus.canceled;
+        return BiometricAuthStatus
+            .canceled; // O podría ser failed, pero local_auth no distingue
       }
     } on PlatformException catch (e) {
       debugPrint(
@@ -138,8 +142,9 @@ class BiometricAuthService {
     }
   }
 
-  /// Compatibilidad rápida: ahora recibe [BuildContext].
-  /// Retorna true si autenticado, false si falla o cancela (y además hace signOut).
+  /// Método de compatibilidad: autentica y retorna true/false.
+  /// ❗ IMPORTANTE: Este método NO desactiva biometría ni cierra sesión si falla.
+  /// Solo muestra un SnackBar y retorna false.
   Future<bool> authenticate(BuildContext context) async {
     final status = await authenticateWithStatus();
 
@@ -147,20 +152,17 @@ class BiometricAuthService {
       return true;
     }
 
-    // Mostrar un SnackBar si falla/cancela
+    // Mostrar mensaje de error/cancelación
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: const Text('Autenticación cancelada o fallida'),
+      const SnackBar(
+        content: Text('Autenticación cancelada o fallida'),
         backgroundColor: Colors.red,
         behavior: SnackBarBehavior.floating,
       ),
     );
 
-    // 🚨 Desactivar biometría automáticamente si cancela o falla
-    await setBiometricEnabled(false);
-
-    // También cerrar sesión
-    await FirebaseAuth.instance.signOut();
+    // ❌ NO desactivamos biometría aquí → el usuario solo canceló.
+    // ❌ NO cerramos sesión → el usuario sigue logueado.
 
     return false;
   }

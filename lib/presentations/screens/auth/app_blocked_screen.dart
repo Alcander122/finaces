@@ -17,6 +17,7 @@ class AppBlockedScreen extends ConsumerStatefulWidget {
 class _AppBlockedScreenState extends ConsumerState<AppBlockedScreen> {
   bool _isAuthenticating = false;
 
+  /// Intenta autenticar con biometría y maneja el resultado según el estado.
   Future<void> _authenticate() async {
     if (_isAuthenticating) return;
     setState(() => _isAuthenticating = true);
@@ -28,16 +29,19 @@ class _AppBlockedScreenState extends ConsumerState<AppBlockedScreen> {
 
     switch (status) {
       case BiometricAuthStatus.success:
-        // Huella correcta -> ir al Home
+        // ✅ Huella correcta → ir al Home
         if (mounted) {
           Navigator.pushNamedAndRemoveUntil(
-              context, AppRoutes.home, (r) => false);
+            context,
+            AppRoutes.home,
+            (r) => false,
+          );
         }
         break;
 
       case BiometricAuthStatus.canceled:
       case BiometricAuthStatus.failed:
-        // Solo mostrar mensaje y permitir reintento.
+        // ❗ Solo mostramos mensaje, NO desactivamos biometría, NO cerramos sesión.
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -49,20 +53,24 @@ class _AppBlockedScreenState extends ConsumerState<AppBlockedScreen> {
         break;
 
       case BiometricAuthStatus.notAvailable:
-        // Si no hay biometría disponible/enrolada -> mandar a login tradicional
+        // 🚨 Biometría realmente no disponible → pedimos login tradicional.
         if (mounted) {
           showDialog(
             context: context,
             builder: (_) => AlertDialog(
               title: const Text('Biometría no disponible'),
               content: const Text(
-                  'No se encontró biometría disponible. Ingresa con correo y contraseña.'),
+                'No se encontró biometría disponible. Ingresa con correo y contraseña.',
+              ),
               actions: [
                 TextButton(
                   onPressed: () {
-                    Navigator.of(context).pop();
+                    Navigator.pop(context);
                     Navigator.pushNamedAndRemoveUntil(
-                        context, AppRoutes.login, (r) => false);
+                      context,
+                      AppRoutes.login,
+                      (r) => false,
+                    );
                   },
                   child: const Text('Ir al login'),
                 ),
@@ -73,7 +81,7 @@ class _AppBlockedScreenState extends ConsumerState<AppBlockedScreen> {
         break;
 
       case BiometricAuthStatus.error:
-        // Error inesperado -> sugerir login o reintentar
+        // ❗ Error inesperado → sugerir reintentar.
         if (mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             const SnackBar(
@@ -86,11 +94,21 @@ class _AppBlockedScreenState extends ConsumerState<AppBlockedScreen> {
     }
   }
 
+  /// Cierra sesión completamente y va a Welcome.
   Future<void> _signOut() async {
-    await ref.read(authProvider.notifier).signOut();
+    final biometricService = BiometricAuthService();
+    await biometricService
+        .clearBiometricSetting(); // Limpia configuración biométrica
+    await ref
+        .read(authProvider.notifier)
+        .signOut(); // Cierra sesión en Firebase
+
     if (mounted) {
       Navigator.pushNamedAndRemoveUntil(
-          context, AppRoutes.welcome, (r) => false);
+        context,
+        AppRoutes.welcome,
+        (r) => false,
+      );
     }
   }
 
@@ -133,25 +151,38 @@ class _AppBlockedScreenState extends ConsumerState<AppBlockedScreen> {
                         height: 16,
                         width: 120,
                         child: Center(
-                            child: CircularProgressIndicator(
-                                color: Colors.white, strokeWidth: 2)))
-                    : const Text("Usar huella digital",
-                        style: TextStyle(color: Colors.white, fontSize: 16)),
+                          child: CircularProgressIndicator(
+                            color: Colors.white,
+                            strokeWidth: 2,
+                          ),
+                        ),
+                      )
+                    : const Text(
+                        "Usar huella digital",
+                        style: TextStyle(color: Colors.white, fontSize: 16),
+                      ),
               ),
               const SizedBox(height: 15),
               TextButton(
                 onPressed: () {
                   Navigator.pushNamedAndRemoveUntil(
-                      context, AppRoutes.login, (Route<dynamic> r) => false);
+                    context,
+                    AppRoutes.login,
+                    (Route<dynamic> r) => false,
+                  );
                 },
-                child: const Text("Ingresar con contraseña",
-                    style: TextStyle(fontSize: 16)),
+                child: const Text(
+                  "Ingresar con contraseña",
+                  style: TextStyle(fontSize: 16),
+                ),
               ),
               const SizedBox(height: 15),
               TextButton(
                 onPressed: _signOut,
-                child: const Text("Cerrar sesión",
-                    style: TextStyle(color: Colors.red, fontSize: 16)),
+                child: const Text(
+                  "Cerrar sesión",
+                  style: TextStyle(color: Colors.red, fontSize: 16),
+                ),
               ),
             ],
           ),

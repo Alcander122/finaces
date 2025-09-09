@@ -1,11 +1,11 @@
-import 'package:cloud_firestore/cloud_firestore.dart'; // Importa aquí
-import 'package:intl/intl.dart'; // Importa este paquete
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:intl/intl.dart';
 
 class Egreso {
   final String id;
   final String quincena;
   final DateTime fecha;
-  final DateTime fechaPago; // Nuevo campo
+  final DateTime fechaPago;
   final String categoria;
   final String concepto;
   final int valor;
@@ -16,7 +16,7 @@ class Egreso {
     required this.id,
     required this.quincena,
     required this.fecha,
-    required this.fechaPago, // Nuevo campo
+    required this.fechaPago,
     required this.categoria,
     required this.concepto,
     required this.valor,
@@ -29,8 +29,8 @@ class Egreso {
     return {
       'id': id,
       'quincena': quincena,
-      'fecha': Timestamp.fromDate(fecha), // Guardar como Timestamp
-      'fechaPago': Timestamp.fromDate(fechaPago), // Nuevo campo
+      'fecha': Timestamp.fromDate(fecha),
+      'fechaPago': Timestamp.fromDate(fechaPago),
       'categoria': categoria,
       'concepto': concepto,
       'valor': valor,
@@ -41,30 +41,42 @@ class Egreso {
 
   // Crear una instancia de Egreso a partir de un Map (Firestore)
   static Egreso fromMap(Map<String, dynamic> map) {
+    // ✅ Aseguramos que las fechas nunca sean nulas usando valores por defecto
     DateTime fecha;
-    DateTime fechaPago; // Nuevo campo
+    DateTime fechaPago;
 
+    // Procesar fecha
     if (map['fecha'] is Timestamp) {
-      // Ahora Timestamp está definido
-      // Convertir Timestamp a DateTime
       fecha = (map['fecha'] as Timestamp).toDate();
     } else if (map['fecha'] is String) {
-      // Parsear String a DateTime
       fecha = DateFormat('dd/MM/yyyy').parse(map['fecha']);
     } else {
-      fecha = DateTime.now();
+      fecha = DateTime.now(); // Valor por defecto si es nulo
     }
+
+    // Procesar fechaPago
     if (map['fechaPago'] is Timestamp) {
-      // Nuevo campo
       fechaPago = (map['fechaPago'] as Timestamp).toDate();
     } else if (map['fechaPago'] is String) {
       fechaPago = DateFormat('dd/MM/yyyy').parse(map['fechaPago']);
     } else {
-      // Fallback para datos legacy (usa mes/anio si existen)
+      // Fallback para datos legacy
       final mesMap = map['mes'] ?? 'Enero';
       final anioMap = map['anio'] ?? DateTime.now().year;
-      final meses = ['Enero', 'Febrero', 'Marzo', 'Abril', 'Mayo', 'Junio', 
-                    'Julio', 'Agosto', 'Septiembre', 'Octubre', 'Noviembre', 'Diciembre'];
+      final meses = [
+        'Enero',
+        'Febrero',
+        'Marzo',
+        'Abril',
+        'Mayo',
+        'Junio',
+        'Julio',
+        'Agosto',
+        'Septiembre',
+        'Octubre',
+        'Noviembre',
+        'Diciembre'
+      ];
       int mesNumero = meses.indexOf(mesMap) + 1;
       fechaPago = DateTime(anioMap, mesNumero);
     }
@@ -73,8 +85,7 @@ class Egreso {
       id: map['id'] ?? '',
       quincena: map['quincena'] ?? '',
       fecha: fecha,
-      fechaPago: fechaPago, // Nuevo campo
-
+      fechaPago: fechaPago,
       categoria: map['categoria'] ?? '',
       concepto: map['concepto'] ?? '',
       valor: map['valor'] is int ? map['valor'] : 0,
@@ -88,7 +99,7 @@ class Egreso {
     String? id,
     String? quincena,
     DateTime? fecha,
-    DateTime? fechaPago, // Nuevo campo
+    DateTime? fechaPago,
     String? categoria,
     String? concepto,
     int? valor,
@@ -99,7 +110,7 @@ class Egreso {
       id: id ?? this.id,
       quincena: quincena ?? this.quincena,
       fecha: fecha ?? this.fecha,
-      fechaPago: fechaPago ?? this.fechaPago, // Nuevo campo
+      fechaPago: fechaPago ?? this.fechaPago,
       categoria: categoria ?? this.categoria,
       concepto: concepto ?? this.concepto,
       valor: valor ?? this.valor,

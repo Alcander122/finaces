@@ -1,15 +1,14 @@
-import 'package:finances/core/data/models/egreso_model.dart';
-import 'package:finances/presentations/screens/Egreso/egreso_form.dart';
-import 'package:finances/presentations/widgets/app_bar_finances.dart';
+import 'package:finances/core/data/providers/egreso_provider.dart';
+import 'package:finances/presentations/screens/egreso/egreso_form.dart';
+import 'package:finances/presentations/screens/egreso/widgets/egreso_table.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:finances/core/data/providers/egreso_provider.dart';
+import 'package:finances/core/data/models/egreso_model.dart';
+import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:finances/presentations/screens/Egreso/widgets/egreso_chart.dart';
 import 'package:finances/presentations/widgets/column_selection_dialog.dart';
-import 'package:intl/intl.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:finances/presentations/theme/themes.dart';
-import 'package:finances/presentations/widgets/reusable_cardtable.dart';
 
 class EgresosScreen extends ConsumerStatefulWidget {
   const EgresosScreen({super.key});
@@ -19,8 +18,8 @@ class EgresosScreen extends ConsumerStatefulWidget {
 }
 
 class EgresosScreenState extends ConsumerState<EgresosScreen> {
-  /// Todas las columnas posibles que puede mostrar la tabla
-  final _allColumns = [
+  /// Lista de todas las columnas posibles
+  final List<String> _allColumns = [
     'Periodo',
     'Fecha Pago',
     'Categoría',
@@ -38,32 +37,7 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
     'Estado',
   };
 
-  /// Retorna el valor adecuado para cada celda en función de la columna
-  String _getEgresoCellValue(Egreso egreso, String column) {
-    switch (column) {
-      case 'Periodo':
-        return _formatearPeriodo(egreso.quincena);
-      case 'Fecha':
-        return DateFormat('dd/MM/yyyy').format(egreso.fecha);
-      case 'Fecha Pago':
-        return DateFormat('dd/MM/yyyy').format(egreso.fechaPago);
-      case 'Categoría':
-        return egreso.categoria;
-      case 'Concepto':
-        return egreso.concepto;
-      case 'Valor':
-        final formatter = NumberFormat('#,##0', 'es_CO');
-        return '\$${formatter.format(egreso.valor)}';
-      case 'Descripción':
-        return egreso.descripcion;
-      case 'Estado':
-        return egreso.estado;
-      default:
-        return '';
-    }
-  }
-
-  /// Muestra el diálogo para seleccionar las columnas visibles
+  /// Muestra el diálogo para seleccionar columnas [[5]]
   void _showColumnSelectionDialog() async {
     final selectedColumns = await showDialog<Set<String>>(
       context: context,
@@ -80,17 +54,36 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
     }
   }
 
-  /// Elimina un egreso del backend usando el proveedor
-  void _deleteEgreso(Egreso egreso) async {
+  /// Convierte una lista de Egreso a Map para usar con EgresoTable
+  List<Map<String, dynamic>> _convertEgresosToMap(List<Egreso> egresos) {
+    return egresos.map((egreso) {
+      return {
+        'id': egreso.id,
+        'quincena': egreso.quincena,
+        'fechaPago': egreso.fechaPago,
+        'categoria': egreso.categoria,
+        'concepto': egreso.concepto,
+        'valor': egreso.valor,
+        'descripcion': egreso.descripcion,
+        'estado': egreso.estado,
+      };
+    }).toList();
+  }
+
+  /// Elimina un egreso
+  void _deleteEgreso(String id) async {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
-      await ref.read(egresoServiceProvider).eliminarEgreso(user.uid, egreso.id);
+      await ref.read(egresoServiceProvider).eliminarEgreso(user.uid, id);
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Usuario no autenticado')),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Observa el estado de los egresos
     final egresosAsync = ref.watch(egresosProvider);
 
     return Scaffold(
@@ -100,148 +93,126 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
         showProfileIcon: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.view_column),
+            icon: const Icon(Icons.edit),
             color: Colors.white,
             onPressed: _showColumnSelectionDialog,
+            tooltip: 'Editar columnas visibles',
           ),
         ],
       ),
       body: egresosAsync.when(
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, stack) => Center(child: Text('Error: $error')),
-        data: (egresos) => SingleChildScrollView(
-          child: Padding(
-            padding: const EdgeInsets.all(16.0),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Gráfico de donut de egresos por categoría
-                EgresoChart(egresos: egresos),
-                const SizedBox(height: 16),
+        data: (egresos) {
+          debugPrint(
+              '✅ egresos_screen: Se recibieron ${egresos.length} egresos');
 
-                // Tarjeta contenedora de la tabla
-                ReusableCardTable(
-                  topColorStart: Themes.degradientDark,
-                  topColorEnd: Themes.degradientLight,
-                  child: SingleChildScrollView(
-                    scrollDirection: Axis.horizontal,
-                    child: DataTable(
-                      // ✅ Columnas con acciones al principio
-                      columns: [
-                        const DataColumn(
-                          label: Text(
-                            'Acciones',
-                            style: TextStyle(
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white,
-                            ),
+          // Convertimos los egresos a formato Map para usar con EgresoTable
+          final egresosMap = _convertEgresosToMap(egresos);
+
+          return SingleChildScrollView(
+            child: Padding(
+              padding: const EdgeInsets.all(16.0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  // Gráfico
+                  EgresoChart(egresos: egresos),
+                  const SizedBox(height: 16),
+
+                  // Mensaje si no hay datos
+                  if (egresos.isEmpty)
+                    const Center(
+                      child: Padding(
+                        padding: EdgeInsets.all(32),
+                        child: Text(
+                          'No hay egresos registrados aún.',
+                          style: TextStyle(
+                            fontSize: 16,
+                            color: Colors.white70,
+                            fontStyle: FontStyle.italic,
                           ),
                         ),
-                        // Columnas seleccionadas por el usuario
-                        ..._allColumns.where(_visibleColumns.contains).map(
-                              (column) => DataColumn(
-                                label: Text(
-                                  column,
-                                  style: const TextStyle(
-                                    fontWeight: FontWeight.bold,
-                                    color: Colors.white,
-                                  ),
-                                ),
-                              ),
-                            ),
-                      ],
+                      ),
+                    )
+                  else
+                    // ✅ Usamos el componente EgresoTable corregido
+                    // que incluye paginación y scroll horizontal [[3]]
+                    EgresoTable(
+                      egresos: egresosMap,
+                      onEdit: (egresoMap) {
+                        // ✅ Conversión segura con manejo de valores nulos
+                        // Extraemos y convertimos las fechas con valores por defecto si son nulas
+                        final fechaPago = egresoMap['fechaPago'] is DateTime
+                            ? egresoMap['fechaPago'] as DateTime
+                            : DateTime.now();
 
-                      // ✅ Filas de datos con acciones primero
-                      rows: egresos.map((egreso) {
-                        return DataRow(
-                          cells: [
-                            // ✅ Primera celda: acciones
-                            DataCell(
-                              Row(
-                                children: [
-                                  IconButton(
-                                    icon: const Icon(Icons.edit,
-                                        size: 20, color: Colors.blue),
-                                    onPressed: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (context) =>
-                                            EgresoForm(egreso: egreso),
-                                      ),
-                                    ),
-                                  ),
-                                  IconButton(
-                                    icon: const Icon(Icons.delete,
-                                        size: 20, color: Colors.red),
-                                    onPressed: () => _deleteEgreso(egreso),
-                                  ),
-                                ],
-                              ),
-                            ),
+                        final fecha = egresoMap['fecha'] is DateTime
+                            ? egresoMap['fecha'] as DateTime
+                            : DateTime.now();
 
-                            // ✅ Celdas de datos en orden de columnas visibles
-                            ..._allColumns.where(_visibleColumns.contains).map(
-                                  (column) => DataCell(
-                                    Text(_getEgresoCellValue(egreso, column)),
-                                  ),
-                                ),
-                          ],
+                        // ✅ Conversión segura de todos los campos con valores por defecto
+                        final egreso = Egreso(
+                          id: egresoMap['id']?.toString() ?? '',
+                          quincena: egresoMap['quincena']?.toString() ?? '',
+                          fechaPago: fechaPago,
+                          fecha: fecha,
+                          categoria: egresoMap['categoria']?.toString() ?? '',
+                          concepto: egresoMap['concepto']?.toString() ?? '',
+                          valor: egresoMap['valor'] is int
+                              ? egresoMap['valor'] as int
+                              : int.tryParse(
+                                      egresoMap['valor']?.toString() ?? '0') ??
+                                  0,
+                          descripcion:
+                              egresoMap['descripcion']?.toString() ?? '',
+                          estado: egresoMap['estado']?.toString() ?? '',
                         );
-                      }).toList(),
-                    ),
-                  ),
-                ),
 
-                const SizedBox(height: 24),
-
-                // Botón para agregar un nuevo egreso
-                Center(
-                  child: ElevatedButton.icon(
-                    icon: const Icon(Icons.add, color: Colors.white),
-                    label: const Text(
-                      'Nuevo Egreso',
-                      style: TextStyle(color: Colors.white),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EgresoForm(egreso: egreso),
+                          ),
+                        );
+                      },
+                      onDelete: _deleteEgreso,
+                      camposVisibles: _visibleColumns.toList(),
+                      userID: FirebaseAuth.instance.currentUser?.uid ?? '',
                     ),
-                    onPressed: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => const EgresoForm(),
+
+                  const SizedBox(height: 24),
+
+                  // Botón nuevo egreso
+                  Center(
+                    child: ElevatedButton.icon(
+                      icon: const Icon(Icons.add, color: Colors.white),
+                      label: const Text(
+                        'Nuevo Egreso',
+                        style: TextStyle(color: Colors.white),
+                      ),
+                      onPressed: () => Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EgresoForm(egreso: null),
+                        ),
+                      ),
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Themes.primary,
+                        padding: const EdgeInsets.symmetric(
+                            vertical: 16, horizontal: 20),
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12)),
+                        elevation: 4,
                       ),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Themes.primary,
-                      padding: const EdgeInsets.symmetric(
-                          vertical: 16, horizontal: 20),
-                      shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      elevation: 4,
-                    ),
                   ),
-                ),
-
-                const SizedBox(height: 10),
-              ],
+                ],
+              ),
             ),
-          ),
-        ),
+          );
+        },
       ),
     );
-  }
-
-  /// Traduce los valores de la columna 'Periodo' a texto más descriptivo
-  String _formatearPeriodo(dynamic valor) {
-    switch (valor) {
-      case 'Primera':
-        return 'Primera Quincena';
-      case 'Segunda':
-        return 'Segunda Quincena';
-      case 'Diario':
-        return 'Diario';
-      case 'Mensual':
-        return 'Mensual';
-      default:
-        return valor?.toString() ?? '';
-    }
   }
 }
