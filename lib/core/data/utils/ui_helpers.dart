@@ -54,6 +54,12 @@ class UIHelpers {
     Color backgroundColor = Colors.black,
     Duration duration = const Duration(seconds: 2),
   }) {
+    // ⚠️ Primero: verificar que el widget no esté desmontado
+    if (!context.mounted) {
+      debugPrint("⚠️ Context desmontado, no se puede mostrar SnackBar.");
+      return;
+    }
+
     // ✅ Intentamos obtener el ScaffoldMessenger asociado al contexto
     final messenger = ScaffoldMessenger.maybeOf(context);
 
@@ -67,6 +73,7 @@ class UIHelpers {
     // ✅ Limpia los SnackBars previos antes de mostrar uno nuevo
     messenger.clearSnackBars();
 
+    // ✅ Mostrar SnackBar de forma segura
     messenger.showSnackBar(
       SnackBar(
         content: Text(message),
@@ -84,6 +91,7 @@ class UIHelpers {
     BuildContext context, {
     String message = 'Cargando...',
   }) {
+    if (!context.mounted) return; // ⚠️ Evita mostrar si el widget ya no existe
     showDialog(
       context: context,
       barrierDismissible: false, // ❌ No se puede cerrar tocando fuera
@@ -101,6 +109,7 @@ class UIHelpers {
 
   /// Cierra el diálogo de carga mostrado con [showLoadingDialog].
   static void hideLoadingDialog(BuildContext context) {
+    if (!context.mounted) return; // ⚠️ Evita cerrar si ya no existe
     if (Navigator.of(context, rootNavigator: true).canPop()) {
       Navigator.of(context, rootNavigator: true).pop();
     }

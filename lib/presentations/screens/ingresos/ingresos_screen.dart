@@ -1,4 +1,3 @@
-// ingresos_screen.dart
 import 'package:finances/core/data/models/ingreso.model.dart';
 import 'package:finances/presentations/screens/ingresos/Ingreso_form.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
@@ -96,7 +95,7 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
 
               const SizedBox(height: 12),
 
-// ⬇️ ahora el paginador está por fuera de la tarjeta
+              // paginador
               PaginatorWidget(
                 currentPage: _currentPage,
                 totalPages: totalPages,
@@ -155,7 +154,9 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
     });
   }
 
-  Future<void> _guardarIngreso(Ingreso ingreso) async {
+  /// 🔹 Guardar o actualizar ingreso
+  Future<void> _guardarIngreso(Ingreso ingreso,
+      {required BuildContext parentContext}) async {
     final authState = ref.read(authProvider);
     if (authState.user == null) return;
 
@@ -168,19 +169,33 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
       }
 
       await _cargarIngresos();
-      if (mounted) Navigator.pop(context);
 
-      UIHelpers.showSuccessSnackBarNew(
-        context: context,
-        message: _editId == null
-            ? 'Ingreso creado correctamente'
-            : 'Ingreso actualizado correctamente',
-      );
+      if (mounted) {
+        Navigator.pop(context); // ✅ cierra el diálogo
+
+        // ✅ mostramos SnackBar en el siguiente frame
+        Future.delayed(Duration.zero, () {
+          if (mounted) {
+            UIHelpers.showSuccessSnackBarNew(
+              context: parentContext,
+              message: _editId == null
+                  ? 'Ingreso creado correctamente'
+                  : 'Ingreso actualizado correctamente',
+            );
+          }
+        });
+      }
     } catch (e) {
-      UIHelpers.showErrorSnackBar(
-        context: context,
-        message: 'Error al guardar el ingreso: $e',
-      );
+      if (mounted) {
+        Future.delayed(Duration.zero, () {
+          if (mounted) {
+            UIHelpers.showErrorSnackBar(
+              context: parentContext,
+              message: 'Error al guardar el ingreso: $e',
+            );
+          }
+        });
+      }
     }
   }
 
@@ -196,17 +211,19 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
 
     showDialog(
       context: context,
-      builder: (context) => AlertDialog(
+      builder: (dialogContext) => AlertDialog(
         title: Text(_editId == null ? 'Nuevo Ingreso' : 'Editar Ingreso'),
         content: IngresoFrom(
           ingreso: ingreso,
-          onSave: (ing) => _guardarIngreso(ing),
-          onCancel: () => Navigator.pop(context),
+          // 🔹 pasamos el contexto principal
+          onSave: (ing) => _guardarIngreso(ing, parentContext: context),
+          onCancel: () => Navigator.pop(dialogContext),
         ),
       ),
     );
   }
 
+  /// 🔹 Eliminar ingreso
   void _eliminarIngreso(String id) async {
     final authState = ref.read(authProvider);
     if (authState.user == null) return;
@@ -214,15 +231,28 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
     try {
       await _ingresosService.eliminarIngreso(authState.user!.uid, id);
       await _cargarIngresos();
-      UIHelpers.showSuccessSnackBarNew(
-        context: context,
-        message: 'Ingreso eliminado correctamente',
-      );
+
+      if (mounted) {
+        Future.delayed(Duration.zero, () {
+          if (mounted) {
+            UIHelpers.showSuccessSnackBarNew(
+              context: context,
+              message: 'Ingreso eliminado correctamente',
+            );
+          }
+        });
+      }
     } catch (e) {
-      UIHelpers.showErrorSnackBar(
-        context: context,
-        message: 'Error al eliminar el ingreso: $e',
-      );
+      if (mounted) {
+        Future.delayed(Duration.zero, () {
+          if (mounted) {
+            UIHelpers.showErrorSnackBar(
+              context: context,
+              message: 'Error al eliminar el ingreso: $e',
+            );
+          }
+        });
+      }
     }
   }
 

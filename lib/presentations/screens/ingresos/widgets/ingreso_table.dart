@@ -42,12 +42,15 @@ class IngresoTable extends StatelessWidget {
     );
 
     // 🔹 Calcular totales
-    final totalGlobal = ingresos.fold<double>(
+    ingresos.fold<double>(
       0,
+      // ignore: avoid_types_as_parameter_names
       (sum, ingreso) => sum + (ingreso['valor']?.toDouble() ?? 0),
     );
+    // ignore: unused_local_variable
     final totalPagina = paginatedIngresos.fold<double>(
       0,
+      // ignore: avoid_types_as_parameter_names
       (sum, ingreso) => sum + (ingreso['valor']?.toDouble() ?? 0),
     );
 
