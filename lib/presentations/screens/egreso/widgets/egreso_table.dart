@@ -1,23 +1,18 @@
 import 'dart:math';
-import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/core/data/utils/ui_helpers.dart';
 
-/// 📊 Tabla dinámica de egresos con diseño profesional y manejo de desbordamiento
-/// - Soluciona el problema de desbordamiento horizontal
-/// - Mantiene el diseño con gradiente azul oscuro
-/// - Alineación de datos a la derecha
-/// - Bordes finos entre filas
-/// - Fondo alternado blanco/gris claro
-/// - Iconos de acción con colores específicos
+/// 🔹 Widget principal de la tabla de egresos
 class EgresoTable extends StatefulWidget {
-  final List<Map<String, dynamic>> egresos; // lista de egresos como Map
-  final void Function(Map<String, dynamic>) onEdit; // acción al editar
-  final void Function(String) onDelete; // acción al eliminar
-  final List<String> camposVisibles; // columnas a mostrar
-  final String userID; // id del usuario autenticado
+  final List<Map<String, dynamic>> egresos; // Lista de egresos desde Firebase
+  final void Function(Map<String, dynamic>)
+      onEdit; // Acción al editar un egreso
+  final void Function(String) onDelete; // Acción al eliminar un egreso
+  final List<String> camposVisibles; // Campos configurables para mostrar
+  final String userID; // ID del usuario logueado
 
   const EgresoTable({
     super.key,
@@ -29,250 +24,171 @@ class EgresoTable extends StatefulWidget {
   });
 
   @override
-  EgresoTableState createState() => EgresoTableState();
+  State<EgresoTable> createState() => _EgresoTableState();
 }
 
-class EgresoTableState extends State<EgresoTable> {
-  int _rowsPerPage = 5; // número de filas por página
-  int _currentPage = 0; // página actual
-  final List<int> _rowsPerPageOptions = [5, 10, 20, 50]; // opciones de paginado
-
-  /// ✅ Si cambia la cantidad de egresos, reiniciamos a la primera página
-  @override
-  void didUpdateWidget(covariant EgresoTable oldWidget) {
-    super.didUpdateWidget(oldWidget);
-    if (widget.egresos.length != oldWidget.egresos.length) {
-      setState(() {
-        _currentPage = 0;
-      });
-    }
-  }
+class _EgresoTableState extends State<EgresoTable> {
+  int _currentPage = 0; // Página actual
+  int _itemsPerPage = 5; // Número de items por página
 
   @override
   Widget build(BuildContext context) {
-    // 🚨 Si no hay egresos, mostramos un mensaje
     if (widget.egresos.isEmpty) {
       return const Center(child: Text('No hay egresos disponibles'));
     }
 
-    // Normalizamos los campos visibles
-    final camposMostrar = widget.camposVisibles;
+    // 🔹 Calcular paginación
+    final totalItems = widget.egresos.length;
+    final totalPages = (totalItems / _itemsPerPage).ceil();
+    final startIndex = _currentPage * _itemsPerPage;
+    final endIndex = min(startIndex + _itemsPerPage, totalItems);
+    final paginatedItems = widget.egresos.sublist(startIndex, endIndex);
 
-    // 📌 Paginación: calculamos los items de la página actual
-    final total = widget.egresos.length;
-    final totalPages = max(1, (total / _rowsPerPage).ceil());
+    // 🔹 Campos disponibles (del primer egreso)
+    final Set<String> camposDisponibles = widget.egresos.first.keys.toSet();
 
-    // aseguramos que la página no se pase del límite
-    final safePage = _currentPage >= totalPages ? 0 : _currentPage;
-
-    final start = safePage * _rowsPerPage;
-    final end = min(start + _rowsPerPage, total);
-    final pageItems = widget.egresos.sublist(start, end);
-
-    // 🚨 Si por alguna razón la página está vacía
-    if (pageItems.isEmpty) {
-      return const Center(
-          child: Text("No hay egresos para mostrar en esta página"));
-    }
+    // 🔹 Filtrar solo los campos visibles configurados
+    final List<String> camposMostrar = widget.camposVisibles
+        .where((campo) => camposDisponibles.contains(campo))
+        .toList();
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.stretch,
       children: [
-        // ✅ Envolver la tabla en un Card para bordes redondeados y sombra
+        // 🔹 Tarjeta que contiene la tabla
         Card(
           elevation: 4,
           shape: RoundedRectangleBorder(
             borderRadius: BorderRadius.circular(12),
           ),
-          margin: EdgeInsets.zero,
-          child: Column(
-            children: [
-              // ✅ Solución principal: Usar LayoutBuilder para calcular el ancho máximo disponible
-              LayoutBuilder(
-                builder: (context, constraints) {
-                  return SizedBox(
-                    width: constraints.maxWidth, // Forzamos el ancho máximo
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: ConstrainedBox(
-                        constraints: BoxConstraints(
-                          minWidth: constraints.maxWidth,
-                          maxWidth: double.infinity,
+          clipBehavior: Clip.antiAlias,
+          child: SingleChildScrollView(
+            scrollDirection:
+                Axis.horizontal, // Scroll horizontal para muchas columnas
+            child: Column(
+              children: [
+                // 🔹 Encabezado
+                Container(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      colors: [Themes.degradientDark, Themes.degradientLight],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
+                    ),
+                  ),
+                  padding:
+                      const EdgeInsets.symmetric(vertical: 14, horizontal: 12),
+                  child: Row(
+                    children: [
+                      // Columna de acciones
+                      const SizedBox(
+                        width: 100,
+                        child: Center(
+                          child: Text(
+                            "Acciones",
+                            style: TextStyle(
+                              fontWeight: FontWeight.bold,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
-                        child: _buildDataTable(camposMostrar, pageItems),
                       ),
-                    ),
-                  );
-                },
-              ),
-
-              // ✅ Línea divisoria sutil debajo de la tabla
-              Container(
-                height: 1,
-                color: Colors.grey.shade300,
-              ),
-            ],
-          ),
-        ),
-
-        const SizedBox(height: 12),
-
-        // 📌 Paginador: info + controles de navegación RESPONSIVO
-        _buildResponsivePagination(total, totalPages, safePage, start, end),
-      ],
-    );
-  }
-
-  /// Construye el DataTable con el diseño profesional
-  Widget _buildDataTable(
-    List<String> camposMostrar,
-    List<Map<String, dynamic>> pageItems,
-  ) {
-    return DataTable(
-      // ✅ Encabezado con gradiente azul oscuro
-      headingRowColor: WidgetStateProperty.all(Themes.degradientDark),
-      // ✅ Altura de fila de encabezado
-      headingRowHeight: 45,
-      // ✅ Altura de fila de datos
-      dataRowMinHeight: 50,
-      dataRowMaxHeight: 50, // o null para sin límite máximo
-      // ✅ Eliminar el divisor por defecto
-      dividerThickness: 0,
-      // ✅ Bordes internos finos
-      border: TableBorder(
-        horizontalInside: BorderSide(width: 0.5, color: Colors.grey.shade300),
-        verticalInside: BorderSide(width: 0.5, color: Colors.grey.shade300),
-      ),
-      columns: [
-        // ✅ Columna fija de Acciones
-        DataColumn(
-          label: Container(
-            padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-            child: const Text(
-              'Acciones',
-              style: TextStyle(
-                color: Colors.white,
-                fontWeight: FontWeight.bold,
-              ),
-              textAlign: TextAlign.center,
-            ),
-          ),
-        ),
-
-        // ✅ Columnas dinámicas
-        for (var campo in camposMostrar)
-          DataColumn(
-            label: Container(
-              padding: const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
-              child: Text(
-                _getHeaderLabel(campo),
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontWeight: FontWeight.bold,
+                      // 🔹 Campos dinámicos
+                      for (var campo in camposMostrar)
+                        SizedBox(
+                          width: 120,
+                          child: Center(
+                            child: Text(
+                              _formatearNombreCampo(campo),
+                              style: const TextStyle(
+                                fontWeight: FontWeight.bold,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                    ],
+                  ),
                 ),
-                textAlign: TextAlign.right,
-              ),
-            ),
-          ),
-      ],
 
-      // ✅ Filas de la tabla (paginadas)
-      rows: pageItems.asMap().entries.map((entry) {
-        final index = entry.key;
-        final egreso = entry.value;
-        final isEven = index % 2 == 0;
+                // 🔹 Filas dinámicas de egresos
+                for (var egreso in paginatedItems) ...[
+                  Container(
+                    color: Colors.white,
+                    padding:
+                        const EdgeInsets.symmetric(vertical: 10, horizontal: 8),
+                    child: Row(
+                      children: [
+                        // Columna de acciones
+                        SizedBox(
+                          width: 100,
+                          child: Row(
+                            mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                            children: [
+                              Tooltip(
+                                message: "Actualizar registro",
+                                child: IconButton(
+                                  icon: const Icon(Icons.edit,
+                                      color: Themes.primary, size: 18),
+                                  onPressed: () => widget.onEdit(egreso),
+                                ),
+                              ),
+                              Tooltip(
+                                message: "Eliminar registro",
+                                child: IconButton(
+                                  icon: const Icon(Icons.delete,
+                                      color: Themes.red, size: 18),
+                                  onPressed: () => _confirmarEliminar(
+                                      context, egreso['id'].toString()),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
 
-        return DataRow(
-          // ✅ Fondo alternado blanco/gris claro
-          color: WidgetStateProperty.resolveWith<Color?>(
-            (Set<WidgetState> states) {
-              return isEven ? Colors.white : Colors.grey[100];
-            },
-          ),
-          cells: [
-            // Columna de acciones
-            DataCell(
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  IconButton(
-                    icon: Icon(Icons.edit, color: Themes.primary, size: 18),
-                    onPressed: () => widget.onEdit(egreso),
-                    tooltip: 'Editar',
-                  ),
-                  IconButton(
-                    icon: Icon(Icons.delete,
-                        color: Colors.red.shade900, size: 18),
-                    onPressed: () => _confirmarEliminar(
-                      context,
-                      egreso['id'].toString(),
+                        // 🔹 Celdas dinámicas
+                        for (var campo in camposMostrar)
+                          SizedBox(
+                            width: 120,
+                            child: Center(
+                              child: _formatearCelda(campo, egreso[campo]),
+                            ),
+                          ),
+                      ],
                     ),
-                    tooltip: 'Eliminar',
                   ),
+                  const Divider(height: 1, thickness: 0.6, color: Colors.grey),
                 ],
-              ),
+              ],
             ),
+          ),
+        ),
 
-            // Celdas dinámicas
-            for (var campo in camposMostrar)
-              DataCell(
-                _buildCellContent(egreso, campo),
-              ),
-          ],
-        );
-      }).toList(),
+        const SizedBox(height: 8),
+
+        // 🔹 Paginador SIEMPRE visible
+        PaginationControl(
+          currentPage: _currentPage,
+          totalPages: totalPages,
+          itemsPerPage: _itemsPerPage,
+          totalItems: totalItems,
+          onPageChanged: (page) {
+            setState(() {
+              _currentPage = page;
+            });
+          },
+          onItemsPerPageChanged: (newItemsPerPage) {
+            setState(() {
+              _itemsPerPage = newItemsPerPage;
+              _currentPage = 0;
+            });
+          },
+        ),
+      ],
     );
   }
 
-  /// Construye el contenido de una celda con manejo de desbordamiento
-  Widget _buildCellContent(Map<String, dynamic> egreso, String campo) {
-    final cellText = _getCellValueFromMap(egreso, campo);
-
-    // Para columnas específicas que necesitan manejo especial
-    switch (campo) {
-      case 'fechaPago':
-      case 'fecha':
-        return Text(
-          cellText,
-          textAlign: TextAlign.right,
-          style: const TextStyle(color: Colors.black87),
-        );
-      case 'valor':
-        return Text(
-          cellText,
-          textAlign: TextAlign.right,
-          style: const TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.bold,
-          ),
-        );
-      default:
-        return Text(
-          cellText,
-          textAlign: TextAlign.right,
-          style: const TextStyle(color: Colors.black87),
-        );
-    }
-  }
-
-  /// Obtiene el texto adecuado para el encabezado de la columna
-  String _getHeaderLabel(String campo) {
-    switch (campo) {
-      case 'fechaPago':
-        return 'Fecha de Pago';
-      case 'quincena':
-        return 'Periodo';
-      case 'categoria':
-        return 'Categoría';
-      case 'descripcion':
-        return 'Descripción';
-      default:
-        // Convierte el nombre del campo a formato legible (ej: "valor" -> "Valor")
-        return campo[0].toUpperCase() + campo.substring(1);
-    }
-  }
-
-  /// 📌 Diálogo de confirmación para eliminar egreso
+  /// 🔹 Confirmación antes de eliminar
   void _confirmarEliminar(BuildContext context, String id) {
     showDialog(
       context: context,
@@ -298,57 +214,40 @@ class EgresoTableState extends State<EgresoTable> {
     );
   }
 
-  /// 📌 Obtiene el valor que se mostrará en la celda según la columna
-  String _getCellValueFromMap(Map<String, dynamic> egreso, String column) {
-    final formatoFecha = DateFormat('dd/MM/yyyy');
+  /// 🔹 Formatea los valores de las celdas según el tipo de campo
+  Widget _formatearCelda(String campo, dynamic valor) {
+    if (campo == 'fechaPago' && valor != null) {
+      try {
+        DateTime fecha;
 
-    switch (column) {
-      case 'Periodo':
-      case 'quincena':
-        return _formatearPeriodo(egreso['quincena']);
-      case 'Fecha':
-      case 'fecha':
-        final v = egreso['fecha'];
-        // ✅ Manejo de valores nulos
-        if (v == null) return 'N/A';
-        if (v is Timestamp) return formatoFecha.format(v.toDate());
-        if (v is DateTime) return formatoFecha.format(v);
-        return v?.toString() ?? 'N/A';
-      case 'Fecha Pago':
-      case 'fechaPago':
-        final v = egreso['fechaPago'];
-        // ✅ Manejo de valores nulos
-        if (v == null) return 'N/A';
-        if (v is Timestamp) return formatoFecha.format(v.toDate());
-        if (v is DateTime) return formatoFecha.format(v);
-        return v?.toString() ?? 'N/A';
-      case 'Categoría':
-      case 'categoria':
-        return egreso['categoria']?.toString() ?? '';
-      case 'Concepto':
-      case 'concepto':
-        return egreso['concepto']?.toString() ?? '';
-      case 'Valor':
-      case 'valor':
-        final v = egreso['valor'];
-        if (v == null) return '';
-        if (v is num) return UIHelpers.formatCurrency(v.toDouble());
-        final parsed = num.tryParse(v.toString());
-        return parsed != null
-            ? UIHelpers.formatCurrency(parsed.toDouble())
-            : v.toString();
-      case 'Descripción':
-      case 'descripcion':
-        return egreso['descripcion']?.toString() ?? '';
-      case 'Estado':
-      case 'estado':
-        return egreso['estado']?.toString() ?? '';
-      default:
-        return egreso[column]?.toString() ?? '';
+        if (valor is Timestamp) {
+          fecha = valor.toDate();
+        } else if (valor is DateTime) {
+          fecha = valor;
+        } else if (valor is String) {
+          fecha = DateTime.parse(valor);
+        } else {
+          return Text(valor.toString());
+        }
+
+        return Text(DateFormat('dd/MM/yyyy').format(fecha));
+      } catch (e) {
+        return Text(valor.toString());
+      }
+    } else if (campo == 'valor' && valor != null) {
+      return Text(UIHelpers.formatCurrency(valor.toDouble()));
+    } else if (campo == 'quincena') {
+      // ✅ Ajuste: evitar salto de línea con FittedBox
+      return FittedBox(
+        fit: BoxFit.scaleDown,
+        child: Text(_formatearPeriodo(valor)),
+      );
+    } else {
+      return Text(valor?.toString() ?? '');
     }
   }
 
-  /// 📌 Traducción del campo quincena
+  /// 🔹 Traducción de valores de quincena
   String _formatearPeriodo(dynamic valor) {
     switch (valor) {
       case 'Primera':
@@ -364,168 +263,100 @@ class EgresoTableState extends State<EgresoTable> {
     }
   }
 
-  /// Construye un paginador responsivo que se adapta al tamaño de la pantalla
-  Widget _buildResponsivePagination(
-    int total,
-    int totalPages,
-    int safePage,
-    int start,
-    int end,
-  ) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        // Determinamos si hay suficiente espacio para mostrar todos los controles
-        final bool hasEnoughSpace = constraints.maxWidth > 500;
+  /// 🔹 Formatea el nombre de los campos para mostrarlos en el encabezado
+  String _formatearNombreCampo(String campo) {
+    switch (campo) {
+      case 'fechaPago':
+        return 'Fecha Pago';
+      case 'quincena':
+        return 'Periodo';
+      case 'valor':
+        return 'Valor';
+      case 'categoria':
+        return 'Categoría';
+      case 'concepto':
+        return 'Concepto';
+      case 'descripcion':
+        return 'Descripción';
+      case 'estado':
+        return 'Estado';
+      default:
+        return campo[0].toUpperCase() + campo.substring(1);
+    }
+  }
+}
 
-        return Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+/// 🔹 Componente de control de paginación
+class PaginationControl extends StatelessWidget {
+  final int currentPage;
+  final int totalPages;
+  final int itemsPerPage;
+  final int totalItems;
+  final ValueChanged<int> onPageChanged;
+  final ValueChanged<int> onItemsPerPageChanged;
+
+  const PaginationControl({
+    super.key,
+    required this.currentPage,
+    required this.totalPages,
+    required this.itemsPerPage,
+    required this.totalItems,
+    required this.onPageChanged,
+    required this.onItemsPerPageChanged,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final startItem = currentPage * itemsPerPage + 1;
+    final endItem = min(startItem + itemsPerPage - 1, totalItems);
+
+    return Container(
+      padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 8),
+      alignment: Alignment.center,
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // Texto de rango mostrado (siempre visible)
-            Expanded(
-              flex: 2,
-              child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 8.0),
-                child: Text(
-                  'Mostrando ${start + 1} - $end de $total',
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ),
+            Text(
+              'Mostrando $startItem - $endItem de $totalItems',
+              style: const TextStyle(fontSize: 13),
             ),
-
-            // Controles de paginación
-            Expanded(
-              flex: 3,
-              child: hasEnoughSpace
-                  ? _buildFullPaginationControls(totalPages, safePage)
-                  : _buildCompactPaginationControls(totalPages, safePage),
+            const SizedBox(width: 8),
+            DropdownButton<int>(
+              value: itemsPerPage,
+              items: [5, 10, 25, 50].map((int value) {
+                return DropdownMenuItem<int>(
+                  value: value,
+                  child: Text(value.toString()),
+                );
+              }).toList(),
+              onChanged: (int? newValue) {
+                if (newValue != null) {
+                  onItemsPerPageChanged(newValue);
+                }
+              },
+              underline: Container(),
+            ),
+            const SizedBox(width: 16),
+            IconButton(
+              icon: const Icon(Icons.chevron_left, size: 18),
+              onPressed:
+                  currentPage > 0 ? () => onPageChanged(currentPage - 1) : null,
+            ),
+            Text(
+              '${currentPage + 1}/$totalPages',
+              style: const TextStyle(fontSize: 10),
+            ),
+            IconButton(
+              icon: const Icon(Icons.chevron_right, size: 18),
+              onPressed: currentPage < totalPages - 1
+                  ? () => onPageChanged(currentPage + 1)
+                  : null,
             ),
           ],
-        );
-      },
-    );
-  }
-
-  /// Construye los controles de paginación completos (para pantallas grandes)
-  Widget _buildFullPaginationControls(int totalPages, int safePage) {
-    return Row(
-      mainAxisSize: MainAxisSize.min,
-      children: [
-        // Selector de filas por página
-        DropdownButton<int>(
-          value: _rowsPerPage,
-          items: _rowsPerPageOptions
-              .map((r) => DropdownMenuItem(
-                    value: r,
-                    child: Text('$r filas'),
-                  ))
-              .toList(),
-          onChanged: (value) {
-            if (value == null) return;
-            setState(() {
-              _rowsPerPage = value;
-              _currentPage = 0; // reset a la primera página
-            });
-          },
         ),
-
-        // Primera página
-        IconButton(
-          icon: const Icon(Icons.first_page),
-          onPressed:
-              safePage > 0 ? () => setState(() => _currentPage = 0) : null,
-        ),
-
-        // Página anterior
-        IconButton(
-          icon: const Icon(Icons.chevron_left),
-          onPressed: safePage > 0
-              ? () => setState(() => _currentPage = max(0, safePage - 1))
-              : null,
-        ),
-
-        // Indicador de página actual
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 8.0),
-          child: Text(
-            'Página ${_currentPage + 1} de $totalPages',
-            style: const TextStyle(fontWeight: FontWeight.bold),
-          ),
-        ),
-
-        // Página siguiente
-        IconButton(
-          icon: const Icon(Icons.chevron_right),
-          onPressed: safePage < totalPages - 1
-              ? () => setState(
-                  () => _currentPage = min(totalPages - 1, safePage + 1))
-              : null,
-        ),
-
-        // Última página
-        IconButton(
-          icon: const Icon(Icons.last_page),
-          onPressed: safePage < totalPages - 1
-              ? () => setState(() => _currentPage = totalPages - 1)
-              : null,
-        ),
-      ],
-    );
-  }
-
-  /// Construye los controles de paginación compactos (para pantallas pequeñas)
-  Widget _buildCompactPaginationControls(int totalPages, int safePage) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          // Selector de filas por página (solo el número)
-          DropdownButton<int>(
-            value: _rowsPerPage,
-            items: _rowsPerPageOptions
-                .map((r) => DropdownMenuItem(
-                      value: r,
-                      child: Text(r.toString()),
-                    ))
-                .toList(),
-            onChanged: (value) {
-              if (value == null) return;
-              setState(() {
-                _rowsPerPage = value;
-                _currentPage = 0; // reset a la primera página
-              });
-            },
-            style: const TextStyle(fontSize: 12),
-          ),
-
-          // Botones de navegación compactos
-          IconButton(
-            icon: const Icon(Icons.chevron_left, size: 18),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
-            onPressed: safePage > 0
-                ? () => setState(() => _currentPage = max(0, safePage - 1))
-                : null,
-          ),
-
-          Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 4.0),
-            child: Text(
-              '${_currentPage + 1}/$totalPages',
-              style: const TextStyle(fontSize: 14),
-            ),
-          ),
-
-          IconButton(
-            icon: const Icon(Icons.chevron_right, size: 18),
-            padding: EdgeInsets.zero,
-            constraints: const BoxConstraints(minWidth: 24, minHeight: 24),
-            onPressed: safePage < totalPages - 1
-                ? () => setState(
-                    () => _currentPage = min(totalPages - 1, safePage + 1))
-                : null,
-          ),
-        ],
       ),
     );
   }

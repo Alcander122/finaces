@@ -18,7 +18,7 @@ class EgresosScreen extends ConsumerStatefulWidget {
 }
 
 class EgresosScreenState extends ConsumerState<EgresosScreen> {
-  /// Lista de todas las columnas posibles
+  /// Lista de todas las columnas posibles (nombres bonitos para el usuario)
   final List<String> _allColumns = [
     'Periodo',
     'Fecha Pago',
@@ -37,7 +37,18 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
     'Estado',
   };
 
-  /// Muestra el diálogo para seleccionar columnas [[5]]
+  /// Mapeo entre nombre visible <-> nombre real en el modelo
+  final Map<String, String> _columnMapping = {
+    'Periodo': 'quincena',
+    'Fecha Pago': 'fechaPago',
+    'Categoría': 'categoria',
+    'Concepto': 'concepto',
+    'Valor': 'valor',
+    'Descripción': 'descripcion',
+    'Estado': 'estado',
+  };
+
+  /// Muestra el diálogo para seleccionar columnas
   void _showColumnSelectionDialog() async {
     final selectedColumns = await showDialog<Set<String>>(
       context: context,
@@ -137,12 +148,9 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
                     )
                   else
                     // ✅ Usamos el componente EgresoTable corregido
-                    // que incluye paginación y scroll horizontal [[3]]
                     EgresoTable(
                       egresos: egresosMap,
                       onEdit: (egresoMap) {
-                        // ✅ Conversión segura con manejo de valores nulos
-                        // Extraemos y convertimos las fechas con valores por defecto si son nulas
                         final fechaPago = egresoMap['fechaPago'] is DateTime
                             ? egresoMap['fechaPago'] as DateTime
                             : DateTime.now();
@@ -151,7 +159,6 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
                             ? egresoMap['fecha'] as DateTime
                             : DateTime.now();
 
-                        // ✅ Conversión segura de todos los campos con valores por defecto
                         final egreso = Egreso(
                           id: egresoMap['id']?.toString() ?? '',
                           quincena: egresoMap['quincena']?.toString() ?? '',
@@ -177,7 +184,10 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
                         );
                       },
                       onDelete: _deleteEgreso,
-                      camposVisibles: _visibleColumns.toList(),
+                      // 🔑 Pasamos las claves reales usando el mapping
+                      camposVisibles: _visibleColumns
+                          .map((col) => _columnMapping[col]!)
+                          .toList(),
                       userID: FirebaseAuth.instance.currentUser?.uid ?? '',
                     ),
 

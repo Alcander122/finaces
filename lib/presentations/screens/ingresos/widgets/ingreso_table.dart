@@ -1,16 +1,18 @@
+// ingreso_table.dart
+import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:finances/presentations/screens/ingresos/widgets/customtable_styles.dart';
 
-/// Widget para mostrar una tabla de ingresos con campos dinámicos
-/// y una columna de acciones al principio.
 class IngresoTable extends StatelessWidget {
   final List<Map<String, dynamic>> ingresos;
   final void Function(Map<String, dynamic>) onEdit;
   final void Function(String) onDelete;
   final List<String> camposVisibles;
   final String userID;
+  final int currentPage;
+  final int itemsPerPage;
 
   const IngresoTable({
     super.key,
@@ -19,33 +21,46 @@ class IngresoTable extends StatelessWidget {
     required this.onDelete,
     required this.camposVisibles,
     required this.userID,
+    this.currentPage = 1,
+    this.itemsPerPage = 5,
   });
 
   @override
   Widget build(BuildContext context) {
-    // Mostrar mensaje si no hay ingresos
     if (ingresos.isEmpty) {
       return const Center(
         child: Text('No hay ingresos disponibles'),
       );
     }
 
-    // Obtener campos disponibles del primer ingreso
-    final Set<String> camposDisponibles = ingresos.first.keys.toSet();
+    // 🔹 Calcular rango de datos para la página actual
+    final startIndex = (currentPage - 1) * itemsPerPage;
+    final endIndex = startIndex + itemsPerPage;
+    final paginatedIngresos = ingresos.sublist(
+      startIndex,
+      endIndex > ingresos.length ? ingresos.length : endIndex,
+    );
 
-    // Filtrar campos visibles
+    // 🔹 Calcular totales
+    final totalGlobal = ingresos.fold<double>(
+      0,
+      (sum, ingreso) => sum + (ingreso['valor']?.toDouble() ?? 0),
+    );
+    final totalPagina = paginatedIngresos.fold<double>(
+      0,
+      (sum, ingreso) => sum + (ingreso['valor']?.toDouble() ?? 0),
+    );
+
+    // 🔹 Obtener campos disponibles
+    final Set<String> camposDisponibles = ingresos.first.keys.toSet();
     final List<String> camposMostrar = camposVisibles
         .where((campo) => camposDisponibles.contains(campo))
         .toList();
-
-    // Formateador de moneda para Colombia
-    final formatoMoneda = NumberFormat("#,##0", "es_CO");
 
     return SingleChildScrollView(
       scrollDirection: Axis.horizontal,
       child: DataTable(
         columns: [
-          // Columna de acciones (primera columna)
           DataColumn(
             label: Container(
               decoration: CustomTableStyles.headerDecoration,
@@ -58,7 +73,6 @@ class IngresoTable extends StatelessWidget {
               ),
             ),
           ),
-          // Columnas dinámicas basadas en los campos visibles
           for (var campo in camposMostrar)
             DataColumn(
               label: Container(
@@ -73,57 +87,57 @@ class IngresoTable extends StatelessWidget {
               ),
             ),
         ],
-        rows: ingresos.map((ingreso) {
-          return DataRow(
-            cells: [
-              // Celda de acciones (debe ir de primera)
-              DataCell(
-                SizedBox(
-                  width: 100,
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                    children: [
-                      Tooltip(
-                        message: "Actualizar registro",
-                        child: IconButton(
-                          icon: const Icon(Icons.edit,
-                              color: Colors.blue, size: 18),
-                          onPressed: () => onEdit(ingreso),
+        rows: [
+          // 🔹 Filas de ingresos normales
+          ...paginatedIngresos.map((ingreso) {
+            return DataRow(
+              cells: [
+                DataCell(
+                  SizedBox(
+                    width: 100,
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                      children: [
+                        Tooltip(
+                          message: "Actualizar registro",
+                          child: IconButton(
+                            icon: const Icon(Icons.edit,
+                                color: Colors.blue, size: 18),
+                            onPressed: () => onEdit(ingreso),
+                          ),
                         ),
-                      ),
-                      Tooltip(
-                        message: "Eliminar registro",
-                        child: IconButton(
-                          icon: const Icon(Icons.delete,
-                              color: Colors.red, size: 18),
-                          onPressed: () => _confirmarEliminar(
-                              context, ingreso['id'].toString()),
+                        Tooltip(
+                          message: "Eliminar registro",
+                          child: IconButton(
+                            icon: const Icon(Icons.delete,
+                                color: Colors.red, size: 18),
+                            onPressed: () => _confirmarEliminar(
+                                context, ingreso['id'].toString()),
+                          ),
                         ),
-                      ),
-                    ],
+                      ],
+                    ),
                   ),
                 ),
-              ),
-
-              // Celdas dinámicas con datos
-              for (var campo in camposMostrar)
-                DataCell(
-                  _formatearCelda(campo, ingreso[campo], formatoMoneda),
-                ),
-            ],
-          );
-        }).toList(),
+                for (var campo in camposMostrar)
+                  DataCell(
+                    _formatearCelda(campo, ingreso[campo]),
+                  ),
+              ],
+            );
+          }),
+        ],
       ),
     );
   }
 
-  /// Diálogo de confirmación para eliminar ingreso
   void _confirmarEliminar(BuildContext context, String id) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Eliminar ingreso'),
-        content: const Text('¿Estás seguro de que deseas eliminar este ingreso?'),
+        content:
+            const Text('¿Estás seguro de que deseas eliminar este ingreso?'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
@@ -141,13 +155,11 @@ class IngresoTable extends StatelessWidget {
     );
   }
 
-  /// Devuelve un widget con el texto formateado para cada celda
-  Widget _formatearCelda(
-      String campo, dynamic valor, NumberFormat formatoMoneda) {
+  Widget _formatearCelda(String campo, dynamic valor) {
     if (campo == 'fechaIngreso' && valor is Timestamp) {
       return Text(DateFormat('dd/MM/yyyy').format(valor.toDate()));
     } else if (campo == 'valor' && valor != null) {
-      return Text('\$${formatoMoneda.format(valor)}');
+      return Text(UIHelpers.formatCurrency(valor.toDouble()));
     } else if (campo == 'quincena') {
       return Text(_formatearPeriodo(valor));
     } else {
@@ -155,7 +167,6 @@ class IngresoTable extends StatelessWidget {
     }
   }
 
-  /// Convierte el valor de quincena a texto legible
   String _formatearPeriodo(dynamic valor) {
     switch (valor) {
       case 'Primera':
@@ -171,7 +182,6 @@ class IngresoTable extends StatelessWidget {
     }
   }
 
-  /// Formatea el nombre del campo para mostrarlo como encabezado
   String _formatearNombreCampo(String campo) {
     switch (campo) {
       case 'fechaIngreso':
