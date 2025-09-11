@@ -91,6 +91,7 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final AuthStorage _storage = AuthStorage();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
   StreamSubscription<User?>? _authSubscription;
+  bool _isProcessingDeletion = false; // Para manejar el estado de eliminación
 
   AuthNotifier() : super(const AuthState.initial()) {
     _initAuthListener();
@@ -107,6 +108,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
   void _initAuthListener() {
     _authSubscription = _auth.authStateChanges().listen((User? user) async {
       try {
+        // Verificar si estamos procesando una eliminación
+        if (_isProcessingDeletion && user == null) {
+          _isProcessingDeletion = false; // Resetear la bandera
+          debugPrint('Proceso de eliminación completado - Usuario eliminado');
+        }
+
         if (user != null) {
           // Recargar usuario para obtener información actualizada
           await user.reload();
@@ -208,7 +215,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// Cierra la sesión
   /// Cierra la sesión
   Future<void> signOut() async {
     try {
@@ -325,6 +331,46 @@ class AuthNotifier extends StateNotifier<AuthState> {
     } catch (e) {
       state = AuthState.error(ErrorStrings.unexpectedError);
       debugPrint("Error en signInWithGoogle: $e");
+      rethrow;
+    }
+  }
+
+  /// Elimina la cuenta del usuario actual - CORREGIDO
+  Future<void> deleteAccount(String password) async {
+    _isProcessingDeletion = true;
+
+    try {
+      state = const AuthState.loading();
+      debugPrint('Iniciando proceso de eliminación de cuenta');
+
+      // 1. Eliminar cuenta a través del servicio
+      await _userService.deleteAccount(password);
+      debugPrint('Cuenta eliminada en servicios');
+
+      // 2. ¡CRÍTICO! Forzar cierre de sesión explícito con Firebase Auth
+      await _auth.signOut();
+      debugPrint('Cierre de sesión explícito realizado');
+
+      // 3. Limpiar almacenamiento local
+      await _storage.setLoggedOut(true);
+      await _storage.deleteToken();
+
+      // 4. Cerrar sesión en Google (si aplica)
+      try {
+        await googleSignIn.signOut();
+      } catch (e) {
+        debugPrint('Google Sign-In no estaba activo o ya cerrado: $e');
+      }
+
+      // 5. ¡CRÍTICO ABSOLUTO! Forzar actualización del estado a "unauthenticated"
+      // Esto es lo más importante - debemos actualizar el estado INMEDIATAMENTE
+      state = const AuthState.unauthenticated();
+      debugPrint('Estado ACTUALIZADO a unauthenticated');
+    } catch (e) {
+      _isProcessingDeletion = false;
+      state = AuthState.error(
+          "Error al eliminar cuenta. ¿Iniciaste sesión recientemente?");
+      debugPrint('Error en deleteAccount: $e');
       rethrow;
     }
   }

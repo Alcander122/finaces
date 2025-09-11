@@ -95,7 +95,7 @@ class _AppBlockedScreenState extends ConsumerState<AppBlockedScreen> {
   }
 
   /// Cierra sesión completamente y va a Welcome.
-  Future<void> _signOut() async {
+  Future<void> signOut() async {
     final biometricService = BiometricAuthService();
     await biometricService
         .clearBiometricSetting(); // Limpia configuración biométrica
@@ -174,14 +174,6 @@ class _AppBlockedScreenState extends ConsumerState<AppBlockedScreen> {
                 child: const Text(
                   "Ingresar con contraseña",
                   style: TextStyle(fontSize: 16),
-                ),
-              ),
-              const SizedBox(height: 15),
-              TextButton(
-                onPressed: _signOut,
-                child: const Text(
-                  "Cerrar sesión",
-                  style: TextStyle(color: Colors.red, fontSize: 16),
                 ),
               ),
             ],

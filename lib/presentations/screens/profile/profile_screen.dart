@@ -1,14 +1,19 @@
-// profile_screen.dart
-import 'package:finances/core/data/services/BiometricAuthService.dart';
+// profile_screen.dart - MODIFICADO PARA SOLUCIONAR EL PROBLEMA DE REDIRECCIÓN
+import 'package:finances/core/data/providers/auth_provider.dart';
+import 'package:finances/presentations/screens/auth/welcome_screen.dart';
+import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
+import 'package:finances/routes/app_routes.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:finances/core/data/providers/auth_provider.dart';
-import 'package:finances/routes/app_routes.dart';
-import 'package:finances/presentations/theme/themes.dart';
 
-/// Pantalla de edición de perfil con biometría y opciones de sesión
+// Importamos los widgets separados
+import 'widgets/profile_header.dart';
+import 'widgets/profile_name_field.dart';
+import 'widgets/profile_biometric_settings.dart';
+
+/// Pantalla principal del perfil
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
@@ -20,11 +25,15 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
   bool _isSaving = false;
+  bool _isDeleting = false;
 
   @override
   void initState() {
     super.initState();
-    // Precargar el nombre del usuario autenticado
+    _prefillUserName();
+  }
+
+  void _prefillUserName() {
     final user = FirebaseAuth.instance.currentUser;
     if (user != null) {
       _nameController.text = user.displayName ?? '';
@@ -44,7 +53,7 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
     return Scaffold(
       backgroundColor: Themes.light,
       appBar: const AppBarFinances(
-        title: 'Editar Perfil',
+        title: 'Perfil',
         showProfileIcon: false,
       ),
       body: SingleChildScrollView(
@@ -60,25 +69,9 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
             child: Column(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
-                // Tarjeta superior con avatar, nombre y correo
-                _buildProfileInfo(authState.user),
+                ProfileHeader(user: authState.user),
                 const SizedBox(height: 32),
-
-                // Formulario principal
-                Form(
-                  key: _formKey,
-                  child: Column(
-                    children: [
-                      _buildNameField(),
-                      const SizedBox(height: 24),
-                      _buildBiometricSettings(),
-                      const SizedBox(height: 24),
-                      _buildSaveButton(),
-                      const SizedBox(height: 16),
-                      _buildLogoutButton(),
-                    ],
-                  ),
-                ),
+                _buildForm(),
               ],
             ),
           ),
@@ -87,185 +80,32 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  /// 🔹 Tarjeta superior con info del usuario
-  Widget _buildProfileInfo(User? user) {
-    return Container(
-      width: double.infinity,
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          colors: [Themes.degradientDark, Themes.degradientLight],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-        borderRadius: BorderRadius.circular(20),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black26,
-            blurRadius: 8,
-            offset: const Offset(0, 4),
-          ),
-        ],
-      ),
-      child: Row(
+  /// Formulario principal
+  Widget _buildForm() {
+    return Form(
+      key: _formKey,
+      child: Column(
         children: [
-          const CircleAvatar(
-            radius: 36,
-            backgroundColor: Themes.iconsButton,
-            child: Icon(Icons.person, color: Colors.white, size: 40),
-          ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  'Hola, ${user?.displayName ?? 'Sin nombre'}',
-                  style: const TextStyle(
-                    fontSize: 20,
-                    fontWeight: FontWeight.bold,
-                    color: Colors.white,
-                  ),
-                ),
-                const SizedBox(height: 6),
-                Text(
-                  user?.email ?? 'Sin email',
-                  style: const TextStyle(fontSize: 14, color: Colors.white70),
-                ),
-              ],
-            ),
-          ),
+          ProfileNameField(controller: _nameController),
+          const SizedBox(height: 24),
+          const ProfileBiometricSettings(),
+          const SizedBox(height: 24),
+          _buildSaveButton(),
+          const SizedBox(height: 16),
+          _buildExitButton(),
+          const SizedBox(height: 16),
+          _buildDeleteAccountButton(),
         ],
       ),
     );
   }
 
-  /// 🔹 Campo de nombre
-  Widget _buildNameField() {
-    return TextFormField(
-      controller: _nameController,
-      decoration: InputDecoration(
-        labelText: 'Nombre',
-        prefixIcon: const Icon(Icons.person, color: Themes.iconColor),
-        filled: true,
-        fillColor: Colors.white,
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-        ),
-      ),
-      validator: (value) {
-        if (value == null || value.trim().isEmpty) {
-          return 'Por favor, ingresa un nombre';
-        }
-        final trimmed = value.trim();
-        if (trimmed.length < 3) {
-          return 'El nombre debe tener al menos 3 caracteres';
-        }
-        if (trimmed.length > 30) {
-          return 'El nombre no debe exceder los 30 caracteres';
-        }
-        final validNameRegExp = RegExp(r'^[a-zA-Z0-9\s]+$');
-        if (!validNameRegExp.hasMatch(trimmed)) {
-          return 'Solo se permiten letras, números y espacios';
-        }
-        return null;
-      },
-    );
-  }
-
-  /// 🔹 Switch de configuración biométrica
-  Widget _buildBiometricSettings() {
-    return FutureBuilder<bool>(
-      future: BiometricAuthService().isBiometricAvailable(),
-      builder: (context, snapshot) {
-        if (snapshot.connectionState == ConnectionState.waiting) {
-          return const ListTile(
-            title: Text('Autenticación Biométrica'),
-            subtitle: Text('Verificando disponibilidad...'),
-            trailing: CircularProgressIndicator(strokeWidth: 2),
-          );
-        }
-        if (snapshot.hasError || !snapshot.data!) {
-          return const ListTile(
-            title: Text('Autenticación Biométrica'),
-            subtitle: Text('No disponible en este dispositivo'),
-            trailing: Icon(Icons.block, color: Colors.grey),
-          );
-        }
-        return FutureBuilder<bool>(
-          future: BiometricAuthService().isBiometricEnabled(),
-          builder: (context, enabledSnapshot) {
-            if (enabledSnapshot.connectionState == ConnectionState.waiting) {
-              return const ListTile(
-                title: Text('Autenticación Biométrica'),
-                trailing: CircularProgressIndicator(strokeWidth: 2),
-              );
-            }
-            return SwitchListTile(
-              title: const Text('Iniciar sesión con huella'),
-              subtitle: const Text('Protege tu app con tu biometría'),
-              value: enabledSnapshot.data ?? false,
-              onChanged: (bool value) async {
-                try {
-                  await BiometricAuthService().setBiometricEnabled(value);
-                  if (mounted) {
-                    setState(() {});
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          value
-                              ? '✅ Autenticación biométrica activada'
-                              : '❌ Autenticación biométrica desactivada',
-                        ),
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(
-                        content: Text('⚠️ Error al cambiar la configuración'),
-                      ),
-                    );
-                  }
-                }
-              },
-              activeThumbColor: Themes.primary,
-              secondary: const Icon(Icons.fingerprint),
-            );
-          },
-        );
-      },
-    );
-  }
-
-  /// 🔹 Botón guardar cambios
+  /// Botón guardar cambios
   Widget _buildSaveButton() {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton(
-        onPressed: _isSaving
-            ? null
-            : () async {
-                if (_formKey.currentState?.validate() ?? false) {
-                  setState(() => _isSaving = true);
-                  try {
-                    await ref
-                        .read(authProvider.notifier)
-                        .updateDisplayName(_nameController.text.trim());
-                    if (mounted) {
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        const SnackBar(
-                          content: Text('Perfil actualizado exitosamente'),
-                        ),
-                      );
-                      Navigator.pop(context);
-                    }
-                  } finally {
-                    if (mounted) setState(() => _isSaving = false);
-                  }
-                }
-              },
+        onPressed: _isSaving ? null : _onSavePressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: Themes.primary,
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -286,17 +126,37 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  /// 🔹 Botón cerrar sesión
-  Widget _buildLogoutButton() {
+  Future<void> _onSavePressed() async {
+    if (!(_formKey.currentState?.validate() ?? false)) return;
+
+    setState(() => _isSaving = true);
+    try {
+      await ref
+          .read(authProvider.notifier)
+          .updateDisplayName(_nameController.text.trim());
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Perfil actualizado exitosamente')),
+        );
+        Navigator.pop(context);
+      }
+    } finally {
+      if (mounted) setState(() => _isSaving = false);
+    }
+  }
+
+  /// Botón salir
+  Widget _buildExitButton() {
     return SizedBox(
       width: double.infinity,
       child: ElevatedButton.icon(
-        icon: const Icon(Icons.logout, color: Themes.white),
+        icon: const Icon(Icons.exit_to_app, color: Themes.white),
         label: const Text(
-          'Cerrar sesión',
+          'Salir',
           style: TextStyle(color: Themes.white),
         ),
-        onPressed: () => _showLogoutDialog(context),
+        onPressed: _onExitPressed,
         style: ElevatedButton.styleFrom(
           backgroundColor: Colors.red.shade700,
           padding: const EdgeInsets.symmetric(vertical: 16),
@@ -308,110 +168,205 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  /// 🔹 Diálogo de opciones de salida
-  void _showLogoutDialog(BuildContext context) {
-    showDialog(
+  Future<void> _onExitPressed() async {
+    await Navigator.pushNamedAndRemoveUntil(
+      context,
+      AppRoutes.appBlocked,
+      (Route<dynamic> route) => false,
+    );
+  }
+
+  /// Botón para eliminar cuenta - CORREGIDO
+  Widget _buildDeleteAccountButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        icon: const Icon(Icons.delete_forever, color: Colors.white),
+        label: _isDeleting
+            ? const SizedBox(
+                width: 20,
+                height: 20,
+                child: CircularProgressIndicator(color: Colors.white),
+              )
+            : const Text('Eliminar Cuenta',
+                style: TextStyle(color: Colors.white)),
+        onPressed: _isDeleting ? null : _onDeleteAccountPressed,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+        ),
+      ),
+    );
+  }
+
+  /// Maneja el proceso de eliminación de cuenta - SOLUCIÓN DEFINITIVA
+  Future<void> _onDeleteAccountPressed() async {
+    // 1. Confirmación inicial
+    final confirmed = await showDialog<bool>(
+          context: context,
+          builder: (context) => AlertDialog(
+            title: const Text('Eliminar cuenta',
+                style: TextStyle(color: Colors.red)),
+            content: const Text(
+              '¿Estás seguro? Se eliminarán todos tus datos y no podrás recuperar la cuenta.',
+              style: TextStyle(color: Colors.black87),
+            ),
+            actions: [
+              TextButton(
+                onPressed: () => Navigator.pop(context, false),
+                child: const Text('Cancelar'),
+              ),
+              TextButton(
+                onPressed: () => Navigator.pop(context, true),
+                child: const Text(
+                  'Eliminar',
+                  style:
+                      TextStyle(color: Colors.red, fontWeight: FontWeight.bold),
+                ),
+              ),
+            ],
+          ),
+        ) ??
+        false;
+
+    if (!confirmed) return;
+
+    // 2. Solicitar contraseña para reautenticación
+    final password = await _showPasswordDialog();
+    if (password == null) return;
+
+    setState(() => _isDeleting = true);
+
+    try {
+      // 3. Intentar eliminar la cuenta
+      await ref.read(authProvider.notifier).deleteAccount(password);
+
+      // 4. ¡CRÍTICO! Verificar explícitamente que el estado es unauthenticated
+      final authState = ref.read(authProvider);
+      if (!authState.isAuthenticated) {
+        debugPrint('Usuario no autenticado - listo para redirigir');
+
+        // 4.1 Eliminar TODAS las pantallas del stack (importante para evitar "atascos")
+        Navigator.of(context).popUntil((route) => route.isFirst);
+
+        // 4.2 Redirigir al WelcomeScreen usando pushReplacement
+        // ¡ESTO ES LO MÁS IMPORTANTE! No uses pushNamedAndRemoveUntil aquí
+        // porque depende del estado de autenticación para decidir qué mostrar
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+        );
+
+        return; // Salir del método aquí
+      }
+
+      // Si llegamos aquí, el estado no se actualizó inmediatamente
+      debugPrint('Estado aún autenticado - esperando actualización');
+
+      // 5. Esperar a que el estado se actualice (máximo 1 segundo)
+      int attempts = 0;
+      const maxAttempts = 10;
+
+      while (attempts < maxAttempts) {
+        await Future.delayed(const Duration(milliseconds: 100));
+        final updatedAuthState = ref.read(authProvider);
+
+        if (!updatedAuthState.isAuthenticated) {
+          debugPrint('Estado actualizado - listo para redirigir');
+
+          // Eliminar TODAS las pantallas del stack
+          Navigator.of(context).popUntil((route) => route.isFirst);
+
+          // Redirigir al WelcomeScreen
+          Navigator.pushReplacement(
+            context,
+            MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+          );
+
+          return; // Salir del método aquí
+        }
+
+        attempts++;
+        debugPrint('Intento $attempts/$maxAttempts para actualizar estado...');
+      }
+
+      // 6. Si llegamos aquí, forzamos la redirección (último recurso)
+      debugPrint('Forzando redirección al WelcomeScreen');
+
+      // Eliminar TODAS las pantallas del stack
+      Navigator.of(context).popUntil((route) => route.isFirst);
+
+      // Redirigir al WelcomeScreen
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+      );
+    } catch (e) {
+      String errorMessage;
+
+      if (e is FirebaseAuthException) {
+        switch (e.code) {
+          case 'requires-recent-login':
+            errorMessage =
+                'Debes iniciar sesión recientemente para eliminar tu cuenta.';
+            break;
+          case 'wrong-password':
+            errorMessage =
+                'Contraseña incorrecta. Por favor, verifica tu contraseña e intenta nuevamente.';
+            break;
+          default:
+            errorMessage =
+                'Error al eliminar la cuenta: ${e.message ?? 'desconocido'}';
+        }
+      } else {
+        errorMessage =
+            'Error al eliminar la cuenta. Por favor, intenta nuevamente.';
+      }
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(errorMessage)),
+        );
+      }
+    } finally {
+      if (mounted) setState(() => _isDeleting = false);
+    }
+  }
+
+  /// Muestra un diálogo para ingresar la contraseña
+  Future<String?> _showPasswordDialog() async {
+    final controller = TextEditingController();
+    final result = await showDialog<String>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('¿Qué deseas hacer?'),
-        content: const Text(
-          'Puedes bloquear la app (pedirá huella al reabrir) o cerrar sesión completamente (requerirá login de nuevo).',
-          textAlign: TextAlign.center,
-          style: TextStyle(height: 1.4),
+        title: const Text('Confirmar eliminación'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            const Text('Por seguridad, ingresa tu contraseña:'),
+            const SizedBox(height: 10),
+            TextField(
+              controller: controller,
+              obscureText: true,
+              decoration: const InputDecoration(
+                border: OutlineInputBorder(),
+                labelText: 'Contraseña',
+              ),
+            ),
+          ],
         ),
         actions: [
-          // Cancelar
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => Navigator.pop(context, null),
             child: const Text('Cancelar'),
           ),
-
-          // 🔒 Bloquear app → Mantiene login, pero exige huella al volver
           TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              if (!mounted) return;
-
-              await Navigator.pushNamedAndRemoveUntil(
-                context,
-                AppRoutes.appBlocked,
-                (Route<dynamic> route) => false,
-              );
-
-              if (mounted) {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content:
-                        Text('🔒 App bloqueada. Usa tu huella para volver.'),
-                    backgroundColor: Colors.blue,
-                  ),
-                );
-              }
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.blue),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.lock, color: Colors.blue, size: 20),
-                SizedBox(width: 8),
-                Text('Bloquear app'),
-              ],
-            ),
-          ),
-
-          // 🚪 Cerrar sesión → Limpia biometría y sesión
-          TextButton(
-            onPressed: () async {
-              Navigator.pop(context);
-              if (!mounted) return;
-
-              try {
-                // 1️⃣ Limpia la configuración biométrica
-                await BiometricAuthService().clearBiometricSetting();
-
-                // 2️⃣ Cierra sesión Firebase
-                await ref.read(authProvider.notifier).signOut();
-
-                // 3️⃣ Manda al WelcomeScreen
-                await Navigator.pushNamedAndRemoveUntil(
-                  context,
-                  AppRoutes.welcome,
-                  (Route<dynamic> route) => false,
-                );
-
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('👋 Sesión cerrada correctamente.'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              } catch (e) {
-                debugPrint('Error al cerrar sesión: $e');
-                if (mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text(
-                          '⚠️ Error al cerrar sesión. Inténtalo de nuevo.'),
-                      backgroundColor: Colors.red,
-                    ),
-                  );
-                }
-              }
-            },
-            style: TextButton.styleFrom(foregroundColor: Colors.red),
-            child: const Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Icon(Icons.logout, color: Colors.red, size: 20),
-                SizedBox(width: 8),
-                Text('Cerrar sesión'),
-              ],
-            ),
+            onPressed: () => Navigator.pop(context, controller.text),
+            child: const Text('Confirmar'),
           ),
         ],
       ),
     );
+    return result;
   }
 }

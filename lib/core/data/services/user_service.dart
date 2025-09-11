@@ -86,13 +86,26 @@ class UserService {
   }
 
   /// Elimina el documento de usuario en Firestore y la cuenta de FirebaseAuth
-  Future<void> deleteAccount() async {
+  Future<void> deleteAccount(String password) async {
     try {
       final user = _auth.currentUser;
       if (user == null) throw Exception("No hay usuario autenticado.");
 
+      // Reautenticar al usuario (requerido para operaciones sensibles)
+      if (user.providerData
+          .any((provider) => provider.providerId == 'password')) {
+        final credential = EmailAuthProvider.credential(
+          email: user.email!,
+          password: password,
+        );
+        await user.reauthenticateWithCredential(credential);
+      }
+
+      // Eliminar datos primero en Firestore
       await _firestore.collection('users').doc(user.uid).delete();
-      await user.delete();
+
+      // Luego eliminar cuenta de Firebase Auth
+      await user.delete(); // Requiere autenticación reciente [[4]]
     } catch (e) {
       rethrow;
     }
@@ -101,6 +114,7 @@ class UserService {
   /// Verifica si un correo ya está registrado en FirebaseAuth
   Future<bool> isEmailAvailable(String email) async {
     try {
+      // ignore: deprecated_member_use
       final methods = await _auth.fetchSignInMethodsForEmail(email);
       return methods.isEmpty;
     } catch (e) {

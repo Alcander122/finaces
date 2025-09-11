@@ -30,8 +30,8 @@ class AppRoutes {
   static const String portafolio = '/portafolio';
   static const String ahorro = '/ahorro';
   static const String banco = '/banco';
-   static const String splash = '/splash';
-   static const String appBlocked = '/app-blocked';
+  static const String splash = '/splash';
+  static const String appBlocked = '/app-blocked';
   static const String pagos = '/pagos';
   static const String agregarPago = '/agregar-pago';
   static const String editarPago = '/editar-pago';
@@ -39,22 +39,42 @@ class AppRoutes {
   // Nueva ruta para detalles de categoría
   static const String categoryDetails = '/category-details';
 
-  // Aquí se decide qué pantalla mostrar según el estado de autenticación.
-  // En lugar de verificar si authState es null, se comprueba si authState.user es null.
   static Map<String, WidgetBuilder> getRoutes(AuthState authState) {
     return {
-      welcome: (context) =>
-          authState.user == null ? const WelcomeScreen() : const HomeScreen(),
+      // ¡CORRECCIÓN! welcome siempre debe mostrar WelcomeScreen
+      welcome: (context) => const WelcomeScreen(),
+
+      // login siempre debe mostrar LoginScreen
       login: (context) => const LoginScreen(),
-      splash: (context) => const SplashScreen(), // ✅ ¡Agrega esta línea!
-      appBlocked: (context) => const AppBlockedScreen(), // ← ¡Agrega esta línea!
+
+      // splash siempre debe mostrar SplashScreen
+      splash: (context) => const SplashScreen(),
+
+      // appBlocked siempre debe mostrar AppBlockedScreen
+      appBlocked: (context) => const AppBlockedScreen(),
+
+      // home siempre debe mostrar HomeScreen
       home: (context) => const HomeScreen(),
+
+      // profile siempre debe mostrar ProfileScreen
       profile: (context) => const ProfileScreen(),
+
+      // register siempre debe mostrar RegisterScreen
       register: (context) => const RegisterScreen(),
+
+      // banco siempre debe mostrar PantallaBancos
       banco: (context) => const PantallaBancos(),
+
+      // portafolio siempre debe mostrar PortafolioScreen
       portafolio: (context) => const PortafolioScreen(),
+
+      // ahorro siempre debe mostrar AhorroScreen
       ahorro: (context) => const AhorroScreen(),
+
+      // estadistica siempre debe mostrar StatisticScreen
       estadistica: (context) => const StatisticScreen(),
+
+      // categoryDetails siempre debe mostrar CategoryDetailsScreen
       categoryDetails: (context) {
         final args =
             ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
@@ -64,8 +84,14 @@ class AppRoutes {
           isExpense: args?['isExpense'] ?? false,
         );
       },
+
+      // pagos siempre debe mostrar PagosScreen
       pagos: (context) => const PagosScreen(),
+
+      // agregarPago siempre debe mostrar AgregarEditarPagoScreen
       agregarPago: (context) => const AgregarEditarPagoScreen(),
+
+      // editarPago siempre debe mostrar AgregarEditarPagoScreen
       editarPago: (context) => const AgregarEditarPagoScreen(),
     };
   }
