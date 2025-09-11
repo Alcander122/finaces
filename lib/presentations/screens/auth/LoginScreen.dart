@@ -1,9 +1,14 @@
+// presentations/screens/auth/login_screen.dart
 import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/core/data/services/BiometricAuthService.dart';
+import 'package:finances/core/data/utils/form_validators.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/core/errors/handlers/auth_error_handler.dart';
-import 'package:finances/presentations/screens/Auth/register.screen.dart';
+import 'package:finances/presentations/screens/auth/register.screen.dart';
+import 'package:finances/presentations/screens/auth/widgets/forgot_password_dialog.dart';
+import 'package:finances/presentations/screens/auth/widgets/login_divider.dart';
+import 'package:finances/presentations/screens/auth/widgets/register_link.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/presentations/widgets/custom_scaffold.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -19,25 +24,16 @@ class LoginScreen extends ConsumerStatefulWidget {
 }
 
 class LoginScreenState extends ConsumerState<LoginScreen> {
-  final TextEditingController _emailController = TextEditingController();
-  final TextEditingController _passwordController = TextEditingController();
-  final GlobalKey<FormState> _formSignInKey = GlobalKey<FormState>();
+  final _emailController = TextEditingController();
+  final _passwordController = TextEditingController();
+  final _formKey = GlobalKey<FormState>();
   bool _isLoading = false;
-  bool _biometricEnabled =
-      false; // 👈 para controlar si mostrar el botón de huella
+  bool _biometricEnabled = false;
 
   @override
   void initState() {
     super.initState();
     _checkBiometricStatus();
-  }
-
-  /// 🔹 Revisa si la biometría está activada en el dispositivo
-  Future<void> _checkBiometricStatus() async {
-    final enabled = await BiometricAuthService().isBiometricEnabled();
-    if (mounted) {
-      setState(() => _biometricEnabled = enabled);
-    }
   }
 
   @override
@@ -47,58 +43,144 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  /// Valida que los campos no estén vacíos
-  bool _validateFields() {
-    if (_emailController.text.isEmpty || _passwordController.text.isEmpty) {
-      UIHelpers.showErrorSnackBar(
-        context: context,
-        message: ErrorStrings.requiredField,
-      );
-      return false;
+  Future<void> _checkBiometricStatus() async {
+    final enabled = await BiometricAuthService().isBiometricEnabled();
+    if (mounted) {
+      setState(() => _biometricEnabled = enabled);
     }
-    return true;
   }
 
-  /// Maneja y formatea los errores de Firebase Auth
-  String _handleError(Object error) {
-    if (error is FirebaseAuthException) {
-      return AuthErrorHandler.handle(error);
-    }
-    return error.toString();
-  }
-
-  /// Muestra un SnackBar con el mensaje de error
-  void _showErrorFeedback(String message) {
-    if (!mounted) return;
-    UIHelpers.showErrorSnackBar(context: context, message: message);
-  }
-
-  /// 🔹 Login con email y contraseña
-  /// 🔹 Login con email y contraseña
-  Future<void> _performLogin() async {
-    if (!_validateFields() || _isLoading) return;
+  Future<void> _loginWithCredentials() async {
+    if (!_formKey.currentState!.validate() || _isLoading) return;
 
     setState(() => _isLoading = true);
-
     try {
       await ref.read(authProvider.notifier).signIn(
             _emailController.text.trim(),
             _passwordController.text.trim(),
           );
-
       if (mounted) {
-        // ✅ Mostrar mensaje de éxito
         UIHelpers.showSuccessSnackBarNew(
           context: context,
           message: 'Inicio de sesión exitoso',
         );
-
-        // 🔹 Navegar al Home inmediatamente
         Navigator.pushReplacementNamed(context, '/home');
       }
     } catch (e) {
-      debugPrint('Error en login: $e');
-      _showErrorFeedback(_handleError(e));
+      _showErrorFeedback(e);
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _loginWithBiometrics() async {
+    if (_isLoading) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final success = await BiometricAuthService().authenticate(context);
+      if (success && mounted) {
+        Navigator.pushReplacementNamed(context, '/home');
+      }
+    } catch (e) {
+      _showErrorFeedback("Error con la autenticación biométrica");
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  Future<void> _handleGoogleSignIn() async {
+    if (_isLoading) return;
+
+    setState(() => _isLoading = true);
+    try {
+      final isNewUser =
+          await ref.read(authProvider.notifier).signInWithGoogle();
+      if (isNewUser && mounted) {
+        _showNewUserDialog();
+      }
+    } catch (e) {
+      _showErrorFeedback(e.toString());
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
+    }
+  }
+
+  void _showNewUserDialog() {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        title: const Text('Cuenta no registrada'),
+        content: const Text(
+            'La cuenta no se encuentra registrada, será redireccionado al registro para crear la cuenta.'),
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              Navigator.pushReplacement(
+                context,
+                MaterialPageRoute(builder: (_) => const RegisterScreen()),
+              );
+            },
+            child: const Text('Aceptar'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showErrorFeedback(Object error) {
+    if (!mounted) return;
+
+    String message;
+    if (error is FirebaseAuthException) {
+      message = AuthErrorHandler.handle(error);
+    } else {
+      message = error.toString();
+    }
+
+    UIHelpers.showErrorSnackBar(context: context, message: message);
+  }
+
+  void _showForgotPasswordDialog() {
+    showDialog(
+      context: context,
+      builder: (context) => ForgotPasswordDialog(
+        onSendPasswordReset: _sendPasswordResetEmail,
+        onCancel: () => Navigator.pop(context),
+      ),
+    );
+  }
+
+  Future<void> _sendPasswordResetEmail(String email) async {
+    if (email.isEmpty) {
+      UIHelpers.showErrorSnackBar(
+        context: context,
+        message: ErrorStrings.requiredField,
+      );
+      return;
+    }
+
+    try {
+      setState(() => _isLoading = true);
+      await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
+
+      if (mounted) {
+        UIHelpers.showSuccessSnackBarNew(
+          context: context,
+          message: ErrorStrings.passwordResetSuccess,
+        );
+        Navigator.pop(context);
+      }
+    } on FirebaseAuthException catch (e) {
+      String errorMessage = _handleForgotPasswordError(e);
+      if (mounted) {
+        _showErrorFeedback(errorMessage);
+      }
+    } catch (e) {
+      if (mounted) {
+        _showErrorFeedback(ErrorStrings.unexpectedError);
+      }
     } finally {
       if (mounted) {
         setState(() => _isLoading = false);
@@ -106,33 +188,33 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  /// 🔹 Login con huella
-  /// 🔹 Login con huella
-  Future<void> _performBiometricLogin() async {
-    if (_isLoading) return;
-
-    setState(() => _isLoading = true);
-
-    try {
-      // ✅ Ahora pasamos el context al servicio
-      final success = await BiometricAuthService().authenticate(context);
-
-      if (success) {
-        final user = FirebaseAuth.instance.currentUser;
-        if (user != null && mounted) {
-          Navigator.pushReplacementNamed(context, '/home');
-        }
-      } else {
-        _showErrorFeedback("Autenticación cancelada o fallida");
-      }
-    } catch (e) {
-      debugPrint("Error en login biométrico: $e");
-      _showErrorFeedback("Error con la autenticación biométrica");
-    } finally {
-      if (mounted) {
-        setState(() => _isLoading = false);
-      }
+  String _handleForgotPasswordError(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'user-not-found':
+        return ErrorStrings.userNotFound;
+      case 'invalid-email':
+        return ErrorStrings.invalidEmail;
+      case 'too-many-requests':
+        return ErrorStrings.passwordResetTooManyRequests;
+      default:
+        return ErrorStrings.unexpectedError;
     }
+  }
+
+  InputDecoration _inputDecoration(String label, String hint) {
+    return InputDecoration(
+      label: Text(label),
+      hintText: hint,
+      hintStyle: const TextStyle(color: Colors.black26),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.black12),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.black12),
+      ),
+    );
   }
 
   @override
@@ -156,7 +238,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
               ),
               child: SingleChildScrollView(
                 child: Form(
-                  key: _formSignInKey,
+                  key: _formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.center,
                     children: [
@@ -169,8 +251,6 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                         ),
                       ),
                       const SizedBox(height: 40.0),
-
-                      // Loader cuando está autenticando
                       if (authState.isLoading || _isLoading)
                         const Column(
                           children: [
@@ -182,132 +262,79 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                       else
                         Column(
                           children: [
-                            // Campo correo
                             TextFormField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return ErrorStrings.requiredField;
-                                }
-                                if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                                    .hasMatch(value)) {
-                                  return ErrorStrings.invalidEmail;
-                                }
-                                return null;
-                              },
+                              validator: FormValidators.validateEmail,
                               decoration: _inputDecoration(
                                   'Correo', 'ejemplo@dominio.com'),
                             ),
                             const SizedBox(height: 25.0),
-
-                            // Campo contraseña
                             TextFormField(
                               controller: _passwordController,
                               obscureText: true,
                               obscuringCharacter: '•',
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return ErrorStrings.requiredField;
-                                }
-                                if (value.length < 6) {
-                                  return "Mínimo 6 caracteres";
-                                }
-                                return null;
-                              },
+                              validator: FormValidators.validatePassword,
                               decoration:
                                   _inputDecoration('Contraseña', '••••••••'),
                             ),
-                            const SizedBox(height: 25.0),
-
-                            // Botón de ingresar
+                            const SizedBox(height: 15.0),
+                            Align(
+                              alignment: Alignment.centerRight,
+                              child: TextButton(
+                                onPressed: _showForgotPasswordDialog,
+                                child: Text(
+                                  '¿Olvidaste tu contraseña?',
+                                  style: TextStyle(
+                                    color: Themes.degradientLight,
+                                    fontWeight: FontWeight.normal,
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const SizedBox(height: 10.0),
                             SizedBox(
                               width: double.infinity,
                               child: ElevatedButton(
-                                onPressed: _performLogin,
+                                onPressed: _loginWithCredentials,
                                 child: const Text('Ingresar'),
                               ),
                             ),
-
-                            const SizedBox(height: 15.0),
-
-                            // 👇 Botón de huella (solo si está activada)
                             if (_biometricEnabled)
-                              SizedBox(
-                                width: double.infinity,
-                                child: ElevatedButton.icon(
-                                  style: ElevatedButton.styleFrom(
-                                    backgroundColor: Themes.primary,
-                                  ),
-                                  onPressed: _performBiometricLogin,
-                                  icon: const Icon(Icons.fingerprint,
-                                      color: Colors.white),
-                                  label: const Text(
-                                    "Ingresar con huella",
-                                    style: TextStyle(color: Colors.white),
+                              Padding(
+                                padding: const EdgeInsets.only(top: 15.0),
+                                child: SizedBox(
+                                  width: double.infinity,
+                                  child: ElevatedButton.icon(
+                                    style: ElevatedButton.styleFrom(
+                                      backgroundColor: Themes.primary,
+                                    ),
+                                    onPressed: _loginWithBiometrics,
+                                    icon: const Icon(Icons.fingerprint,
+                                        color: Colors.white),
+                                    label: const Text(
+                                      "Ingresar con huella",
+                                      style: TextStyle(color: Colors.white),
+                                    ),
                                   ),
                                 ),
                               ),
                           ],
                         ),
-
                       const SizedBox(height: 25.0),
-                      _buildDivider(),
+                      const LoginDivider(),
                       const SizedBox(height: 25.0),
-
-                      // Botón login Google
                       Row(
                         mainAxisAlignment: MainAxisAlignment.spaceEvenly,
                         children: [
                           GestureDetector(
-                            onTap: () async {
-                              if (_isLoading) return;
-                              try {
-                                setState(() => _isLoading = true);
-                                final authNotifier =
-                                    ref.read(authProvider.notifier);
-                                final isNewUser =
-                                    await authNotifier.signInWithGoogle();
-
-                                if (isNewUser && mounted) {
-                                  showDialog(
-                                    context: context,
-                                    builder: (_) => AlertDialog(
-                                      title: const Text('Cuenta no registrada'),
-                                      content: const Text(
-                                          'La cuenta no se encuentra registrada, será redireccionado al registro para crear la cuenta.'),
-                                      actions: [
-                                        TextButton(
-                                          onPressed: () {
-                                            Navigator.of(context).pop();
-                                            Navigator.pushReplacement(
-                                              context,
-                                              MaterialPageRoute(
-                                                  builder: (_) =>
-                                                      const RegisterScreen()),
-                                            );
-                                          },
-                                          child: const Text('Aceptar'),
-                                        ),
-                                      ],
-                                    ),
-                                  );
-                                }
-                              } catch (e) {
-                                _showErrorFeedback(e.toString());
-                              } finally {
-                                if (mounted) {
-                                  setState(() => _isLoading = false);
-                                }
-                              }
-                            },
+                            onTap: _handleGoogleSignIn,
                             child: Logo(Logos.google),
                           ),
                         ],
                       ),
-
                       const SizedBox(height: 25.0),
-                      _buildRegisterSection(),
+                      const RegisterLink(),
                     ],
                   ),
                 ),
@@ -315,72 +342,6 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
             ),
           ),
         ],
-      ),
-    );
-  }
-
-  /// Divider entre login tradicional y social login
-  Widget _buildDivider() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        Expanded(
-          child: Divider(
-            thickness: 0.7,
-            color: Colors.grey.withAlpha(50),
-          ),
-        ),
-        const Padding(
-          padding: EdgeInsets.symmetric(horizontal: 10),
-          child: Text('Login', style: TextStyle(color: Colors.black45)),
-        ),
-        Expanded(
-          child: Divider(
-            thickness: 0.7,
-            color: Colors.grey.withAlpha(50),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Sección para ir a registro
-  Widget _buildRegisterSection() {
-    return Row(
-      mainAxisAlignment: MainAxisAlignment.center,
-      children: [
-        const Text('¿No tienes cuenta?',
-            style: TextStyle(color: Colors.black45)),
-        GestureDetector(
-          onTap: () => Navigator.push(
-            context,
-            MaterialPageRoute(builder: (_) => const RegisterScreen()),
-          ),
-          child: Text(
-            'Registrarse',
-            style: TextStyle(
-              fontWeight: FontWeight.bold,
-              color: Themes.degradientLight,
-            ),
-          ),
-        ),
-      ],
-    );
-  }
-
-  /// Estilo inputs
-  InputDecoration _inputDecoration(String label, String hint) {
-    return InputDecoration(
-      label: Text(label),
-      hintText: hint,
-      hintStyle: const TextStyle(color: Colors.black26),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Colors.black12),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(10),
-        borderSide: const BorderSide(color: Colors.black12),
       ),
     );
   }

@@ -42,4 +42,9 @@ abstract class ErrorStrings {
   
   // Mensajes de éxito
   static const registrationSuccess = "Registro exitoso";
+
+  // 🔑 NUEVO: Mensajes específicos para restablecimiento de contraseña
+  static const passwordResetSuccess = "Hemos enviado un enlace para restablecer tu contraseña a tu correo electrónico. Si no lo encuentras en tu bandeja de entrada, revisa la carpeta de spam o correo no deseado.";
+  static const passwordResetFailed = "Error al enviar el enlace de restablecimiento";
+  static const passwordResetTooManyRequests = "Demasiados intentos. Intenta más tarde";
 }

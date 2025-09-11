@@ -374,4 +374,15 @@ class AuthNotifier extends StateNotifier<AuthState> {
       rethrow;
     }
   }
+
+  Future<void> sendPasswordResetEmail(String email) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email);
+    } on FirebaseAuthException catch (e) {
+      final message = AuthErrorHandler.handle(e);
+      throw Exception(message);
+    } catch (_) {
+      throw Exception(ErrorStrings.unexpectedError);
+    }
+  }
 }

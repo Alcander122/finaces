@@ -22,10 +22,10 @@ class AuthErrorHandler {
         return "Método no habilitado";
       case 'weak-password':
         return ErrorStrings.weakPassword;
+      case 'too-many-requests':
+        return ErrorStrings.passwordResetTooManyRequests;
       case 'network-request-failed':
         return ErrorStrings.networkError;
-      case 'too-many-requests':
-        return "Demasiados intentos. Intenta más tarde";
       case 'aborted-by-user':
         return "Proceso cancelado por el usuario";
       default:

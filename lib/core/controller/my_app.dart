@@ -15,64 +15,105 @@ class MyApp extends ConsumerStatefulWidget {
 }
 
 class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
+  // Temporizador para manejar la inactividad del usuario
   Timer? _inactivityTimer;
+
+  // Duración máxima de inactividad permitida (15 minutos)
   final Duration _timeoutDuration = const Duration(minutes: 15);
+
+  // Estado de inicialización de la aplicación
   bool _isAppInitialized = false;
+
+  // Clave global para controlar la navegación desde cualquier parte de la app
+  // Esto nos permite navegar sin necesidad de context
+  final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
     super.initState();
+    // Registrar este widget como observador del ciclo de vida de la app
     WidgetsBinding.instance.addObserver(this);
     _initializeApp();
   }
 
   @override
   void dispose() {
+    // Limpiar recursos al destruir el widget
     WidgetsBinding.instance.removeObserver(this);
     _inactivityTimer?.cancel();
     super.dispose();
   }
 
+  /// Inicializa la aplicación después de un breve retraso
   void _initializeApp() async {
     try {
+      // Esperar 500ms para simular procesos de inicialización
       await Future.delayed(const Duration(milliseconds: 500));
+
+      // Marcar la app como inicializada y comenzar el temporizador de inactividad
       setState(() {
         _isAppInitialized = true;
       });
+
       _startInactivityTimer();
     } catch (e) {
       debugPrint('Error en inicialización: $e');
+      // Asegurar que la app se muestre incluso si hay errores
       setState(() {
         _isAppInitialized = true;
       });
     }
   }
 
+  /// Maneja cambios en el ciclo de vida de la aplicación
+  /// (Ej.: cuando la app pasa a segundo plano y regresa)
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Cuando la app regresa al primer plano, reiniciar el temporizador
     if (state == AppLifecycleState.resumed) {
       _resetInactivityTimer();
     }
   }
 
+  /// Inicia o reinicia el temporizador de inactividad
   void _startInactivityTimer() {
+    // Cancelar cualquier temporizador existente
     _inactivityTimer?.cancel();
+
+    // Crear un nuevo temporizador que llamará a _handleInactivity después del tiempo límite
     _inactivityTimer = Timer(_timeoutDuration, _handleInactivity);
   }
 
+  /// Reinicia el temporizador de inactividad
   void _resetInactivityTimer() {
     _startInactivityTimer();
   }
 
+  /// Maneja la inactividad del usuario
+  /// En lugar de cerrar sesión, redirige al usuario a la pantalla de bienvenida
   void _handleInactivity() {
-    final authNotifier = ref.read(authProvider.notifier);
-    authNotifier.signOut();
+    // Verificación de seguridad: asegurar que el navigatorKey esté disponible
+    if (_navigatorKey.currentState != null) {
+      debugPrint(
+          '>>> [Inactividad] Redirigiendo al usuario a la pantalla de bienvenida');
+
+      // Redirigir al usuario a la pantalla de bienvenida y limpiar el stack de navegación
+      // Esto asegura que el usuario no pueda regresar a las pantallas anteriores
+      _navigatorKey.currentState!.pushNamedAndRemoveUntil(
+        AppRoutes.welcome,
+        (route) => false, // Elimina todas las rutas anteriores
+      );
+    }
   }
 
+  /// Construye la aplicación normal (después de la inicialización)
+  /// Envuelve la app con un Listener para detectar interacciones del usuario
   Widget _buildNormalApp(AuthState authState) {
     return Listener(
+      // Configurar para detectar cualquier toque en la pantalla
       behavior: HitTestBehavior.translucent,
       onPointerDown: (_) {
+        // Cualquier interacción del usuario reinicia el temporizador
         _resetInactivityTimer();
       },
       child: MaterialApp(
@@ -82,6 +123,8 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         builder: (context, child) {
           return child!;
         },
+        // Configurar la clave global para controlar la navegación
+        navigatorKey: _navigatorKey,
       ),
     );
   }
@@ -113,7 +156,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     // Manejo SEGURO del estado del tutorial con .when()
     return hasSeenTutorial.when(
       data: (hasSeen) {
-        // ✅ VERIFICACIÓN: Imprime el estado actual del tutorial y autenticación
+        // Imprimir estado para depuración
         debugPrint(
             '>>> [MyApp.build] Usuario autenticado: ${authState.isAuthenticated}');
         debugPrint('>>> [MyApp.build] ¿Ya vio el tutorial?: $hasSeen');
@@ -125,6 +168,8 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
             debugShowCheckedModeBanner: false,
             home: const TutorialScreen(),
             routes: AppRoutes.getRoutes(authState),
+            navigatorKey:
+                _navigatorKey, // Asegurar que el tutorial también use el mismo navigatorKey
           );
         }
 
@@ -148,6 +193,8 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
             ),
           ),
           routes: AppRoutes.getRoutes(authState),
+          navigatorKey:
+              _navigatorKey, // Asegurar que el loading también use el mismo navigatorKey
         );
       },
       error: (error, stackTrace) {
