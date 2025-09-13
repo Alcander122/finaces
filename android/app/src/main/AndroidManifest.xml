@@ -34,7 +34,7 @@
         android:label="BillNance"
         android:name="${applicationName}"
         android:icon="@mipmap/ic_launcher"
-        android:allowBackup="true"
+        android:allowBackup="false"
         android:supportsRtl="true"
         android:requestLegacyExternalStorage="false"
         android:largeHeap="false"

@@ -10,6 +10,7 @@ import 'package:finances/presentations/screens/Pagos/pagos_screen.dart';
 import 'package:finances/presentations/screens/Profile/profile_screen.dart';
 import 'package:finances/presentations/screens/Portafolio/portafolio_screen.dart';
 import 'package:finances/presentations/screens/Auth/welcome_screen.dart';
+import 'package:finances/presentations/screens/Tutorial/TutorialScreen.dart';
 import 'package:finances/presentations/screens/auth/app_blocked_screen.dart';
 import 'package:finances/presentations/screens/splash_screen.dart';
 import 'package:flutter/material.dart';
@@ -33,6 +34,7 @@ class AppRoutes {
   static const String splash = '/splash';
   static const String appBlocked = '/app-blocked';
   static const String pagos = '/pagos';
+  static const String tutorial = '/tutorial';
   static const String agregarPago = '/agregar-pago';
   static const String editarPago = '/editar-pago';
   static const String estadistica = '/Estadistica';
@@ -52,6 +54,9 @@ class AppRoutes {
 
       // appBlocked siempre debe mostrar AppBlockedScreen
       appBlocked: (context) => const AppBlockedScreen(),
+
+      // appBlocked siempre debe mostrar AppBlockedScreen
+      tutorial: (context) => const TutorialScreen(),
 
       // home siempre debe mostrar HomeScreen
       home: (context) => const HomeScreen(),

@@ -1,7 +1,6 @@
+// auth.services.dart
 // ignore_for_file: depend_on_referenced_packages
-
 import 'package:logger/logger.dart';
-
 import 'package:firebase_auth/firebase_auth.dart';
 
 class Authservices {
@@ -26,7 +25,6 @@ class Authservices {
           email: email, password: password);
     } on FirebaseAuthException catch (e, stack) {
       logger.e('Error saving token', error: e, stackTrace: stack);
-
       rethrow;
     }
   }

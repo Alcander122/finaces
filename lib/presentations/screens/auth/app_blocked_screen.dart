@@ -1,5 +1,5 @@
+// app_blocked_screen.dart
 // lib/presentations/screens/app_blocked_screen.dart
-
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/services/BiometricAuthService.dart';
@@ -9,7 +9,6 @@ import 'package:finances/presentations/theme/themes.dart';
 
 class AppBlockedScreen extends ConsumerStatefulWidget {
   const AppBlockedScreen({super.key});
-
   @override
   ConsumerState<AppBlockedScreen> createState() => _AppBlockedScreenState();
 }
@@ -21,12 +20,9 @@ class _AppBlockedScreenState extends ConsumerState<AppBlockedScreen> {
   Future<void> _authenticate() async {
     if (_isAuthenticating) return;
     setState(() => _isAuthenticating = true);
-
     final service = BiometricAuthService();
     final status = await service.authenticateWithStatus();
-
     setState(() => _isAuthenticating = false);
-
     switch (status) {
       case BiometricAuthStatus.success:
         // ✅ Huella correcta → ir al Home
@@ -38,7 +34,6 @@ class _AppBlockedScreenState extends ConsumerState<AppBlockedScreen> {
           );
         }
         break;
-
       case BiometricAuthStatus.canceled:
       case BiometricAuthStatus.failed:
         // ❗ Solo mostramos mensaje, NO desactivamos biometría, NO cerramos sesión.
@@ -51,7 +46,6 @@ class _AppBlockedScreenState extends ConsumerState<AppBlockedScreen> {
           );
         }
         break;
-
       case BiometricAuthStatus.notAvailable:
         // 🚨 Biometría realmente no disponible → pedimos login tradicional.
         if (mounted) {
@@ -79,7 +73,6 @@ class _AppBlockedScreenState extends ConsumerState<AppBlockedScreen> {
           );
         }
         break;
-
       case BiometricAuthStatus.error:
         // ❗ Error inesperado → sugerir reintentar.
         if (mounted) {
@@ -102,7 +95,6 @@ class _AppBlockedScreenState extends ConsumerState<AppBlockedScreen> {
     await ref
         .read(authProvider.notifier)
         .signOut(); // Cierra sesión en Firebase
-
     if (mounted) {
       Navigator.pushNamedAndRemoveUntil(
         context,
@@ -164,7 +156,11 @@ class _AppBlockedScreenState extends ConsumerState<AppBlockedScreen> {
               ),
               const SizedBox(height: 15),
               TextButton(
-                onPressed: () {
+                onPressed: () async {
+                  // 🔑 CLAVE: Antes de ir al login, cerramos la sesión actual
+                  // Esto permite iniciar sesión con otro usuario completamente
+                  await ref.read(authProvider.notifier).signOut();
+                  // Navegar a la pantalla de login
                   Navigator.pushNamedAndRemoveUntil(
                     context,
                     AppRoutes.login,

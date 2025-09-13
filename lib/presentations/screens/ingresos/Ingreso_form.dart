@@ -1,9 +1,14 @@
-// presentaciones/screens/ingresos/widgets/income_form_widget.dart
+// 📌 ingreso_form.dart
+// Formulario de Ingreso con diseño optimizado y responsivo
+// Mantiene el nombre de clase "IngresoFrom"
+
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:flutter/services.dart';
 import 'package:finances/core/data/models/ingreso.model.dart';
 import 'package:finances/core/data/utils/ingreso_validator.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
+import 'package:finances/presentations/theme/themes.dart';
 
 class IngresoFrom extends StatefulWidget {
   final Ingreso? ingreso;
@@ -18,11 +23,12 @@ class IngresoFrom extends StatefulWidget {
   });
 
   @override
-  State<IngresoFrom> createState() => _IncomeFormWidgetState();
+  State<IngresoFrom> createState() => _IngresoFromState();
 }
 
-class _IncomeFormWidgetState extends State<IngresoFrom> {
+class _IngresoFromState extends State<IngresoFrom> {
   final _formKey = GlobalKey<FormState>();
+
   final _conceptoController = TextEditingController();
   final _valorController = TextEditingController();
   final _fechaController = TextEditingController();
@@ -30,6 +36,7 @@ class _IncomeFormWidgetState extends State<IngresoFrom> {
   String? _quincena;
   String? _categoria;
   DateTime _fechaIngreso = DateTime.now();
+
   final IngresoValidator _validator = IngresoValidator();
 
   @override
@@ -39,11 +46,13 @@ class _IncomeFormWidgetState extends State<IngresoFrom> {
   }
 
   void _initializeForm() {
+    // Valores por defecto
     _quincena = 'Primera Quincena';
     _categoria = 'Salario';
     _fechaIngreso = DateTime.now();
     _fechaController.text = DateFormat('dd/MM/yyyy').format(_fechaIngreso);
 
+    // Si viene un ingreso ya guardado → llenar el formulario
     if (widget.ingreso != null) {
       final ingreso = widget.ingreso!;
       _fechaIngreso = ingreso.fechaIngreso;
@@ -67,63 +76,38 @@ class _IncomeFormWidgetState extends State<IngresoFrom> {
 
   @override
   Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        double fieldMaxWidth = constraints.maxWidth * 0.9;
-
-        return SingleChildScrollView(
-          child: Form(
-            key: _formKey,
-            child: Column(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                _buildFieldContainer(
-                  fieldMaxWidth,
-                  _buildFechaIngresoField(),
-                ),
-                const SizedBox(height: 12),
-                _buildFieldContainer(
-                  fieldMaxWidth,
-                  _buildQuincenaField(),
-                ),
-                const SizedBox(height: 12),
-                _buildFieldContainer(
-                  fieldMaxWidth,
-                  _buildCategoriaField(),
-                ),
-                const SizedBox(height: 12),
-                _buildFieldContainer(
-                  fieldMaxWidth,
-                  _buildConceptoField(),
-                ),
-                const SizedBox(height: 12),
-                _buildFieldContainer(
-                  fieldMaxWidth,
-                  _buildValorField(fieldMaxWidth),
-                ),
-                const SizedBox(height: 24),
-                Row(
-                  mainAxisAlignment: MainAxisAlignment.end,
-                  children: [
-                    TextButton(
-                      onPressed: () => widget.onCancel(),
-                      child: const Text('Cancelar'),
-                    ),
-                    const SizedBox(width: 16),
-                    ElevatedButton(
-                      onPressed: _saveForm,
-                      child: const Text('Guardar'),
-                    ),
-                  ],
-                ),
-              ],
-            ),
+    return SingleChildScrollView(
+      child: Container(
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+        decoration: BoxDecoration(
+          color: Themes.white,
+          borderRadius: BorderRadius.circular(16),
+        ),
+        child: Form(
+          key: _formKey,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch, // estira los campos
+            children: [
+              _buildFechaIngresoField(),
+              const SizedBox(height: 12),
+              _buildQuincenaField(),
+              const SizedBox(height: 12),
+              _buildCategoriaField(),
+              const SizedBox(height: 12),
+              _buildConceptoField(),
+              const SizedBox(height: 12),
+              _buildValorField(),
+              const SizedBox(height: 20),
+              _buildButtonsRow(), // fila con cancelar y guardar
+            ],
           ),
-        );
-      },
+        ),
+      ),
     );
   }
 
+  /// 📌 Campo: Fecha de ingreso
   Widget _buildFechaIngresoField() {
     return TextFormField(
       controller: _fechaController,
@@ -144,37 +128,44 @@ class _IncomeFormWidgetState extends State<IngresoFrom> {
       },
       decoration: InputDecoration(
         labelText: 'Fecha Ingreso',
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
         suffixIcon: const Icon(Icons.calendar_today),
-        border: const OutlineInputBorder(),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
       ),
     );
   }
 
+  /// 📌 Campo: Quincena / Periodo
   Widget _buildQuincenaField() {
     return DropdownButtonFormField<String>(
       initialValue: _quincena,
-      hint: const Text('Selecciona una quincena'),
+      isExpanded: true, // ✅ evita overflow si el texto es largo
+      decoration: InputDecoration(
+        labelText: 'Periodo',
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
       items: const ['Primera Quincena', 'Segunda Quincena', 'Diario', 'Mensual']
           .map((q) => DropdownMenuItem(value: q, child: Text(q)))
           .toList(),
       onChanged: (value) => setState(() => _quincena = value),
-      decoration: InputDecoration(
-        labelText: 'Periodo',
-        border: const OutlineInputBorder(),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-      ),
       validator: _validator.validateQuincena,
-      isExpanded: true,
     );
   }
 
+  /// 📌 Campo: Categoría
   Widget _buildCategoriaField() {
     return DropdownButtonFormField<String>(
-      value: _categoria,
-      hint: const Text('Selecciona una categoría'),
+      initialValue: _categoria,
+      isExpanded: true, // ✅ evita overflow
+      decoration: InputDecoration(
+        labelText: 'Categoría',
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
+      ),
       items: const [
         'Salario',
         'Bonificación',
@@ -185,83 +176,97 @@ class _IncomeFormWidgetState extends State<IngresoFrom> {
         'Otros'
       ].map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
       onChanged: (value) => setState(() => _categoria = value),
-      decoration: InputDecoration(
-        labelText: 'Categoría',
-        border: const OutlineInputBorder(),
-        isDense: true,
-        contentPadding: const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-      ),
       validator: _validator.validateCategoria,
-      isExpanded: true,
     );
   }
 
+  /// 📌 Campo: Concepto
   Widget _buildConceptoField() {
     return TextFormField(
       controller: _conceptoController,
-      keyboardType: TextInputType.multiline,
-      minLines: 3,
-      maxLines: null,
-      decoration: const InputDecoration(
+      decoration: InputDecoration(
         labelText: 'Concepto',
-        border: OutlineInputBorder(),
-        alignLabelWithHint: true,
-        isDense: true,
-        contentPadding: EdgeInsets.symmetric(vertical: 8, horizontal: 10),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+        ),
       ),
       validator: _validator.validateConcepto,
     );
   }
 
-  Widget _buildValorField(double maxWidth) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: maxWidth),
-      child: SizedBox(
-        width: double.infinity,
-        child: TextFormField(
-          controller: _valorController,
-          keyboardType: TextInputType.number,
-          decoration: InputDecoration(
-            labelText: 'Valor',
-            border: const OutlineInputBorder(),
-            isDense: true,
-            contentPadding:
-                const EdgeInsets.symmetric(vertical: 8, horizontal: 10),
-          ),
-          onChanged: (value) {
-            String cleanValue = value.replaceAll(RegExp(r'[^\d]'), '');
-            if (cleanValue.isEmpty) {
-              _valorController.text = '';
-              return;
-            }
-
-            int number = int.parse(cleanValue);
-            String formatted = UIHelpers.formatCurrency(number.toDouble());
-
-            if (formatted != _valorController.text) {
-              int cursorPosition = value.length - cleanValue.length;
-              _valorController.text = formatted;
-              _valorController.selection = TextSelection.collapsed(
-                  offset: formatted.length - cursorPosition);
-            }
-          },
-          validator: (value) {
-            String cleanValue = value?.replaceAll(RegExp(r'[^\d]'), '') ?? '';
-            return _validator
-                .validateValor(cleanValue.isEmpty ? null : cleanValue);
-          },
+  /// 📌 Campo: Valor
+  Widget _buildValorField() {
+    return TextFormField(
+      controller: _valorController,
+      keyboardType: TextInputType.number,
+      inputFormatters: [
+        FilteringTextInputFormatter.digitsOnly, // solo números
+      ],
+      decoration: InputDecoration(
+        labelText: 'Valor',
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
         ),
       ),
+      onChanged: (value) {
+        String cleanValue = value.replaceAll(RegExp(r'[^\d]'), '');
+        if (cleanValue.isEmpty) {
+          _valorController.text = '';
+          return;
+        }
+        int number = int.parse(cleanValue);
+        String formatted = UIHelpers.formatCurrency(number.toDouble());
+        if (formatted != _valorController.text) {
+          _valorController.text = formatted;
+          _valorController.selection =
+              TextSelection.collapsed(offset: formatted.length);
+        }
+      },
+      validator: (value) {
+        String cleanValue = value?.replaceAll(RegExp(r'[^\d]'), '') ?? '';
+        return _validator.validateValor(cleanValue.isEmpty ? null : cleanValue);
+      },
     );
   }
 
-  Widget _buildFieldContainer(double maxWidth, Widget child) {
-    return ConstrainedBox(
-      constraints: BoxConstraints(maxWidth: maxWidth),
-      child: child,
+  /// 📌 Botones: Cancelar y Guardar
+  Widget _buildButtonsRow() {
+    return Row(
+      children: [
+        Expanded(
+          child: OutlinedButton(
+            onPressed: () => widget.onCancel(),
+            style: OutlinedButton.styleFrom(
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text("Cancelar"),
+          ),
+        ),
+        const SizedBox(width: 12),
+        Expanded(
+          child: ElevatedButton(
+            onPressed: _saveForm,
+            style: ElevatedButton.styleFrom(
+              backgroundColor: Themes.primary,
+              padding: const EdgeInsets.symmetric(vertical: 16),
+              shape: RoundedRectangleBorder(
+                borderRadius: BorderRadius.circular(12),
+              ),
+            ),
+            child: const Text(
+              'Guardar',
+              style: TextStyle(color: Colors.white),
+            ),
+          ),
+        ),
+      ],
     );
   }
 
+  /// 📌 Guardar formulario
   void _saveForm() {
     if (!_formKey.currentState!.validate()) return;
 
@@ -274,8 +279,6 @@ class _IncomeFormWidgetState extends State<IngresoFrom> {
       return;
     }
 
-    int valorNumerico = int.parse(cleanValue);
-
     final ingreso = Ingreso(
       id: widget.ingreso?.id ??
           DateTime.now().millisecondsSinceEpoch.toString(),
@@ -284,7 +287,7 @@ class _IncomeFormWidgetState extends State<IngresoFrom> {
       quincena: _quincena!,
       categoria: _categoria!,
       concepto: _conceptoController.text,
-      valor: valorNumerico,
+      valor: int.parse(cleanValue),
     );
 
     widget.onSave(ingreso);

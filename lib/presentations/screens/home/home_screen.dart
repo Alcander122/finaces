@@ -406,8 +406,8 @@ class HomeScreen extends ConsumerWidget {
     final List<Map<String, dynamic>> tips = [
       {
         'icon': const Icon(FontAwesomeIcons.piggyBank, color: Colors.orange),
-        'title': 'Ahorros',
-        'description': 'Controla tus ahorros.',
+        'title': 'Metas',
+        'description': 'Gestiona tus metas de ahorro',
         'screen': AhorroScreen(),
       },
       {

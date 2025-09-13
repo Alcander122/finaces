@@ -1,3 +1,4 @@
+// tutorial_page_widget.dart (CORREGIDO Y COMENTADO)
 import 'package:flutter/material.dart';
 
 /// Widget reutilizable que representa una página del tutorial.
@@ -28,7 +29,7 @@ class TutorialPageWidget extends StatelessWidget {
             height: 120,
             decoration: BoxDecoration(
               color: iconColor.withValues(
-                  alpha: 0.2), // ✅ CORRECTO: withOpacity, no withValues
+                  alpha: 0.2), // ✅ CORRECTO: usamos withOpacity
               shape: BoxShape.circle,
             ),
             child: Icon(

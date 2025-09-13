@@ -1,3 +1,4 @@
+// tutorial_provider.dart (CORREGIDO Y COMENTADO)
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
@@ -8,11 +9,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 /// - Usa `ref.keepAlive()` para que NO se destruya al cerrar sesión.
 final tutorialProvider = FutureProvider<bool>((ref) async {
   final prefs = await SharedPreferences.getInstance();
-  final hasSeen = prefs.getBool('has_seen_tutorial') ?? false;
+  // CLAVE UNIFICADA: usamos 'tutorial_seen' igual que en AuthStorage
+  final hasSeen = prefs.getBool('tutorial_seen') ?? false;
   debugPrint(
       '>>> [tutorialProvider] Valor leído de SharedPreferences: $hasSeen');
 
-  // ✅ ¡CLAVE! Mantener el provider vivo incluso si no hay listeners
+  // ✅ Mantener el provider vivo incluso si no hay listeners
   ref.keepAlive();
 
   return hasSeen;
@@ -32,12 +34,13 @@ class OnboardingNotifier {
   /// Guarda en SharedPreferences que el usuario ya vio el tutorial.
   Future<void> markAsSeen() async {
     final prefs = await SharedPreferences.getInstance();
-    await prefs.setBool('has_seen_tutorial', true);
-    final savedValue = prefs.getBool('has_seen_tutorial');
+    // CLAVE UNIFICADA: usamos 'tutorial_seen' igual que en AuthStorage
+    await prefs.setBool('tutorial_seen', true);
+    final savedValue = prefs.getBool('tutorial_seen');
     debugPrint(
         '>>> [OnboardingNotifier.markAsSeen] Tutorial marcado como visto. Valor actual: $savedValue');
 
-    // ✅ ¡CLAVE! Invalidamos el provider para que se vuelva a leer el nuevo valor
+    // ✅ Invalidamos el provider para que se vuelva a leer el nuevo valor
     ref.invalidate(tutorialProvider);
   }
 }

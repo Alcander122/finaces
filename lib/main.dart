@@ -18,6 +18,11 @@ void main() async {
     // Inicializar Firebase
     await Firebase.initializeApp();
 
+    // 🔑 CLAVE: Configurar Firebase Auth para NO persistir la sesión localmente
+    // Esto asegura que al cerrar la app o desinstalarla, la sesión se borre completamente
+    // Persistence.NONE significa que Firebase no guardará ninguna sesión en el dispositivo
+    FirebaseAuth.instance.setPersistence(Persistence.NONE);
+
     // Configurar idioma para Firebase Auth (versión mejorada)
     FirebaseAuth.instance.setLanguageCode("es");
 
@@ -25,7 +30,7 @@ void main() async {
     await NotificationService().init();
 
     // Inicializar Facebook Auth
-   /* await FacebookAuth.i.webAndDesktopInitialize(
+    /* await FacebookAuth.i.webAndDesktopInitialize(
       appId: "642352742000792",
       cookie: true,
       xfbml: true,
