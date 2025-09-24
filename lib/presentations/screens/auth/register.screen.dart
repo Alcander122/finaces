@@ -1,5 +1,5 @@
+// register.screen.dart (MODIFICADO Y COMENTADO)
 import 'package:finances/core/data/providers/auth_provider.dart';
-import 'package:finances/core/data/services/user_service.dart';
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/core/errors/handlers/auth_error_handler.dart';
 import 'package:finances/presentations/theme/themes.dart';
@@ -7,57 +7,71 @@ import 'package:flutter/material.dart';
 import 'LoginScreen.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-import 'package:icons_plus/icons_plus.dart'; // This import provides the Logos class for social icons
+import 'package:icons_plus/icons_plus.dart';
 import 'package:finances/presentations/widgets/custom_scaffold.dart';
-import 'package:finances/presentations/screens/terms_acceptance.screen.dart'; // Importar la nueva pantalla
+import 'package:finances/presentations/screens/terms_acceptance.screen.dart';
 
-class RegisterScreen extends StatefulWidget {
+class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
+
   @override
-  State<RegisterScreen> createState() => _RegisterScreenState();
+  ConsumerState<RegisterScreen> createState() => _RegisterScreenState();
 }
 
-class _RegisterScreenState extends State<RegisterScreen> {
-  // Controladores de los campos
+class _RegisterScreenState extends ConsumerState<RegisterScreen> {
+  // Controladores de campos
   final TextEditingController _nameController = TextEditingController();
   final TextEditingController _usernameController = TextEditingController();
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final TextEditingController _confirmPasswordController =
       TextEditingController();
-  // Estados de visibilidad de contraseñas
+
+  // Estados
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
-  bool _isLoading = false; // Estado de carga
+  bool _isLoading = false;
   final _formSignupKey = GlobalKey<FormState>();
   bool agreePersonalData = false;
 
-  // Muestra SnackBars con mensajes
+  /// Mostrar mensajes tipo SnackBar
   void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: color),
     );
   }
 
-  // Lógica de registro con validaciones
+  /// Lógica de registro
   void register(BuildContext context) async {
     if (_isLoading) return;
     setState(() => _isLoading = true);
+
     try {
       if (_formSignupKey.currentState!.validate() && agreePersonalData) {
-        final userService = UserService();
-        await userService.registerUser(
-          name: _nameController.text,
-          displayName: _usernameController.text,
-          email: _emailController.text,
-          password: _passwordController.text,
+        final authNotifier = ref.read(authProvider.notifier);
+
+        // 🔹 Llamada al signUp del provider
+        await authNotifier.signUp(
+          _nameController.text.trim(),
+          _usernameController.text.trim(),
+          _emailController.text.trim(),
+          _passwordController.text.trim(),
         );
-        Navigator.pushAndRemoveUntil(
-          context,
-          MaterialPageRoute(builder: (context) => const LoginScreen()),
-          (route) => false,
-        );
+
+        // 🔹 Cerrar sesión inmediatamente después de registro
+        await FirebaseAuth.instance.signOut();
+
+        // 🔹 Mostrar mensaje de éxito
         _showSnackBar(ErrorStrings.registrationSuccess, Colors.green);
+
+        // 🔹 Redirigir al LoginScreen
+        if (mounted) {
+          Navigator.pushAndRemoveUntil(
+            context,
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+            (route) => false,
+          );
+        }
       } else if (!agreePersonalData) {
         _showSnackBar(ErrorStrings.termsNotAccepted, Colors.red);
       }
@@ -65,7 +79,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
       String errorMessage = AuthErrorHandler.handle(e);
       _showSnackBar(errorMessage, Colors.red);
     } catch (e) {
-      _showSnackBar('An unexpected error occurred.', Colors.red);
+      _showSnackBar('Ocurrió un error inesperado.', Colors.red);
     } finally {
       setState(() => _isLoading = false);
     }
@@ -73,23 +87,19 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // ❌ Eliminamos el listener de authProvider → ya no vamos directo al Home
     return CustomScaffold(
-      // LayoutBuilder permite obtener el tamaño de la pantalla
       child: LayoutBuilder(
         builder: (context, constraints) {
           return SingleChildScrollView(
             child: ConstrainedBox(
-              // Garantiza que el contenido tenga al menos la altura de la pantalla
               constraints: BoxConstraints(minHeight: constraints.maxHeight),
               child: IntrinsicHeight(
-                // Permite que Column use el espacio mínimo necesario sin desbordarse
                 child: Column(
                   children: [
-                    const SizedBox(height: 40), // Espacio superior opcional
-                    // Contenedor de formulario sin usar Expanded
+                    const SizedBox(height: 40),
                     Container(
-                      padding:
-                          const EdgeInsets.fromLTRB(25.0, 50.0, 25.0, 20.0),
+                      padding: const EdgeInsets.fromLTRB(25, 50, 25, 20),
                       decoration: const BoxDecoration(
                         color: Colors.white,
                         borderRadius: BorderRadius.only(
@@ -102,7 +112,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.center,
                           children: [
-                            // Título
+                            /// 🔹 Título
                             Text(
                               'Registrarse',
                               style: TextStyle(
@@ -112,250 +122,24 @@ class _RegisterScreenState extends State<RegisterScreen> {
                               ),
                             ),
                             const SizedBox(height: 40.0),
-                            // Nombre Completo
-                            TextFormField(
-                              controller: _nameController,
-                              validator: (value) => value?.isEmpty ?? true
-                                  ? ErrorStrings.requiredField
-                                  : null,
-                              decoration: _inputDecoration('Nombre Completo'),
-                            ),
-                            const SizedBox(height: 25.0),
-                            // Nombre Usuario
-                            TextFormField(
-                              controller: _usernameController,
-                              validator: (value) => value?.isEmpty ?? true
-                                  ? ErrorStrings.requiredField
-                                  : null,
-                              decoration: _inputDecoration('Nombre Usuario'),
-                            ),
-                            const SizedBox(height: 25.0),
-                            // Correo
-                            TextFormField(
-                              controller: _emailController,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return ErrorStrings.requiredField;
-                                }
-                                if (!_validateEmail(value)) {
-                                  return ErrorStrings.invalidEmail;
-                                }
-                                return null;
-                              },
-                              decoration: _inputDecoration('Correo'),
-                            ),
-                            const SizedBox(height: 25.0),
-                            // Contraseña
-                            TextFormField(
-                              controller: _passwordController,
-                              obscureText: !_isPasswordVisible,
-                              validator: (value) => value?.isEmpty ?? true
-                                  ? ErrorStrings.requiredField
-                                  : null,
-                              decoration:
-                                  _inputDecoration('Contraseña').copyWith(
-                                suffixIcon: IconButton(
-                                  icon: Icon(_isPasswordVisible
-                                      ? Icons.visibility
-                                      : Icons.visibility_off),
-                                  onPressed: () => setState(() =>
-                                      _isPasswordVisible = !_isPasswordVisible),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 25.0),
-                            // Confirmar contraseña
-                            TextFormField(
-                              controller: _confirmPasswordController,
-                              obscureText: !_isConfirmPasswordVisible,
-                              validator: (value) {
-                                if (value == null || value.isEmpty) {
-                                  return ErrorStrings.requiredField;
-                                }
-                                if (value != _passwordController.text) {
-                                  return ErrorStrings.passwordMismatch;
-                                }
-                                return null;
-                              },
-                              decoration:
-                                  _inputDecoration('Confirmar Contraseña')
-                                      .copyWith(
-                                suffixIcon: IconButton(
-                                  icon: Icon(
-                                    _isConfirmPasswordVisible
-                                        ? Icons.visibility
-                                        : Icons.visibility_off,
-                                  ),
-                                  onPressed: () => setState(() =>
-                                      _isConfirmPasswordVisible =
-                                          !_isConfirmPasswordVisible),
-                                ),
-                              ),
-                            ),
-                            const SizedBox(height: 25.0),
-                            // Checkbox de términos (minimalista pero con enlaces a términos completos)
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Checkbox(
-                                  value: agreePersonalData,
-                                  onChanged: (value) => setState(
-                                      () => agreePersonalData = value ?? false),
-                                  activeColor: Themes.degradientLight,
-                                ),
-                                Expanded(
-                                  child: RichText(
-                                    text: TextSpan(
-                                      style: const TextStyle(
-                                          color: Colors.black87, fontSize: 14),
-                                      children: [
-                                        const TextSpan(
-                                            text:
-                                                'Al registrarte, aceptas nuestros '),
-                                        WidgetSpan(
-                                          child: GestureDetector(
-                                            onTap: () =>
-                                                _showTermsDialog(context),
-                                            child: Text(
-                                              'Términos y Condiciones',
-                                              style: TextStyle(
-                                                color: Themes.degradientLight,
-                                                decoration:
-                                                    TextDecoration.underline,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                        const TextSpan(text: ' y '),
-                                        WidgetSpan(
-                                          child: GestureDetector(
-                                            onTap: () =>
-                                                _showPrivacyPolicyDialog(
-                                                    context),
-                                            child: Text(
-                                              'Política de Privacidad',
-                                              style: TextStyle(
-                                                color: Themes.degradientLight,
-                                                decoration:
-                                                    TextDecoration.underline,
-                                              ),
-                                            ),
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 25.0),
-                            // Botón de registro
-                            SizedBox(
-                              width: double.infinity,
-                              child: ElevatedButton(
-                                onPressed: () => register(context),
-                                child: _isLoading
-                                    ? const CircularProgressIndicator(
-                                        color: Colors.white,
-                                      )
-                                    : const Text('Registrar'),
-                              ),
-                            ),
-                            const SizedBox(height: 30.0),
-                            // Línea separadora
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                Expanded(
-                                  child: Divider(
-                                    color: Colors.grey.withValues(alpha: 0.5),
-                                    thickness: 0.7,
-                                  ),
-                                ),
-                                const Padding(
-                                  padding: EdgeInsets.symmetric(horizontal: 10),
-                                  child: Text('Iniciar sesión',
-                                      style: TextStyle(color: Colors.black45)),
-                                ),
-                                Expanded(
-                                  child: Divider(
-                                    color: Colors.grey.withValues(alpha: 0.5),
-                                    thickness: 0.7,
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 30.0),
-                            // Iconos redes sociales
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                              children: [
-                                Consumer(
-                                  builder: (context, ref, _) {
-                                    return GestureDetector(
-                                      onTap: () async {
-                                        try {
-                                          final authNotifier =
-                                              ref.read(authProvider.notifier);
-                                          // MODIFICADO: Ahora signInWithGoogle devuelve si es nuevo usuario
-                                          final isNewUser = await authNotifier
-                                              .signInWithGoogle();
 
-                                          if (isNewUser) {
-                                            // Si es usuario nuevo, mostrar pantalla de términos
-                                            Navigator.push(
-                                              context,
-                                              MaterialPageRoute(
-                                                builder: (_) =>
-                                                    TermsAcceptanceScreen(),
-                                              ),
-                                            );
-                                          } else {
-                                            // Mostrar mensaje de cuenta ya registrada
-                                            ScaffoldMessenger.of(context)
-                                                .showSnackBar(
-                                              const SnackBar(
-                                                content: Text(
-                                                    "Su cuenta ya se encuentra registrada."),
-                                              ),
-                                            );
-                                          }
-                                        } catch (e) {
-                                          _showSnackBar(
-                                              e.toString(), Colors.red);
-                                        }
-                                      },
-                                      child: Logo(Logos.google),
-                                    );
-                                  },
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 25.0),
-                            // Link a Login
-                            Row(
-                              mainAxisAlignment: MainAxisAlignment.center,
-                              children: [
-                                const Text('¿Ya tienes una cuenta? ',
-                                    style: TextStyle(color: Colors.black45)),
-                                GestureDetector(
-                                  onTap: () => Navigator.push(
-                                    context,
-                                    MaterialPageRoute(
-                                      builder: (_) => const LoginScreen(),
-                                    ),
-                                  ),
-                                  child: Text(
-                                    'Inicia sesión',
-                                    style: TextStyle(
-                                      color: Themes.degradientLight,
-                                      fontWeight: FontWeight.bold,
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            const SizedBox(height: 20.0),
+                            /// Campos del formulario
+                            _buildTextFields(),
+
+                            /// 🔹 Checkbox aceptar términos
+                            _buildTermsCheckbox(),
+
+                            /// 🔹 Botón de registro
+                            _buildRegisterButton(),
+
+                            /// 🔹 Línea separadora
+                            _buildDivider(),
+
+                            /// 🔹 Login con Google
+                            _buildGoogleLogin(),
+
+                            /// 🔹 Link a pantalla Login
+                            _buildLoginLink(),
                           ],
                         ),
                       ),
@@ -370,23 +154,234 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // Mostrar diálogo con términos y condiciones
+  // ------------------- Widgets reutilizables -------------------
+
+  Widget _buildTextFields() {
+    return Column(
+      children: [
+        TextFormField(
+          controller: _nameController,
+          validator: (value) =>
+              value?.isEmpty ?? true ? ErrorStrings.requiredField : null,
+          decoration: _inputDecoration('Nombre Completo'),
+        ),
+        const SizedBox(height: 25.0),
+        TextFormField(
+          controller: _usernameController,
+          validator: (value) =>
+              value?.isEmpty ?? true ? ErrorStrings.requiredField : null,
+          decoration: _inputDecoration('Nombre Usuario'),
+        ),
+        const SizedBox(height: 25.0),
+        TextFormField(
+          controller: _emailController,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return ErrorStrings.requiredField;
+            }
+            if (!_validateEmail(value)) {
+              return ErrorStrings.invalidEmail;
+            }
+            return null;
+          },
+          decoration: _inputDecoration('Correo'),
+        ),
+        const SizedBox(height: 25.0),
+        TextFormField(
+          controller: _passwordController,
+          obscureText: !_isPasswordVisible,
+          validator: (value) =>
+              value?.isEmpty ?? true ? ErrorStrings.requiredField : null,
+          decoration: _inputDecoration('Contraseña').copyWith(
+            suffixIcon: IconButton(
+              icon: Icon(
+                  _isPasswordVisible ? Icons.visibility : Icons.visibility_off),
+              onPressed: () =>
+                  setState(() => _isPasswordVisible = !_isPasswordVisible),
+            ),
+          ),
+        ),
+        const SizedBox(height: 25.0),
+        TextFormField(
+          controller: _confirmPasswordController,
+          obscureText: !_isConfirmPasswordVisible,
+          validator: (value) {
+            if (value == null || value.isEmpty) {
+              return ErrorStrings.requiredField;
+            }
+            if (value != _passwordController.text) {
+              return ErrorStrings.passwordMismatch;
+            }
+            return null;
+          },
+          decoration: _inputDecoration('Confirmar Contraseña').copyWith(
+            suffixIcon: IconButton(
+              icon: Icon(_isConfirmPasswordVisible
+                  ? Icons.visibility
+                  : Icons.visibility_off),
+              onPressed: () => setState(
+                  () => _isConfirmPasswordVisible = !_isConfirmPasswordVisible),
+            ),
+          ),
+        ),
+        const SizedBox(height: 25.0),
+      ],
+    );
+  }
+
+  Widget _buildTermsCheckbox() {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Checkbox(
+          value: agreePersonalData,
+          onChanged: (value) =>
+              setState(() => agreePersonalData = value ?? false),
+          activeColor: Themes.degradientLight,
+        ),
+        Expanded(
+          child: RichText(
+            text: TextSpan(
+              style: const TextStyle(color: Colors.black87, fontSize: 14),
+              children: [
+                const TextSpan(text: 'Al registrarte, aceptas nuestros '),
+                WidgetSpan(
+                  child: GestureDetector(
+                    onTap: () => _showTermsDialog(context),
+                    child: Text(
+                      'Términos y Condiciones',
+                      style: TextStyle(
+                        color: Themes.degradientLight,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ),
+                const TextSpan(text: ' y '),
+                WidgetSpan(
+                  child: GestureDetector(
+                    onTap: () => _showPrivacyPolicyDialog(context),
+                    child: Text(
+                      'Política de Privacidad',
+                      style: TextStyle(
+                        color: Themes.degradientLight,
+                        decoration: TextDecoration.underline,
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildRegisterButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton(
+        onPressed: () => register(context),
+        child: _isLoading
+            ? const CircularProgressIndicator(color: Colors.white)
+            : const Text('Registrar'),
+      ),
+    );
+  }
+
+  Widget _buildDivider() {
+    return Column(
+      children: [
+        const SizedBox(height: 30.0),
+        Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Expanded(
+              child: Divider(
+                color: Colors.grey.withValues(alpha: 0.5),
+                thickness: 0.7,
+              ),
+            ),
+            const Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child: Text('Iniciar sesión',
+                  style: TextStyle(color: Colors.black45)),
+            ),
+            Expanded(
+              child: Divider(
+                color: Colors.grey.withValues(alpha: 0.5),
+                thickness: 0.7,
+              ),
+            ),
+          ],
+        ),
+        const SizedBox(height: 30.0),
+      ],
+    );
+  }
+
+  Widget _buildGoogleLogin() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      children: [
+        GestureDetector(
+          onTap: () async {
+            try {
+              final authNotifier = ref.read(authProvider.notifier);
+              final isNewUser = await authNotifier.signInWithGoogle();
+              if (isNewUser) {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => TermsAcceptanceScreen()),
+                );
+              } else {
+                _showSnackBar(
+                    "Su cuenta ya se encuentra registrada.", Colors.blue);
+              }
+            } catch (e) {
+              _showSnackBar(e.toString(), Colors.red);
+            }
+          },
+          child: Logo(Logos.google),
+        ),
+      ],
+    );
+  }
+
+  Widget _buildLoginLink() {
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      children: [
+        const Text('¿Ya tienes una cuenta? ',
+            style: TextStyle(color: Colors.black45)),
+        GestureDetector(
+          onTap: () => Navigator.push(
+            context,
+            MaterialPageRoute(builder: (_) => const LoginScreen()),
+          ),
+          child: Text(
+            'Inicia sesión',
+            style: TextStyle(
+              color: Themes.degradientLight,
+              fontWeight: FontWeight.bold,
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  // ------------------- Utilidades -------------------
+
   void _showTermsDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(ErrorStrings.termsAndConditionsTitle),
         content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                ErrorStrings.termsAndConditionsContent,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ],
-          ),
+          child: Text(ErrorStrings.termsAndConditionsContent,
+              style: Theme.of(context).textTheme.bodyMedium),
         ),
         actions: [
           TextButton(
@@ -398,23 +393,14 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // Mostrar diálogo con política de privacidad
   void _showPrivacyPolicyDialog(BuildContext context) {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
         title: Text(ErrorStrings.privacyPolicyTitle),
         content: SingleChildScrollView(
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                ErrorStrings.privacyPolicyContent,
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-            ],
-          ),
+          child: Text(ErrorStrings.privacyPolicyContent,
+              style: Theme.of(context).textTheme.bodyMedium),
         ),
         actions: [
           TextButton(
@@ -426,7 +412,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // Decoración reutilizable para inputs
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
@@ -443,7 +428,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
-  // Validación de correo con regex
   bool _validateEmail(String email) {
     final RegExp emailRegex = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
     return emailRegex.hasMatch(email);

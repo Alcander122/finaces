@@ -1,4 +1,4 @@
-// auth_provider.dart (CORREGIDO Y COMENTADO)
+// auth_provider.dart (CORREGIDO - PERMITE PRIMER LOGIN SIN BIOMETRÍA)
 import 'package:finances/core/data/services/user_service.dart';
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/core/errors/handlers/auth_error_handler.dart';
@@ -55,24 +55,30 @@ class AuthState {
   final User? user;
   final bool isLoading;
   final String? error;
+
   const AuthState.initial()
       : user = null,
         isLoading = false,
         error = null;
+
   const AuthState.loading()
       : user = null,
         isLoading = true,
         error = null;
+
   const AuthState.authenticated(this.user)
       : isLoading = false,
         error = null;
+
   const AuthState.unauthenticated()
       : user = null,
         isLoading = false,
         error = null;
+
   const AuthState.error(this.error)
       : user = null,
         isLoading = false;
+
   String? get uid => user?.uid;
   bool get isAuthenticated => user != null;
 }
@@ -84,10 +90,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   final GoogleSignIn googleSignIn = GoogleSignIn();
   final AuthStorage _storage = AuthStorage();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   StreamSubscription<User?>? _authSubscription;
   bool _isProcessingDeletion = false;
-  bool _isLoggingIn =
-      false; // 🆕 NUEVO FLAG: Evita verificación de biometría durante login
+  bool _isLoggingIn = false; // 🆕 NUEVO FLAG: Evita verificación de biometría durante login/registro
+  // 🆕 FLAG: Detecta si es el primer login del usuario (eliminado porque no se usa)
 
   AuthNotifier() : super(const AuthState.initial()) {
     _initAuthListener();
@@ -109,28 +116,37 @@ class AuthNotifier extends StateNotifier<AuthState> {
         }
 
         if (user != null) {
-          // 🚨 CORRECCIÓN CLAVE: Si estamos en proceso de login (signIn, signUp, etc.),
+          // 🚨 CORRECCIÓN CLAVE: Si estamos en proceso de login o registro,
           // omitimos verificación de biometría para mantener la sesión
           if (_isLoggingIn) {
             await user.reload();
             state = AuthState.authenticated(user);
-            return; // No continuamos con la verificación
+            return; // Salimos aquí, sin verificar biometría
           }
 
-          // ✅ USAMOS BiometricAuthService PARA VERIFICAR BIOMETRÍA (PER USUARIO)
+          // ✅ Verificamos si es el primer login del usuario
+          final isFirstLogin = await _checkIfFirstLogin(user.uid);
+
+          // ✅ Verificamos biometría solo si NO estamos en proceso de login/registro
           final isBiometricsEnabled =
               await BiometricAuthService().isBiometricEnabled();
 
           if (isBiometricsEnabled) {
-            // 🛑 BIOMETRÍA ACTIVADA: Mantenemos la sesión en Firebase (state = authenticated)
+            // 🛑 BIOMETRÍA ACTIVADA: Mantenemos la sesión en Firebase
             await user.reload();
             state = AuthState.authenticated(user);
             debugPrint(
                 '🔒 Biometría activada: sesión mantenida pero bloqueada');
+          } else if (isFirstLogin) {
+            // ✅ PRIMER LOGIN: Permitimos la sesión aunque no haya biometría
+            await user.reload();
+            state = AuthState.authenticated(user);
+            debugPrint('🔓 Primer login: sesión mantenida sin biometría');
+            // Marcar como no primer login para futuras sesiones
+            await _markAsNotFirstLogin(user.uid);
           } else {
-            // 🚫 BIOMETRÍA DESACTIVADA: Cerramos sesión completamente
-            await _auth
-                .signOut(); // ⚠️ CLAVE: Esto elimina la sesión de Firebase
+            // 🚫 BIOMETRÍA DESACTIVADA Y NO ES PRIMER LOGIN: Cerramos sesión completamente
+            await _auth.signOut(); // ⚠️ Esto elimina la sesión de Firebase
             await googleSignIn.signOut(); // Limpia sesión de Google si existe
             state = const AuthState.unauthenticated();
             debugPrint('🔒 Sesión cerrada por falta de biometría activada');
@@ -170,13 +186,12 @@ class AuthNotifier extends StateNotifier<AuthState> {
       _isLoggingIn = true; // 🚨 ACTIVAR FLAG DURANTE LOGIN
       state = const AuthState.loading();
       await _storage.clearLoggedOut(); // Limpia estado de logout manual
+
       final userCredential = await _auth
           .signInWithEmailAndPassword(email: email, password: password)
           .timeout(const Duration(seconds: 15));
+
       await userCredential.user?.reload();
-      // ❌ ELIMINADO: No forzamos tutorial_seen = false aquí
-      // Ahora el estado por defecto es false (no visto), así que el tutorial se mostrará
-      // solo si es la primera vez que el usuario inicia sesión
     } on TimeoutException {
       state = AuthState.error('Tiempo de espera agotado');
       throw 'Tiempo de espera agotado';
@@ -196,15 +211,14 @@ class AuthNotifier extends StateNotifier<AuthState> {
       _isLoggingIn = true; // 🚨 ACTIVAR FLAG DURANTE REGISTRO
       state = const AuthState.loading();
       await _storage.clearLoggedOut();
+
+      // ✅ Usa UserService para registrar (esto crea el usuario y guarda en Firestore)
       await _userService.registerUser(
         name: name,
         displayName: displayName,
         email: email,
         password: password,
       );
-      // ❌ ELIMINADO: No forzamos tutorial_seen = false aquí
-      // El estado por defecto es false, así que el tutorial se mostrará
-      // solo si es la primera vez que el usuario inicia sesión
     } on FirebaseAuthException catch (e) {
       final message = AuthErrorHandler.handle(e);
       state = AuthState.error(message);
@@ -263,30 +277,37 @@ class AuthNotifier extends StateNotifier<AuthState> {
     try {
       _isLoggingIn = true; // 🚨 ACTIVAR FLAG DURANTE LOGIN CON GOOGLE
       state = const AuthState.loading();
+
       final GoogleSignIn googleSignIn = GoogleSignIn(
         scopes: ['email', 'profile'],
         forceCodeForRefreshToken: true,
       );
+
       await googleSignIn.signOut(); // forzar login limpio
       final googleUser =
           await googleSignIn.signIn().timeout(const Duration(seconds: 15));
+
       if (googleUser == null) {
         state = const AuthState.unauthenticated();
         throw Exception("Inicio cancelado");
       }
+
       final googleAuth = await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
       );
+
       final userCredential = await _auth
           .signInWithCredential(credential)
           .timeout(const Duration(seconds: 15));
+
       final user = userCredential.user;
       if (user == null) throw Exception("Usuario no encontrado");
+
       final exists = await _userService.userExists(user.uid);
       state = AuthState.authenticated(user);
-      // ❌ ELIMINADO: No forzamos tutorial_seen = false aquí
+
       return !exists; // devuelve true si es nuevo
     } on TimeoutException {
       state = AuthState.error('Tiempo de espera agotado');
@@ -331,4 +352,19 @@ class AuthNotifier extends StateNotifier<AuthState> {
   // 🎯 API para tutorial desde la UI
   Future<bool> checkTutorial() async => await _storage.isTutorialSeen();
   Future<void> markTutorialSeen() async => await _storage.setTutorialSeen(true);
+
+  // ✅ NUEVO: Verifica si es el primer login del usuario
+  Future<bool> _checkIfFirstLogin(String userId) async {
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    if (!userDoc.exists) return false;
+    final data = userDoc.data();
+    return data?['firstLogin'] == true;
+  }
+
+  // ✅ NUEVO: Marca al usuario como no primer login
+  Future<void> _markAsNotFirstLogin(String userId) async {
+    await _firestore.collection('users').doc(userId).update({
+      'firstLogin': false,
+    });
+  }
 }
