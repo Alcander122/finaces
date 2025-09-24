@@ -93,7 +93,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   StreamSubscription<User?>? _authSubscription;
   bool _isProcessingDeletion = false;
-  bool _isLoggingIn = false; // 🆕 NUEVO FLAG: Evita verificación de biometría durante login/registro
+  bool _isLoggingIn =
+      false; // 🆕 NUEVO FLAG: Evita verificación de biometría durante login/registro
   // 🆕 FLAG: Detecta si es el primer login del usuario (eliminado porque no se usa)
 
   AuthNotifier() : super(const AuthState.initial()) {
