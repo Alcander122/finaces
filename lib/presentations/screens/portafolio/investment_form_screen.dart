@@ -187,7 +187,7 @@ class InvestmentFormScreenState extends State<InvestmentFormScreen> {
 
               // Selector de Moneda
               DropdownButtonFormField<String>(
-                value: _selectedMoneda,
+                initialValue: _selectedMoneda,
                 items: ['COP', 'USD', 'EUR']
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
@@ -229,7 +229,7 @@ class InvestmentFormScreenState extends State<InvestmentFormScreen> {
 
               // Selector de Mes
               DropdownButtonFormField<String>(
-                value: _selectedMes,
+                initialValue: _selectedMes,
                 items: _meses
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
@@ -240,7 +240,7 @@ class InvestmentFormScreenState extends State<InvestmentFormScreen> {
 
               // Selector de Origen
               DropdownButtonFormField<String>(
-                value: _selectedOrigen,
+                initialValue: _selectedOrigen,
                 items: _origenes
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
@@ -251,7 +251,7 @@ class InvestmentFormScreenState extends State<InvestmentFormScreen> {
 
               // Selector de Activo
               DropdownButtonFormField<String>(
-                value: _selectedActivo,
+                initialValue: _selectedActivo,
                 items: _activos
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
@@ -262,7 +262,7 @@ class InvestmentFormScreenState extends State<InvestmentFormScreen> {
 
               // Selector de Estado
               DropdownButtonFormField<String>(
-                value: _selectedEstado,
+                initialValue: _selectedEstado,
                 items: ['Activo', 'Inactivo']
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),

@@ -1,5 +1,7 @@
+// LoginScreen.dart (CORREGIDO Y COMENTADO)
 // presentations/screens/auth/login_screen.dart
 import 'package:finances/core/data/providers/auth_provider.dart';
+import 'package:finances/core/data/providers/tutorial_provider.dart';
 import 'package:finances/core/data/services/BiometricAuthService.dart';
 import 'package:finances/core/data/utils/form_validators.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
@@ -15,18 +17,21 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:icons_plus/icons_plus.dart';
+import 'package:finances/routes/app_routes.dart'; // Importamos las rutas de la app
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
-
   @override
   LoginScreenState createState() => LoginScreenState();
 }
 
 class LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
-  final _passwordController = TextEditingController();
+  final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
+  // Estados de visibilidad de contraseñas
+  bool _isPasswordVisible = false;
+  bool isConfirmPasswordVisible = false;
   bool _isLoading = false;
   bool _biometricEnabled = false;
 
@@ -52,19 +57,29 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _loginWithCredentials() async {
     if (!_formKey.currentState!.validate() || _isLoading) return;
-
     setState(() => _isLoading = true);
     try {
       await ref.read(authProvider.notifier).signIn(
             _emailController.text.trim(),
             _passwordController.text.trim(),
           );
+
+      // ✅ CLAVE: Después de login exitoso, verificamos si el tutorial ya fue visto
+      final tutorialSeen = await ref.read(tutorialProvider.future);
+
       if (mounted) {
         UIHelpers.showSuccessSnackBarNew(
           context: context,
           message: 'Inicio de sesión exitoso',
         );
-        Navigator.pushReplacementNamed(context, '/home');
+
+        // Si el tutorial NO ha sido visto, mostramos el tutorial
+        // Si ya fue visto, vamos directo a home
+        if (tutorialSeen) {
+          Navigator.pushReplacementNamed(context, AppRoutes.home);
+        } else {
+          Navigator.pushReplacementNamed(context, AppRoutes.tutorial);
+        }
       }
     } catch (e) {
       _showErrorFeedback(e);
@@ -75,12 +90,17 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _loginWithBiometrics() async {
     if (_isLoading) return;
-
     setState(() => _isLoading = true);
     try {
       final success = await BiometricAuthService().authenticate(context);
       if (success && mounted) {
-        Navigator.pushReplacementNamed(context, '/home');
+        // ✅ CLAVE: Después de login biométrico, verificamos si el tutorial ya fue visto
+        final tutorialSeen = await ref.read(tutorialProvider.future);
+        if (tutorialSeen) {
+          Navigator.pushReplacementNamed(context, AppRoutes.home);
+        } else {
+          Navigator.pushReplacementNamed(context, AppRoutes.tutorial);
+        }
       }
     } catch (e) {
       _showErrorFeedback("Error con la autenticación biométrica");
@@ -91,13 +111,22 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
 
   Future<void> _handleGoogleSignIn() async {
     if (_isLoading) return;
-
     setState(() => _isLoading = true);
     try {
       final isNewUser =
           await ref.read(authProvider.notifier).signInWithGoogle();
       if (isNewUser && mounted) {
         _showNewUserDialog();
+      }
+
+      // ✅ CLAVE: Después de login con Google, verificamos si el tutorial ya fue visto
+      final tutorialSeen = await ref.read(tutorialProvider.future);
+      if (mounted) {
+        if (tutorialSeen) {
+          Navigator.pushReplacementNamed(context, AppRoutes.home);
+        } else {
+          Navigator.pushReplacementNamed(context, AppRoutes.tutorial);
+        }
       }
     } catch (e) {
       _showErrorFeedback(e.toString());
@@ -131,14 +160,12 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
 
   void _showErrorFeedback(Object error) {
     if (!mounted) return;
-
     String message;
     if (error is FirebaseAuthException) {
       message = AuthErrorHandler.handle(error);
     } else {
       message = error.toString();
     }
-
     UIHelpers.showErrorSnackBar(context: context, message: message);
   }
 
@@ -160,11 +187,9 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
       );
       return;
     }
-
     try {
       setState(() => _isLoading = true);
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
-
       if (mounted) {
         UIHelpers.showSuccessSnackBarNew(
           context: context,
@@ -220,7 +245,6 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
-
     return CustomScaffold(
       child: Column(
         children: [
@@ -272,11 +296,21 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                             const SizedBox(height: 25.0),
                             TextFormField(
                               controller: _passwordController,
-                              obscureText: true,
-                              obscuringCharacter: '•',
-                              validator: FormValidators.validatePassword,
-                              decoration:
-                                  _inputDecoration('Contraseña', '••••••••'),
+                              obscureText: !_isPasswordVisible,
+                              validator: (value) => value?.isEmpty ?? true
+                                  ? ErrorStrings.requiredField
+                                  : null,
+                              decoration: _inputDecoration(
+                                      'Contraseña', 'Ingrese su contraseña')
+                                  .copyWith(
+                                suffixIcon: IconButton(
+                                  icon: Icon(_isPasswordVisible
+                                      ? Icons.visibility
+                                      : Icons.visibility_off),
+                                  onPressed: () => setState(() =>
+                                      _isPasswordVisible = !_isPasswordVisible),
+                                ),
+                              ),
                             ),
                             const SizedBox(height: 15.0),
                             Align(

@@ -1,3 +1,4 @@
+// splash_screen.dart
 // lib/presentations/screens/splash_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -15,7 +16,6 @@ import 'package:finances/presentations/theme/themes.dart';
 ///    ❌ Cancelada/fallida → AppBlocked (no cerrar sesión todavía).
 class SplashScreen extends ConsumerStatefulWidget {
   const SplashScreen({super.key});
-
   @override
   ConsumerState<SplashScreen> createState() => _SplashScreenState();
 }
@@ -30,9 +30,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
   /// Verifica autenticación y decide la ruta inicial
   Future<void> _checkAuth() async {
     await Future.delayed(const Duration(milliseconds: 800)); // pequeña pausa
-
     final user = FirebaseAuth.instance.currentUser;
-
     if (user == null) {
       // 1️⃣ No hay usuario logueado → ir a Welcome
       _goTo(AppRoutes.welcome);
@@ -41,7 +39,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     // 2️⃣ Usuario logueado → revisar biometría
     final biometricEnabled = await BiometricAuthService().isBiometricEnabled();
-
     if (!biometricEnabled) {
       // ℹ️ Si biometría no está activada → ir al Home directamente
       _goTo(AppRoutes.home);
@@ -50,7 +47,6 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
     // 3️⃣ Si biometría está activada → pedir autenticación biométrica
     final success = await BiometricAuthService().authenticate(context);
-
     if (success) {
       // ✅ Huella correcta → ir al Home
       _goTo(AppRoutes.home);

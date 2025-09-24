@@ -1,3 +1,4 @@
+// my_app.dart
 import 'dart:async';
 import 'package:finances/core/data/providers/tutorial_provider.dart';
 import 'package:finances/presentations/screens/Tutorial/TutorialScreen.dart';
@@ -9,7 +10,6 @@ import 'package:finances/presentations/screens/splash_screen.dart';
 
 class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
-
   @override
   ConsumerState<MyApp> createState() => _MyAppState();
 }
@@ -17,13 +17,10 @@ class MyApp extends ConsumerStatefulWidget {
 class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   // Temporizador para manejar la inactividad del usuario
   Timer? _inactivityTimer;
-
   // Duración máxima de inactividad permitida (15 minutos)
   final Duration _timeoutDuration = const Duration(minutes: 15);
-
   // Estado de inicialización de la aplicación
   bool _isAppInitialized = false;
-
   // Clave global para controlar la navegación desde cualquier parte de la app
   // Esto nos permite navegar sin necesidad de context
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
@@ -49,12 +46,10 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     try {
       // Esperar 500ms para simular procesos de inicialización
       await Future.delayed(const Duration(milliseconds: 500));
-
       // Marcar la app como inicializada y comenzar el temporizador de inactividad
       setState(() {
         _isAppInitialized = true;
       });
-
       _startInactivityTimer();
     } catch (e) {
       debugPrint('Error en inicialización: $e');
@@ -79,7 +74,6 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   void _startInactivityTimer() {
     // Cancelar cualquier temporizador existente
     _inactivityTimer?.cancel();
-
     // Crear un nuevo temporizador que llamará a _handleInactivity después del tiempo límite
     _inactivityTimer = Timer(_timeoutDuration, _handleInactivity);
   }
@@ -96,7 +90,6 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     if (_navigatorKey.currentState != null) {
       debugPrint(
           '>>> [Inactividad] Redirigiendo al usuario a la pantalla de bienvenida');
-
       // Redirigir al usuario a la pantalla de bienvenida y limpiar el stack de navegación
       // Esto asegura que el usuario no pueda regresar a las pantallas anteriores
       _navigatorKey.currentState!.pushNamedAndRemoveUntil(
@@ -133,7 +126,6 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final hasSeenTutorial = ref.watch(tutorialProvider);
-
     // Si la app no está inicializada, mostrar splash screen
     if (!_isAppInitialized) {
       return MaterialApp(
@@ -152,7 +144,6 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         ),
       );
     }
-
     // Manejo SEGURO del estado del tutorial con .when()
     return hasSeenTutorial.when(
       data: (hasSeen) {
@@ -160,7 +151,6 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         debugPrint(
             '>>> [MyApp.build] Usuario autenticado: ${authState.isAuthenticated}');
         debugPrint('>>> [MyApp.build] ¿Ya vio el tutorial?: $hasSeen');
-
         // Si está autenticado y NO ha visto el tutorial → mostrar TutorialScreen
         if (authState.isAuthenticated && !hasSeen) {
           debugPrint('>>> [MyApp.build] MOSTRANDO TUTORIAL POR PRIMERA VEZ');
@@ -172,7 +162,6 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
                 _navigatorKey, // Asegurar que el tutorial también use el mismo navigatorKey
           );
         }
-
         debugPrint('>>> [MyApp.build] MOSTRANDO APP NORMAL');
         return _buildNormalApp(authState);
       },

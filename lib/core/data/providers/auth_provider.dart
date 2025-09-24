@@ -1,3 +1,4 @@
+// auth_provider.dart (CORREGIDO - PERMITE PRIMER LOGIN SIN BIOMETRÍA)
 import 'package:finances/core/data/services/user_service.dart';
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/core/errors/handlers/auth_error_handler.dart';
@@ -8,27 +9,15 @@ import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
+import 'package:finances/core/data/services/BiometricAuthService.dart'; // Import para BiometricAuthService
 
-/// Maneja almacenamiento local (token, estado de logout)
+/// 🚀 Maneja almacenamiento local (estado de logout y tutorial)
 class AuthStorage {
-  static const String _tokenKey = 'auth_token';
   static const String _loggedOutKey = 'user_logged_out';
+  static const String _tutorialKey =
+      'tutorial_seen'; // CLAVE UNIFICADA para el tutorial
 
-  Future<void> saveToken(String token) async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.setString(_tokenKey, token);
-  }
-
-  Future<void> deleteToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    await prefs.remove(_tokenKey);
-  }
-
-  Future<String?> getToken() async {
-    final prefs = await SharedPreferences.getInstance();
-    return prefs.getString(_tokenKey);
-  }
-
+  // 🚪 Estado de logout (para saber si el usuario cerró sesión manualmente)
   Future<void> setLoggedOut(bool value) async {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setBool(_loggedOutKey, value);
@@ -43,14 +32,25 @@ class AuthStorage {
     final prefs = await SharedPreferences.getInstance();
     await prefs.remove(_loggedOutKey);
   }
+
+  // 🎯 Control de tutorial (para mostrar el tutorial solo la primera vez)
+  Future<void> setTutorialSeen(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_tutorialKey, value);
+  }
+
+  Future<bool> isTutorialSeen() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_tutorialKey) ?? false;
+  }
 }
 
-/// Provider de autenticación para usar en toda la app
+/// 🌍 Provider de autenticación global
 final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
   return AuthNotifier();
 });
 
-/// Estado general de la autenticación
+/// 📌 Estado general de autenticación
 class AuthState {
   final User? user;
   final bool isLoading;
@@ -83,15 +83,18 @@ class AuthState {
   bool get isAuthenticated => user != null;
 }
 
-/// Controlador principal de autenticación
+/// 🔑 Controlador principal de autenticación
 class AuthNotifier extends StateNotifier<AuthState> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final UserService _userService = UserService();
   final GoogleSignIn googleSignIn = GoogleSignIn();
   final AuthStorage _storage = AuthStorage();
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+
   StreamSubscription<User?>? _authSubscription;
-  bool _isProcessingDeletion = false; // Para manejar el estado de eliminación
+  bool _isProcessingDeletion = false;
+  bool _isLoggingIn = false; // 🆕 NUEVO FLAG: Evita verificación de biometría durante login/registro
+  // 🆕 FLAG: Detecta si es el primer login del usuario (eliminado porque no se usa)
 
   AuthNotifier() : super(const AuthState.initial()) {
     _initAuthListener();
@@ -99,77 +102,91 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
   @override
   void dispose() {
-    // Cancelar suscripción para evitar memory leaks
     _authSubscription?.cancel();
     super.dispose();
   }
 
-  /// Escucha los cambios de sesión de Firebase con manejo mejorado
+  /// 👂 Escucha cambios de sesión de Firebase
   void _initAuthListener() {
     _authSubscription = _auth.authStateChanges().listen((User? user) async {
       try {
-        // Verificar si estamos procesando una eliminación
         if (_isProcessingDeletion && user == null) {
-          _isProcessingDeletion = false; // Resetear la bandera
-          debugPrint('Proceso de eliminación completado - Usuario eliminado');
+          _isProcessingDeletion = false;
+          debugPrint('✅ Usuario eliminado correctamente');
         }
 
         if (user != null) {
-          // Recargar usuario para obtener información actualizada
-          await user.reload();
-          final updatedUser = _auth.currentUser;
+          // 🚨 CORRECCIÓN CLAVE: Si estamos en proceso de login o registro,
+          // omitimos verificación de biometría para mantener la sesión
+          if (_isLoggingIn) {
+            await user.reload();
+            state = AuthState.authenticated(user);
+            return; // Salimos aquí, sin verificar biometría
+          }
 
-          if (updatedUser != null && updatedUser.uid == user.uid) {
-            final token = await updatedUser.getIdToken();
-            await _storage.saveToken(token ?? '');
-            state = AuthState.authenticated(updatedUser);
+          // ✅ Verificamos si es el primer login del usuario
+          final isFirstLogin = await _checkIfFirstLogin(user.uid);
+
+          // ✅ Verificamos biometría solo si NO estamos en proceso de login/registro
+          final isBiometricsEnabled =
+              await BiometricAuthService().isBiometricEnabled();
+
+          if (isBiometricsEnabled) {
+            // 🛑 BIOMETRÍA ACTIVADA: Mantenemos la sesión en Firebase
+            await user.reload();
+            state = AuthState.authenticated(user);
+            debugPrint(
+                '🔒 Biometría activada: sesión mantenida pero bloqueada');
+          } else if (isFirstLogin) {
+            // ✅ PRIMER LOGIN: Permitimos la sesión aunque no haya biometría
+            await user.reload();
+            state = AuthState.authenticated(user);
+            debugPrint('🔓 Primer login: sesión mantenida sin biometría');
+            // Marcar como no primer login para futuras sesiones
+            await _markAsNotFirstLogin(user.uid);
+          } else {
+            // 🚫 BIOMETRÍA DESACTIVADA Y NO ES PRIMER LOGIN: Cerramos sesión completamente
+            await _auth.signOut(); // ⚠️ Esto elimina la sesión de Firebase
+            await googleSignIn.signOut(); // Limpia sesión de Google si existe
+            state = const AuthState.unauthenticated();
+            debugPrint('🔒 Sesión cerrada por falta de biometría activada');
           }
         } else {
-          await _storage.deleteToken();
+          // Si no hay usuario, estado es unauthenticated
           state = const AuthState.unauthenticated();
         }
       } catch (error) {
-        debugPrint('Error en authStateChanges: $error');
-        // En caso de error, verificar manualmente el estado
+        debugPrint('⚠️ Error en authStateChanges: $error');
         checkAuthStatus();
       }
     }, onError: (error) {
-      debugPrint('Error en stream de autenticación: $error');
+      debugPrint('⚠️ Error en stream de auth: $error');
       state = AuthState.error(ErrorStrings.unexpectedError);
     });
   }
 
-  /// Verificar manualmente el estado de autenticación
+  /// 🔍 Verificar manualmente el estado (usado cuando hay errores en el listener)
   Future<void> checkAuthStatus() async {
     try {
       final user = _auth.currentUser;
       if (user != null) {
         await user.reload();
-        final token = await user.getIdToken();
-        await _storage.saveToken(token ?? '');
         state = AuthState.authenticated(user);
       } else {
-        await _storage.deleteToken();
         state = const AuthState.unauthenticated();
       }
-    } catch (error) {
-      debugPrint('Error al verificar estado de auth: $error');
+    } catch (_) {
       state = const AuthState.unauthenticated();
     }
   }
 
-  /// Login con email y contraseña con timeout
+  /// 📧 Login con email y contraseña
   Future<void> signIn(String email, String password) async {
     try {
+      _isLoggingIn = true; // 🚨 ACTIVAR FLAG DURANTE LOGIN
       state = const AuthState.loading();
-      await _storage.clearLoggedOut();
+      await _storage.clearLoggedOut(); // Limpia estado de logout manual
 
-      if (kIsWeb) {
-        await _auth.setPersistence(Persistence.LOCAL);
-        await _auth.setSettings(appVerificationDisabledForTesting: true);
-      }
-
-      // Timeout para evitar bloqueos infinitos
       final userCredential = await _auth
           .signInWithEmailAndPassword(email: email, password: password)
           .timeout(const Duration(seconds: 15));
@@ -182,23 +199,20 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final message = AuthErrorHandler.handle(e);
       state = AuthState.error(message);
       throw message;
-    } catch (_) {
-      state = AuthState.error(ErrorStrings.unexpectedError);
-      throw ErrorStrings.unexpectedError;
+    } finally {
+      _isLoggingIn = false; // 🚨 DESACTIVAR FLAG AL FINALIZAR
     }
   }
 
-  /// Registro con email y contraseña
+  /// 📝 Registro con email
   Future<void> signUp(
-    String name,
-    String displayName,
-    String email,
-    String password,
-  ) async {
+      String name, String displayName, String email, String password) async {
     try {
+      _isLoggingIn = true; // 🚨 ACTIVAR FLAG DURANTE REGISTRO
       state = const AuthState.loading();
       await _storage.clearLoggedOut();
 
+      // ✅ Usa UserService para registrar (esto crea el usuario y guarda en Firestore)
       await _userService.registerUser(
         name: name,
         displayName: displayName,
@@ -209,56 +223,32 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final message = AuthErrorHandler.handle(e);
       state = AuthState.error(message);
       throw message;
-    } catch (_) {
-      state = AuthState.error(ErrorStrings.unexpectedError);
-      throw ErrorStrings.unexpectedError;
+    } finally {
+      _isLoggingIn = false; // 🚨 DESACTIVAR FLAG AL FINALIZAR
     }
   }
 
-  /// Cierra la sesión
+  /// 🚪 Cerrar sesión
   Future<void> signOut() async {
     try {
       state = const AuthState.loading();
-
-      // 🧹 1. Limpiar storage
-      await _storage.setLoggedOut(true);
-      await _storage.deleteToken();
-
-      // 🚫 2. Cerrar sesión en Google (si aplica)
+      await _storage.setLoggedOut(true); // Marca como logout manual
       try {
-        await googleSignIn.signOut();
-      } catch (e) {
-        debugPrint('Google Sign-In no estaba activo o ya cerrado: $e');
-      }
-
-      // 🚫 3. Cerrar sesión en Firebase
-      await _auth.signOut();
-
-      // 🔄 4. Verificar que realmente se cerró
-      if (_auth.currentUser != null) {
-        debugPrint(
-            '⚠️ Firebase currentUser aún existe después de signOut(). Forzando cierre.');
-        await _auth.signOut();
-      }
-
-      // ✅ 5. Actualizar estado solo si realmente no hay usuario
+        await googleSignIn.signOut(); // Cierra sesión de Google
+      } catch (_) {}
+      await _auth.signOut(); // Cierra sesión de Firebase
       if (_auth.currentUser == null) {
         state = const AuthState.unauthenticated();
       } else {
-        debugPrint('❌ ERROR: No se pudo cerrar sesión en Firebase.');
-        state =
-            AuthState.error('No se pudo cerrar sesión. Inténtalo de nuevo.');
-        throw Exception('No se pudo cerrar sesión en Firebase.');
+        state = AuthState.error('No se pudo cerrar sesión');
       }
     } catch (e) {
-      debugPrint('Error en signOut: $e');
-      await _storage.deleteToken();
       state = AuthState.error(ErrorStrings.unexpectedError);
       rethrow;
     }
   }
 
-  /// Actualiza displayName en Firebase Auth y Firestore
+  /// ✏️ Actualiza displayName en Firebase + Firestore
   Future<void> updateDisplayName(String displayName) async {
     try {
       state = const AuthState.loading();
@@ -275,7 +265,6 @@ class AuthNotifier extends StateNotifier<AuthState> {
     }
   }
 
-  /// Actualiza displayName en Firestore
   Future<void> updateUserInFirestore(String userId, String displayName) async {
     await _firestore
         .collection('users')
@@ -283,9 +272,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
         .update({'displayName': displayName});
   }
 
-  /// LOGIN con Google con mejor manejo de tiempo
+  /// 🔑 Login con Google
   Future<bool> signInWithGoogle() async {
     try {
+      _isLoggingIn = true; // 🚨 ACTIVAR FLAG DURANTE LOGIN CON GOOGLE
       state = const AuthState.loading();
 
       final GoogleSignIn googleSignIn = GoogleSignIn(
@@ -293,19 +283,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
         forceCodeForRefreshToken: true,
       );
 
-      await googleSignIn.signOut();
-
-      final GoogleSignInAccount? googleUser =
+      await googleSignIn.signOut(); // forzar login limpio
+      final googleUser =
           await googleSignIn.signIn().timeout(const Duration(seconds: 15));
 
       if (googleUser == null) {
         state = const AuthState.unauthenticated();
-        throw Exception("Inicio de sesión cancelado");
+        throw Exception("Inicio cancelado");
       }
 
-      final GoogleSignInAuthentication googleAuth =
-          await googleUser.authentication;
-
+      final googleAuth = await googleUser.authentication;
       final credential = GoogleAuthProvider.credential(
         accessToken: googleAuth.accessToken,
         idToken: googleAuth.idToken,
@@ -316,73 +303,68 @@ class AuthNotifier extends StateNotifier<AuthState> {
           .timeout(const Duration(seconds: 15));
 
       final user = userCredential.user;
-      if (user == null) {
-        state = const AuthState.unauthenticated();
-        throw Exception("Usuario no encontrado");
-      }
+      if (user == null) throw Exception("Usuario no encontrado");
 
       final exists = await _userService.userExists(user.uid);
       state = AuthState.authenticated(user);
 
-      return !exists;
+      return !exists; // devuelve true si es nuevo
     } on TimeoutException {
       state = AuthState.error('Tiempo de espera agotado');
       throw Exception('Tiempo de espera agotado');
     } catch (e) {
       state = AuthState.error(ErrorStrings.unexpectedError);
-      debugPrint("Error en signInWithGoogle: $e");
       rethrow;
+    } finally {
+      _isLoggingIn = false; // 🚨 DESACTIVAR FLAG AL FINALIZAR
     }
   }
 
-  /// Elimina la cuenta del usuario actual - CORREGIDO
+  /// ❌ Eliminar cuenta
   Future<void> deleteAccount(String password) async {
     _isProcessingDeletion = true;
-
     try {
       state = const AuthState.loading();
-      debugPrint('Iniciando proceso de eliminación de cuenta');
-
-      // 1. Eliminar cuenta a través del servicio
       await _userService.deleteAccount(password);
-      debugPrint('Cuenta eliminada en servicios');
-
-      // 2. ¡CRÍTICO! Forzar cierre de sesión explícito con Firebase Auth
       await _auth.signOut();
-      debugPrint('Cierre de sesión explícito realizado');
-
-      // 3. Limpiar almacenamiento local
       await _storage.setLoggedOut(true);
-      await _storage.deleteToken();
-
-      // 4. Cerrar sesión en Google (si aplica)
       try {
         await googleSignIn.signOut();
-      } catch (e) {
-        debugPrint('Google Sign-In no estaba activo o ya cerrado: $e');
-      }
-
-      // 5. ¡CRÍTICO ABSOLUTO! Forzar actualización del estado a "unauthenticated"
-      // Esto es lo más importante - debemos actualizar el estado INMEDIATAMENTE
+      } catch (_) {}
       state = const AuthState.unauthenticated();
-      debugPrint('Estado ACTUALIZADO a unauthenticated');
     } catch (e) {
       _isProcessingDeletion = false;
-      state = AuthState.error(
-          "Error al eliminar cuenta. ¿Iniciaste sesión recientemente?");
-      debugPrint('Error en deleteAccount: $e');
+      state = AuthState.error("Error al eliminar cuenta");
       rethrow;
     }
   }
 
+  /// 📩 Enviar reset password
   Future<void> sendPasswordResetEmail(String email) async {
     try {
       await _auth.sendPasswordResetEmail(email: email);
     } on FirebaseAuthException catch (e) {
       final message = AuthErrorHandler.handle(e);
       throw Exception(message);
-    } catch (_) {
-      throw Exception(ErrorStrings.unexpectedError);
     }
+  }
+
+  // 🎯 API para tutorial desde la UI
+  Future<bool> checkTutorial() async => await _storage.isTutorialSeen();
+  Future<void> markTutorialSeen() async => await _storage.setTutorialSeen(true);
+
+  // ✅ NUEVO: Verifica si es el primer login del usuario
+  Future<bool> _checkIfFirstLogin(String userId) async {
+    final userDoc = await _firestore.collection('users').doc(userId).get();
+    if (!userDoc.exists) return false;
+    final data = userDoc.data();
+    return data?['firstLogin'] == true;
+  }
+
+  // ✅ NUEVO: Marca al usuario como no primer login
+  Future<void> _markAsNotFirstLogin(String userId) async {
+    await _firestore.collection('users').doc(userId).update({
+      'firstLogin': false,
+    });
   }
 }

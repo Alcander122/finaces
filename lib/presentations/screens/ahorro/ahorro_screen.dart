@@ -28,7 +28,7 @@ class AhorroScreenState extends State<AhorroScreen> {
     return Scaffold(
       backgroundColor: Themes.light,
       appBar: const AppBarFinances(
-        title: 'Ahorros',
+        title: 'Metas',
         showProfileIcon: false,
       ),
       // Permite que el contenido se ajuste cuando aparece el teclado
