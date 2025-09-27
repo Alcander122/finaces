@@ -1,14 +1,13 @@
-// app_blocked_screen.dart
 // lib/presentations/screens/app_blocked_screen.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/services/BiometricAuthService.dart';
-import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/routes/app_routes.dart';
 import 'package:finances/presentations/theme/themes.dart';
 
 class AppBlockedScreen extends ConsumerStatefulWidget {
   const AppBlockedScreen({super.key});
+
   @override
   ConsumerState<AppBlockedScreen> createState() => _AppBlockedScreenState();
 }
@@ -23,84 +22,51 @@ class _AppBlockedScreenState extends ConsumerState<AppBlockedScreen> {
     final service = BiometricAuthService();
     final status = await service.authenticateWithStatus();
     setState(() => _isAuthenticating = false);
+
+    if (!mounted) return;
+
     switch (status) {
       case BiometricAuthStatus.success:
         // ✅ Huella correcta → ir al Home
-        if (mounted) {
-          Navigator.pushNamedAndRemoveUntil(
-            context,
-            AppRoutes.home,
-            (r) => false,
-          );
-        }
+        Navigator.pushNamedAndRemoveUntil(
+          context,
+          AppRoutes.home,
+          (r) => false,
+        );
         break;
+
       case BiometricAuthStatus.canceled:
       case BiometricAuthStatus.failed:
-        // ❗ Solo mostramos mensaje, NO desactivamos biometría, NO cerramos sesión.
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Autenticación cancelada o fallida'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
+        // ❗ Solo mostramos mensaje, sin redirección
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Autenticación cancelada o fallida'),
+            backgroundColor: Colors.red,
+          ),
+        );
         break;
-      case BiometricAuthStatus.notAvailable:
-        // 🚨 Biometría realmente no disponible → pedimos login tradicional.
-        if (mounted) {
-          showDialog(
-            context: context,
-            builder: (_) => AlertDialog(
-              title: const Text('Biometría no disponible'),
-              content: const Text(
-                'No se encontró biometría disponible. Ingresa con correo y contraseña.',
-              ),
-              actions: [
-                TextButton(
-                  onPressed: () {
-                    Navigator.pop(context);
-                    Navigator.pushNamedAndRemoveUntil(
-                      context,
-                      AppRoutes.login,
-                      (r) => false,
-                    );
-                  },
-                  child: const Text('Ir al login'),
-                ),
-              ],
-            ),
-          );
-        }
-        break;
-      case BiometricAuthStatus.error:
-        // ❗ Error inesperado → sugerir reintentar.
-        if (mounted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Error en la autenticación. Intenta de nuevo.'),
-              backgroundColor: Colors.red,
-            ),
-          );
-        }
-        break;
-    }
-  }
 
-  /// Cierra sesión completamente y va a Welcome.
-  Future<void> signOut() async {
-    final biometricService = BiometricAuthService();
-    await biometricService
-        .clearBiometricSetting(); // Limpia configuración biométrica
-    await ref
-        .read(authProvider.notifier)
-        .signOut(); // Cierra sesión en Firebase
-    if (mounted) {
-      Navigator.pushNamedAndRemoveUntil(
-        context,
-        AppRoutes.welcome,
-        (r) => false,
-      );
+      case BiometricAuthStatus.notAvailable:
+        // ✅ MEJORA DE UX: Solo mostramos un SnackBar informativo
+        // ❌ NO mostramos AlertDialog ni redirigimos al login
+        // → El usuario decide si quiere usar "Ingresar con contraseña"
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('No has activado la autenticación biométrica.'),
+            backgroundColor: Colors.orange,
+            duration: Duration(seconds: 3),
+          ),
+        );
+        break;
+
+      case BiometricAuthStatus.error:
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Error en la autenticación. Intenta de nuevo.'),
+            backgroundColor: Colors.red,
+          ),
+        );
+        break;
     }
   }
 
@@ -155,12 +121,12 @@ class _AppBlockedScreenState extends ConsumerState<AppBlockedScreen> {
                       ),
               ),
               const SizedBox(height: 15),
+              // 🔑 BOTÓN CORREGIDO: Ya NO llama a signOut()
               TextButton(
-                onPressed: () async {
-                  // 🔑 CLAVE: Antes de ir al login, cerramos la sesión actual
-                  // Esto permite iniciar sesión con otro usuario completamente
-                  await ref.read(authProvider.notifier).signOut();
-                  // Navegar a la pantalla de login
+                onPressed: () {
+                  // ✅ Navegamos directamente al login
+                  // El usuario YA está deslogueado (eso se hizo al presionar "Salir")
+                  // No es necesario cerrar sesión otra vez.
                   Navigator.pushNamedAndRemoveUntil(
                     context,
                     AppRoutes.login,
