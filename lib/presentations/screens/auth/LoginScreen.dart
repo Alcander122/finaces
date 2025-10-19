@@ -1,4 +1,3 @@
-// LoginScreen.dart (CORREGIDO Y COMENTADO)
 // presentations/screens/auth/login_screen.dart
 import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/core/data/providers/tutorial_provider.dart';
@@ -17,7 +16,8 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:icons_plus/icons_plus.dart';
-import 'package:finances/routes/app_routes.dart'; // Importamos las rutas de la app
+import 'package:finances/routes/app_routes.dart';
+import 'package:shared_preferences/shared_preferences.dart'; // 🔥 Necesario para last_email
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -29,15 +29,18 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
   final _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
   final _formKey = GlobalKey<FormState>();
-  // Estados de visibilidad de contraseñas
   bool _isPasswordVisible = false;
   bool isConfirmPasswordVisible = false;
   bool _isLoading = false;
   bool _biometricEnabled = false;
 
+  // 🔥 NUEVO: Controla si el campo de correo está pre-rellenado con el último usuario
+  bool _isUsingLastEmail = false;
+
   @override
   void initState() {
     super.initState();
+    _loadLastEmail(); // 🔥 Cargar último correo al iniciar
     _checkBiometricStatus();
   }
 
@@ -46,6 +49,22 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     _emailController.dispose();
     _passwordController.dispose();
     super.dispose();
+  }
+
+  /// 🔥 Carga el último correo usado desde SharedPreferences
+  Future<void> _loadLastEmail() async {
+    final prefs = await SharedPreferences.getInstance();
+    final lastEmail = prefs.getString('last_email');
+    
+    // Si existe un último correo, lo pre-rellenamos
+    if (lastEmail != null && lastEmail.isNotEmpty) {
+      _emailController.text = lastEmail;
+      if (mounted) {
+        setState(() {
+          _isUsingLastEmail = true; // Marcamos que usamos el último correo
+        });
+      }
+    }
   }
 
   Future<void> _checkBiometricStatus() async {
@@ -64,7 +83,6 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
             _passwordController.text.trim(),
           );
 
-      // ✅ CLAVE: Después de login exitoso, verificamos si el tutorial ya fue visto
       final tutorialSeen = await ref.read(tutorialProvider.future);
 
       if (mounted) {
@@ -73,8 +91,6 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
           message: 'Inicio de sesión exitoso',
         );
 
-        // Si el tutorial NO ha sido visto, mostramos el tutorial
-        // Si ya fue visto, vamos directo a home
         if (tutorialSeen) {
           Navigator.pushReplacementNamed(context, AppRoutes.home);
         } else {
@@ -94,7 +110,6 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     try {
       final success = await BiometricAuthService().authenticate(context);
       if (success && mounted) {
-        // ✅ CLAVE: Después de login biométrico, verificamos si el tutorial ya fue visto
         final tutorialSeen = await ref.read(tutorialProvider.future);
         if (tutorialSeen) {
           Navigator.pushReplacementNamed(context, AppRoutes.home);
@@ -119,7 +134,6 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
         _showNewUserDialog();
       }
 
-      // ✅ CLAVE: Después de login con Google, verificamos si el tutorial ya fue visto
       final tutorialSeen = await ref.read(tutorialProvider.future);
       if (mounted) {
         if (tutorialSeen) {
@@ -286,10 +300,12 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                       else
                         Column(
                           children: [
+                            // 🔥 CAMPO DE CORREO: Deshabilitado si usamos último correo
                             TextFormField(
                               controller: _emailController,
                               keyboardType: TextInputType.emailAddress,
                               validator: FormValidators.validateEmail,
+                              enabled: !_isUsingLastEmail, // 🔥 ¡Clave!
                               decoration: _inputDecoration(
                                   'Correo', 'ejemplo@dominio.com'),
                             ),
@@ -334,6 +350,24 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                                 child: const Text('Ingresar'),
                               ),
                             ),
+                            // 🔥 BOTÓN PARA CAMBIAR DE CUENTA (solo si hay último correo)
+                            if (_isUsingLastEmail)
+                              Padding(
+                                padding: const EdgeInsets.only(top: 8.0),
+                                child: TextButton(
+                                  onPressed: () {
+                                    // Limpiar y habilitar edición
+                                    _emailController.clear();
+                                    setState(() {
+                                      _isUsingLastEmail = false;
+                                    });
+                                  },
+                                  child: const Text(
+                                    '¿Usar otra cuenta?',
+                                    style: TextStyle(color: Colors.blue),
+                                  ),
+                                ),
+                              ),
                             if (_biometricEnabled)
                               Padding(
                                 padding: const EdgeInsets.only(top: 15.0),
