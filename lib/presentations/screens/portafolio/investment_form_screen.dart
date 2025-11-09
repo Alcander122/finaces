@@ -5,18 +5,18 @@ import 'package:finances/core/data/utils/Portafolio_validator.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
+import 'package:finances/core/data/utils/ui_helpers.dart'; // Importa UIHelpers.
 
 class InvestmentFormScreen extends StatefulWidget {
   final String userId;
   final String portafolioId;
   final Investment? investment;
 
-  const InvestmentFormScreen({
-    super.key,
-    required this.userId,
-    required this.portafolioId,
-    this.investment,
-  });
+  const InvestmentFormScreen(
+      {super.key,
+      required this.userId,
+      required this.portafolioId,
+      this.investment});
 
   @override
   InvestmentFormScreenState createState() => InvestmentFormScreenState();
@@ -52,7 +52,6 @@ class InvestmentFormScreenState extends State<InvestmentFormScreen> {
     'Noviembre',
     'Diciembre'
   ];
-
   final List<String> _origenes = [
     'Ahorros',
     'Salario',
@@ -69,7 +68,6 @@ class InvestmentFormScreenState extends State<InvestmentFormScreen> {
   @override
   void initState() {
     super.initState();
-
     _selectedMoneda = 'COP';
     _selectedMes = _meses[DateTime.now().month - 1];
     _selectedOrigen = _origenes[0];
@@ -87,25 +85,20 @@ class InvestmentFormScreenState extends State<InvestmentFormScreen> {
       _selectedEstado = widget.investment!.estado;
       _selectedFechaInversion = widget.investment!.fechaInversion;
     }
-
     _montoController.addListener(_updateConversion);
     _updateConversion();
   }
 
   Future<void> _updateConversion() async {
     final monto = double.tryParse(_montoController.text) ?? 0;
-
-    // Tasa de conversión fija para COP a USD (1 COP = 0.0003 USD)
-    const tasaCOPtoUSD = 0.0003;
-    const tasaUSDtoCOP = 1 / tasaCOPtoUSD;
+    const tasaCOPtoUSD = 0.00025; // Aproximado para octubre 2025.
+    const tasaUSDtoCOP = 4000.0;
 
     setState(() {
       if (_selectedMoneda == 'COP') {
-        // Convertir de COP a USD
         _tasaConversion = tasaCOPtoUSD;
         _montoConvertido = monto * _tasaConversion;
       } else {
-        // Convertir de USD a COP
         _tasaConversion = tasaUSDtoCOP;
         _montoConvertido = monto * _tasaConversion;
       }
@@ -114,16 +107,12 @@ class InvestmentFormScreenState extends State<InvestmentFormScreen> {
 
   Future<void> _selectFechaInversion(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: _selectedFechaInversion,
-      firstDate: DateTime(1900),
-      lastDate: DateTime(2100),
-    );
-    if (picked != null && picked != _selectedFechaInversion) {
-      setState(() {
-        _selectedFechaInversion = picked;
-      });
-    }
+        context: context,
+        initialDate: _selectedFechaInversion,
+        firstDate: DateTime(1900),
+        lastDate: DateTime(2100));
+    if (picked != null && picked != _selectedFechaInversion)
+      setState(() => _selectedFechaInversion = picked);
   }
 
   Future<void> _guardarInversion() async {
@@ -150,9 +139,9 @@ class InvestmentFormScreenState extends State<InvestmentFormScreen> {
         await InvestmentService().actualizarInvestment(widget.userId,
             widget.portafolioId, widget.investment!.id, investment);
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Inversión guardada correctamente')),
-      );
+      UIHelpers.showSuccessSnackBarNew(
+          context: context,
+          message: 'Inversión guardada correctamente'); // Usa SnackBar.
       Navigator.pop(context);
     }
   }
@@ -161,129 +150,100 @@ class InvestmentFormScreenState extends State<InvestmentFormScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text(
-            widget.investment == null ? "Nueva Inversión" : "Editar Inversión"),
-      ),
+          title: Text(widget.investment == null
+              ? "Nueva Inversión"
+              : "Editar Inversión")),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
-              // Campo de Monto
               TextFormField(
-                controller: _montoController,
-                decoration: const InputDecoration(labelText: 'Monto'),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Ingrese un monto';
-                  final amount = double.tryParse(value);
-                  if (amount == null) return 'Monto inválido';
-                  if (amount <= 0) return 'Monto debe ser positivo';
-                  return null;
-                },
-              ),
+                  controller: _montoController,
+                  decoration: const InputDecoration(labelText: 'Monto'),
+                  keyboardType: TextInputType.numberWithOptions(decimal: true),
+                  validator: (value) {
+                    if (value == null || value.isEmpty)
+                      return 'Ingrese un monto';
+                    final amount = double.tryParse(value);
+                    if (amount == null) return 'Monto inválido';
+                    if (amount <= 0) return 'Monto debe ser positivo';
+                    return null;
+                  }),
               const SizedBox(height: 10),
-
-              // Selector de Moneda
               DropdownButtonFormField<String>(
-                initialValue: _selectedMoneda,
-                items: ['COP', 'USD', 'EUR']
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (value) async {
-                  setState(() => _selectedMoneda = value!);
-                  await _updateConversion();
-                },
-                decoration: const InputDecoration(labelText: 'Moneda'),
-              ),
+                  initialValue: _selectedMoneda,
+                  items: ['COP', 'USD', 'EUR']
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                  onChanged: (value) {
+                    setState(() => _selectedMoneda = value!);
+                    _updateConversion();
+                  },
+                  decoration: const InputDecoration(labelText: 'Moneda')),
               const SizedBox(height: 10),
-
-              // Tasa de conversión
               Text(
-                'Tasa de conversión: 1 $_selectedMoneda = ${_tasaConversion.toStringAsFixed(4)} ${_selectedMoneda == 'COP' ? 'USD' : 'COP'}',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-              ),
+                  'Tasa de conversión: 1 $_selectedMoneda = ${_tasaConversion.toStringAsFixed(4)} ${_selectedMoneda == 'COP' ? 'USD' : 'COP'}',
+                  style: TextStyle(fontSize: 14, color: Colors.grey[600])),
               const SizedBox(height: 10),
-
-              // Monto convertido (con decimales)
               Text(
-                'Monto convertido: ${_montoConvertido.toStringAsFixed(2)} ${_selectedMoneda == 'COP' ? 'USD' : 'COP'}',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-              ),
+                  'Monto convertido: ${UIHelpers.formatCurrency(_montoConvertido)} ${_selectedMoneda == 'COP' ? 'USD' : 'COP'}',
+                  style: TextStyle(
+                      fontSize: 14, color: Colors.grey[600])), // Usa UIHelpers.
               const SizedBox(height: 10),
-
-              // Selector de Fecha de Inversión
               InkWell(
-                onTap: () => _selectFechaInversion(context),
-                child: InputDecorator(
-                  decoration:
-                      const InputDecoration(labelText: 'Fecha de Inversión'),
-                  child: Text(
-                    DateFormat('dd/MM/yyyy').format(_selectedFechaInversion),
-                    style: const TextStyle(fontSize: 16),
-                  ),
-                ),
-              ),
+                  onTap: () => _selectFechaInversion(context),
+                  child: InputDecorator(
+                      decoration: const InputDecoration(
+                          labelText: 'Fecha de Inversión'),
+                      child: Text(
+                          DateFormat('dd/MM/yyyy')
+                              .format(_selectedFechaInversion),
+                          style: const TextStyle(fontSize: 16)))),
               const SizedBox(height: 10),
-
-              // Selector de Mes
               DropdownButtonFormField<String>(
-                initialValue: _selectedMes,
-                items: _meses
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (value) => setState(() => _selectedMes = value!),
-                decoration: const InputDecoration(labelText: 'Mes'),
-              ),
+                  initialValue: _selectedMes,
+                  items: _meses
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                  onChanged: (value) => setState(() => _selectedMes = value!),
+                  decoration: const InputDecoration(labelText: 'Mes')),
               const SizedBox(height: 10),
-
-              // Selector de Origen
               DropdownButtonFormField<String>(
-                initialValue: _selectedOrigen,
-                items: _origenes
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (value) => setState(() => _selectedOrigen = value!),
-                decoration: const InputDecoration(labelText: 'Origen'),
-              ),
+                  initialValue: _selectedOrigen,
+                  items: _origenes
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                  onChanged: (value) =>
+                      setState(() => _selectedOrigen = value!),
+                  decoration: const InputDecoration(labelText: 'Origen')),
               const SizedBox(height: 10),
-
-              // Selector de Activo
               DropdownButtonFormField<String>(
-                initialValue: _selectedActivo,
-                items: _activos
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (value) => setState(() => _selectedActivo = value!),
-                decoration: const InputDecoration(labelText: 'Activo'),
-              ),
+                  initialValue: _selectedActivo,
+                  items: _activos
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                  onChanged: (value) =>
+                      setState(() => _selectedActivo = value!),
+                  decoration: const InputDecoration(labelText: 'Activo')),
               const SizedBox(height: 10),
-
-              // Selector de Estado
               DropdownButtonFormField<String>(
-                initialValue: _selectedEstado,
-                items: ['Activo', 'Inactivo']
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (value) => setState(() => _selectedEstado = value!),
-                decoration: const InputDecoration(labelText: 'Estado'),
-              ),
+                  initialValue: _selectedEstado,
+                  items: ['Activo', 'Inactivo']
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                  onChanged: (value) =>
+                      setState(() => _selectedEstado = value!),
+                  decoration: const InputDecoration(labelText: 'Estado')),
               const SizedBox(height: 10),
-
-              // Campo de Descripción
               TextFormField(
-                controller: _descripcionController,
-                decoration: const InputDecoration(labelText: 'Descripción'),
-                maxLength: 100,
-              ),
+                  controller: _descripcionController,
+                  decoration: const InputDecoration(labelText: 'Descripción'),
+                  maxLength: 100),
               const SizedBox(height: 20),
-
-              // Botón de Guardar
               ElevatedButton(
-                onPressed: _guardarInversion,
-                child: const Text('Guardar'),
-              ),
+                  onPressed: _guardarInversion, child: const Text('Guardar')),
             ],
           ),
         ),

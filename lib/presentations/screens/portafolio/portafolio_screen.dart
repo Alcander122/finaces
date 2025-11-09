@@ -9,7 +9,7 @@ import 'package:finances/presentations/screens/portafolio/portafolio_form_screen
 import 'package:finances/presentations/screens/portafolio/widgets/portafolio_chart.dart';
 import 'package:finances/core/data/services/portafolio_service.dart';
 import 'package:finances/presentations/theme/themes.dart';
-import 'package:intl/intl.dart';
+import 'package:finances/core/data/utils/ui_helpers.dart'; // Importa UIHelpers.
 
 class PortafolioScreen extends ConsumerWidget {
   const PortafolioScreen({super.key});
@@ -17,16 +17,10 @@ class PortafolioScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = FirebaseAuth.instance.currentUser;
-    final formatter = NumberFormat.currency(
-      locale: 'es_CO',
-      symbol: '\$',
-      decimalDigits: 2,
-    );
 
     if (user == null) {
       return const Scaffold(
-        body: Center(child: Text("Debe iniciar sesión primero")),
-      );
+          body: Center(child: Text("Debe iniciar sesión primero")));
     }
 
     final portafolios = ref.watch(portafoliosProvider(user.uid));
@@ -35,19 +29,15 @@ class PortafolioScreen extends ConsumerWidget {
     return Scaffold(
       backgroundColor: Themes.light,
       appBar: const AppBarFinances(
-        title: 'Mis Portafolios',
-        showProfileIcon: false,
-      ),
+          title: 'Mis Portafolios', showProfileIcon: false),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
       floatingActionButton: Padding(
         padding: const EdgeInsets.only(bottom: 8.0),
         child: FloatingActionButton(
           onPressed: () => Navigator.push(
-            context,
-            MaterialPageRoute(
-              builder: (_) => PortafolioFormScreen(userId: user.uid),
-            ),
-          ),
+              context,
+              MaterialPageRoute(
+                  builder: (_) => PortafolioFormScreen(userId: user.uid))),
           child: const Icon(Icons.add),
         ),
       ),
@@ -57,37 +47,28 @@ class PortafolioScreen extends ConsumerWidget {
             return Column(
               children: [
                 PortafolioChart(
-                  investments: investmentsList,
-                  portfolios: portafoliosList,
-                ),
+                    investments: investmentsList, portfolios: portafoliosList),
                 Expanded(
                   child: portafoliosList.isEmpty
                       ? const Center(
-                          child: Text(
-                            'No tienes portafolios registrados.',
-                            style: TextStyle(color: Colors.grey),
-                          ),
-                        )
+                          child: Text('No tienes portafolios registrados.',
+                              style: TextStyle(color: Colors.grey)))
                       : Padding(
                           padding: const EdgeInsets.all(16.0),
                           child: Container(
                             decoration: BoxDecoration(
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(16),
-                            ),
+                                color: Colors.white,
+                                borderRadius: BorderRadius.circular(16)),
                             child: ListView.separated(
-                              padding: const EdgeInsets.only(
-                                top: 8,
-                                bottom: 80,
-                              ),
+                              padding:
+                                  const EdgeInsets.only(top: 8, bottom: 80),
                               itemCount: portafoliosList.length,
                               separatorBuilder: (_, __) => const Divider(
-                                height: 1,
-                                thickness: 0.5,
-                                color: Colors.grey,
-                                indent: 16,
-                                endIndent: 16,
-                              ),
+                                  height: 1,
+                                  thickness: 0.5,
+                                  color: Colors.grey,
+                                  indent: 16,
+                                  endIndent: 16),
                               itemBuilder: (context, index) {
                                 final portafolio = portafoliosList[index];
                                 final total = investmentsList
@@ -100,13 +81,11 @@ class PortafolioScreen extends ConsumerWidget {
                                   color: Colors.transparent,
                                   child: InkWell(
                                     onTap: () => Navigator.push(
-                                      context,
-                                      MaterialPageRoute(
-                                        builder: (_) => PortafolioDetailScreen(
-                                          portafolio: portafolio,
-                                        ),
-                                      ),
-                                    ),
+                                        context,
+                                        MaterialPageRoute(
+                                            builder: (_) =>
+                                                PortafolioDetailScreen(
+                                                    portafolio: portafolio))),
                                     child: Padding(
                                       padding: const EdgeInsets.symmetric(
                                           horizontal: 16.0, vertical: 12.0),
@@ -120,30 +99,26 @@ class PortafolioScreen extends ConsumerWidget {
                                               crossAxisAlignment:
                                                   CrossAxisAlignment.start,
                                               children: [
-                                                Text(
-                                                  portafolio.nombre,
-                                                  style: const TextStyle(
-                                                    fontSize: 15,
-                                                    fontWeight: FontWeight.w600,
-                                                    color: Colors.black87,
-                                                  ),
-                                                ),
+                                                Text(portafolio.nombre,
+                                                    style: const TextStyle(
+                                                        fontSize: 15,
+                                                        fontWeight:
+                                                            FontWeight.w600,
+                                                        color: Colors.black87)),
                                                 const SizedBox(height: 2),
                                                 Text(
-                                                  'Total: ${formatter.format(total)}',
-                                                  style: const TextStyle(
-                                                    fontSize: 13,
-                                                    color: Colors.grey,
-                                                  ),
-                                                ),
+                                                    'Total: ${UIHelpers.formatCurrency(total)}',
+                                                    style: const TextStyle(
+                                                        fontSize: 13,
+                                                        color: Colors
+                                                            .grey)), // Usa UIHelpers.
                                               ],
                                             ),
                                           ),
                                           IconButton(
                                             icon: const Icon(
-                                              Icons.delete_outline,
-                                              color: Colors.redAccent,
-                                            ),
+                                                Icons.delete_outline,
+                                                color: Colors.redAccent),
                                             onPressed: () async {
                                               final confirm =
                                                   await showDialog<bool>(
@@ -156,23 +131,20 @@ class PortafolioScreen extends ConsumerWidget {
                                                       "¿Deseas eliminar este portafolio?"),
                                                   actions: [
                                                     TextButton(
-                                                      onPressed: () =>
-                                                          Navigator.pop(
-                                                              context, false),
-                                                      child: const Text(
-                                                          "Cancelar"),
-                                                    ),
+                                                        onPressed: () =>
+                                                            Navigator.pop(
+                                                                context, false),
+                                                        child: const Text(
+                                                            "Cancelar")),
                                                     TextButton(
-                                                      onPressed: () =>
-                                                          Navigator.pop(
-                                                              context, true),
-                                                      child: const Text(
-                                                          "Eliminar"),
-                                                    ),
+                                                        onPressed: () =>
+                                                            Navigator.pop(
+                                                                context, true),
+                                                        child: const Text(
+                                                            "Eliminar")),
                                                   ],
                                                 ),
                                               );
-
                                               if (confirm == true) {
                                                 await PortafolioService()
                                                     .eliminarPortafolio(

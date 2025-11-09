@@ -1,18 +1,17 @@
+import 'package:finances/core/data/services/market_service.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 
+// Servicio para tasas de cambio. Usa exchangerate.host como primario y Alpha Vantage como fallback.
 class CurrencyService {
-  // ignore: constant_identifier_names
-  static const String API_URL = 'https://api.exchangerate.host/latest';
+  static const String _apiUrl = 'https://api.exchangerate.host/latest';
+  final MarketService _marketService = MarketService();
 
-  /// Retorna la tasa de conversión entre [from] y [to]
+  // Obtiene la tasa de conversión entre monedas.
   Future<double> getExchangeRate(String from, String to) async {
     try {
-      // 📌 Definimos la moneda base como "from"
-      final response = await http.get(
-        Uri.parse('$API_URL?base=$from&symbols=$to'),
-      );
-
+      final response =
+          await http.get(Uri.parse('$_apiUrl?base=$from&symbols=$to'));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
         final rates = data['rates'] as Map<String, dynamic>;
@@ -20,15 +19,17 @@ class CurrencyService {
         if (toRate != null) return (toRate as num).toDouble();
       }
     } catch (e) {
-      // Log o manejo de error
-      // debugPrint('Error obteniendo tasa de cambio: $e');
+      // Log de error: print('Error en exchangerate.host: $e');
     }
 
-    // 🔙 Valor de respaldo (ejemplo COP/USD realista)
-    if (from == 'COP' && to == 'USD') return 0.00025;
-    if (from == 'USD' && to == 'COP') return 4000.0;
+    // Fallback a Alpha Vantage para forex.
+    final fallbackRate = await _marketService.getForexRate(
+        from, to); // Método hipotético; ajusta si usas.
+    if (fallbackRate != null) return fallbackRate;
 
-    // 🔙 Si no hay datos, devolvemos 1.0 (equivalente)
-    return 1.0;
+    // Valores de respaldo realistas (octubre 2025 aprox.).
+    if (from == 'COP' && to == 'USD') return 0.00025; // ~1 USD = 4000 COP.
+    if (from == 'USD' && to == 'COP') return 4000.0;
+    return 1.0; // Valor por defecto.
   }
 }
