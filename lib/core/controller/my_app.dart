@@ -6,7 +6,9 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/routes/app_routes.dart';
+import 'package:finances/core/data/services/BiometricAuthService.dart';
 import 'package:finances/presentations/screens/splash_screen.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
 
 class MyApp extends ConsumerStatefulWidget {
   const MyApp({super.key});
@@ -15,109 +17,116 @@ class MyApp extends ConsumerStatefulWidget {
 }
 
 class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
-  // Temporizador para manejar la inactividad del usuario
+  // Temporizador de inactividad
   Timer? _inactivityTimer;
-  // Duración máxima de inactividad permitida (15 minutos)
   final Duration _timeoutDuration = const Duration(minutes: 15);
-  // Estado de inicialización de la aplicación
+
+  // Estado de inicialización
   bool _isAppInitialized = false;
-  // Clave global para controlar la navegación desde cualquier parte de la app
-  // Esto nos permite navegar sin necesidad de context
+
+  // Navegación global
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   @override
   void initState() {
     super.initState();
-    // Registrar este widget como observador del ciclo de vida de la app
     WidgetsBinding.instance.addObserver(this);
     _initializeApp();
   }
 
   @override
   void dispose() {
-    // Limpiar recursos al destruir el widget
     WidgetsBinding.instance.removeObserver(this);
     _inactivityTimer?.cancel();
     super.dispose();
   }
 
-  /// Inicializa la aplicación después de un breve retraso
+  /// Inicializa la app
   void _initializeApp() async {
-    try {
-      // Esperar 500ms para simular procesos de inicialización
-      await Future.delayed(const Duration(milliseconds: 500));
-      // Marcar la app como inicializada y comenzar el temporizador de inactividad
-      setState(() {
-        _isAppInitialized = true;
-      });
-      _startInactivityTimer();
-    } catch (e) {
-      debugPrint('Error en inicialización: $e');
-      // Asegurar que la app se muestre incluso si hay errores
-      setState(() {
-        _isAppInitialized = true;
-      });
-    }
+    await Future.delayed(const Duration(milliseconds: 500));
+    setState(() => _isAppInitialized = true);
+    _startInactivityTimer();
   }
 
-  /// Maneja cambios en el ciclo de vida de la aplicación
-  /// (Ej.: cuando la app pasa a segundo plano y regresa)
+  /// === CICLO DE VIDA ===
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
-    // Cuando la app regresa al primer plano, reiniciar el temporizador
     if (state == AppLifecycleState.resumed) {
       _resetInactivityTimer();
+      _checkSessionSecurityOnResume(); // NUEVO: Bloqueo al reanudar
     }
   }
 
-  /// Inicia o reinicia el temporizador de inactividad
+  /// === INACTIVIDAD ===
   void _startInactivityTimer() {
-    // Cancelar cualquier temporizador existente
     _inactivityTimer?.cancel();
-    // Crear un nuevo temporizador que llamará a _handleInactivity después del tiempo límite
     _inactivityTimer = Timer(_timeoutDuration, _handleInactivity);
   }
 
-  /// Reinicia el temporizador de inactividad
   void _resetInactivityTimer() {
     _startInactivityTimer();
   }
 
-  /// Maneja la inactividad del usuario
-  /// En lugar de cerrar sesión, redirige al usuario a la pantalla de bienvenida
   void _handleInactivity() {
-    // Verificación de seguridad: asegurar que el navigatorKey esté disponible
     if (_navigatorKey.currentState != null) {
-      debugPrint(
-          '>>> [Inactividad] Redirigiendo al usuario a la pantalla de bienvenida');
-      // Redirigir al usuario a la pantalla de bienvenida y limpiar el stack de navegación
-      // Esto asegura que el usuario no pueda regresar a las pantallas anteriores
+      debugPrint('Inactividad: Redirigiendo a welcome');
       _navigatorKey.currentState!.pushNamedAndRemoveUntil(
         AppRoutes.welcome,
-        (route) => false, // Elimina todas las rutas anteriores
+        (route) => false,
       );
     }
   }
 
-  /// Construye la aplicación normal (después de la inicialización)
-  /// Envuelve la app con un Listener para detectar interacciones del usuario
+  /// === SEGURIDAD AL REANUDAR APP ===
+  Future<void> _checkSessionSecurityOnResume() async {
+    final authState = ref.read(authProvider);
+    if (!authState.isAuthenticated || authState.user == null) return;
+
+    final uid = authState.user!.uid;
+    final biometricEnabled = await BiometricAuthService().isBiometricEnabled();
+    final isFirstLogin = await _isFirstLogin(uid);
+
+    // Si NO es primer login y NO tiene biometría → BLOQUEAR
+    if (!isFirstLogin && !biometricEnabled) {
+      debugPrint('Seguridad: Bloqueando app al reanudar (sin biometría)');
+      _goToBlockedScreen();
+    }
+  }
+
+  Future<bool> _isFirstLogin(String uid) async {
+    try {
+      final doc =
+          await FirebaseFirestore.instance.collection('users').doc(uid).get();
+      return doc.exists && (doc.data()?['firstLogin'] == true);
+    } catch (e) {
+      debugPrint('Error verificando firstLogin: $e');
+      return false;
+    }
+  }
+
+  void _goToBlockedScreen() {
+    if (!mounted) return;
+    final navigator = _navigatorKey.currentState;
+    if (navigator == null) return;
+
+    // Limpiar stack y ir directo a bloqueo
+    navigator.pushNamedAndRemoveUntil(
+      AppRoutes.appBlocked,
+      (route) => false,
+    );
+  }
+
+  /// === APP NORMAL ===
   Widget _buildNormalApp(AuthState authState) {
     return Listener(
-      // Configurar para detectar cualquier toque en la pantalla
       behavior: HitTestBehavior.translucent,
-      onPointerDown: (_) {
-        // Cualquier interacción del usuario reinicia el temporizador
-        _resetInactivityTimer();
-      },
+      onPointerDown: (_) => _resetInactivityTimer(),
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
-        home: SplashScreen(),
+        home: const SplashScreen(), // Solo visual
         routes: AppRoutes.getRoutes(authState),
-        builder: (context, child) {
-          return child!;
-        },
-        // Configurar la clave global para controlar la navegación
         navigatorKey: _navigatorKey,
+        builder: (context, child) => child!,
       ),
     );
   }
@@ -126,71 +135,52 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final hasSeenTutorial = ref.watch(tutorialProvider);
-    // Si la app no está inicializada, mostrar splash screen
+
     if (!_isAppInitialized) {
-      return MaterialApp(
-        debugShowCheckedModeBanner: false,
-        home: Scaffold(
-          body: Center(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                CircularProgressIndicator(),
-                SizedBox(height: 20),
-                Text('Inicializando aplicación...'),
-              ],
-            ),
-          ),
-        ),
-      );
+      return _buildLoadingScreen();
     }
-    // Manejo SEGURO del estado del tutorial con .when()
+
     return hasSeenTutorial.when(
       data: (hasSeen) {
-        // Imprimir estado para depuración
         debugPrint(
-            '>>> [MyApp.build] Usuario autenticado: ${authState.isAuthenticated}');
-        debugPrint('>>> [MyApp.build] ¿Ya vio el tutorial?: $hasSeen');
-        // Si está autenticado y NO ha visto el tutorial → mostrar TutorialScreen
+            'MyApp.build → Auth: ${authState.isAuthenticated}, Tutorial: $hasSeen');
+
+        // Tutorial por primera vez
         if (authState.isAuthenticated && !hasSeen) {
-          debugPrint('>>> [MyApp.build] MOSTRANDO TUTORIAL POR PRIMERA VEZ');
           return MaterialApp(
             debugShowCheckedModeBanner: false,
             home: const TutorialScreen(),
             routes: AppRoutes.getRoutes(authState),
-            navigatorKey:
-                _navigatorKey, // Asegurar que el tutorial también use el mismo navigatorKey
+            navigatorKey: _navigatorKey,
           );
         }
-        debugPrint('>>> [MyApp.build] MOSTRANDO APP NORMAL');
+
+        // App normal
         return _buildNormalApp(authState);
       },
-      loading: () {
-        debugPrint('>>> [MyApp.build] Cargando estado del tutorial...');
-        return MaterialApp(
-          debugShowCheckedModeBanner: false,
-          home: Scaffold(
-            body: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  CircularProgressIndicator(),
-                  SizedBox(height: 20),
-                  Text('Cargando tutorial...'),
-                ],
-              ),
-            ),
+      loading: () => _buildLoadingScreen('Cargando tutorial...'),
+      error: (error, _) {
+        debugPrint('Error tutorial: $error');
+        return _buildNormalApp(authState);
+      },
+    );
+  }
+
+  Widget _buildLoadingScreen([String message = 'Inicializando aplicación...']) {
+    return MaterialApp(
+      debugShowCheckedModeBanner: false,
+      home: Scaffold(
+        body: Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const CircularProgressIndicator(),
+              const SizedBox(height: 20),
+              Text(message),
+            ],
           ),
-          routes: AppRoutes.getRoutes(authState),
-          navigatorKey:
-              _navigatorKey, // Asegurar que el loading también use el mismo navigatorKey
-        );
-      },
-      error: (error, stackTrace) {
-        debugPrint(
-            '>>> [MyApp.build] Error cargando estado del tutorial: $error');
-        return _buildNormalApp(authState);
-      },
+        ),
+      ),
     );
   }
 }

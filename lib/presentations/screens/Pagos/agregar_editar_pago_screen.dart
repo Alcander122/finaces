@@ -1,4 +1,6 @@
+// agregar_editar_pago_screen.dart
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/models/pago_model.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
@@ -7,6 +9,7 @@ import 'package:finances/presentations/screens/Pagos/widgets/fecha_vencimiento_p
 import 'package:finances/presentations/screens/Pagos/widgets/dias_antes_bottom_sheet.dart';
 import 'package:finances/presentations/screens/Pagos/widgets/frecuencia_bottom_sheet.dart';
 import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/core/data/utils/ui_helpers.dart'; // Importar UIHelpers
 
 class AgregarEditarPagoScreen extends ConsumerStatefulWidget {
   const AgregarEditarPagoScreen({super.key});
@@ -27,10 +30,14 @@ class _AgregarEditarPagoScreenState
   String _frecuencia = 'mensual';
   bool _datosInicializados = false;
 
+  // Para mostrar el monto formateado en tiempo real
+  String _montoFormateado = '';
+
   @override
   void initState() {
     super.initState();
     _fechaVencimiento = DateTime.now().add(const Duration(days: 7));
+    _montoController.addListener(_actualizarMontoFormateado);
   }
 
   @override
@@ -46,12 +53,45 @@ class _AgregarEditarPagoScreenState
     final args = ModalRoute.of(context)?.settings.arguments as Pago?;
     if (args != null) {
       _descripcionController.text = args.descripcion;
-      _montoController.text = args.monto.toString();
+      _montoController.text = args.monto.toStringAsFixed(0); // Sin decimales
+      _actualizarMontoFormateado(); // Forzar formato inicial
       _fechaVencimiento = args.fechaVencimiento;
       _esProgramado = args.estaProgramado;
       _diasAntes = args.notificacionAntes;
       _frecuencia = args.frecuenciaRecurrencia;
     }
+  }
+
+  void _actualizarMontoFormateado() {
+    final text = _montoController.text.replaceAll(RegExp(r'[^0-9]'), '');
+    if (text.isEmpty) {
+      setState(() => _montoFormateado = '');
+      return;
+    }
+    final value = double.tryParse(text) ?? 0;
+    setState(() => _montoFormateado = UIHelpers.formatCurrency(value));
+  }
+
+  void _formatearMontoEnTiempoReal(String input) {
+    // Limpiar todo lo que no sea número
+    String cleaned = input.replaceAll(RegExp(r'[^0-9]'), '');
+
+    if (cleaned.isEmpty) {
+      _montoController.text = '';
+      return;
+    }
+
+    // Convertir a número
+    final double value = double.parse(cleaned);
+
+    // Formatear con tu helper
+    final String formatted = UIHelpers.formatCurrency(value); // → $255.555
+
+    // Actualizar el campo SIN disparar bucle infinito
+    _montoController.value = TextEditingValue(
+      text: formatted,
+      selection: TextSelection.collapsed(offset: formatted.length),
+    );
   }
 
   Future<void> _mostrarDialogoDias() async {
@@ -83,11 +123,15 @@ class _AgregarEditarPagoScreenState
       final authState = ref.read(authProvider);
       if (authState.user == null) throw Exception("Debe estar autenticado");
 
+      final montoTexto =
+          _montoController.text.replaceAll(RegExp(r'[^0-9]'), '');
+      final monto = double.parse(montoTexto);
+
       final provider = ref.read(paymentProvider(authState.user!.uid).notifier);
       final nuevoPago = Pago(
         id: '',
         descripcion: _descripcionController.text.trim(),
-        monto: double.parse(_montoController.text),
+        monto: monto,
         fechaVencimiento: _fechaVencimiento,
         estaProgramado: _esProgramado,
         notificacionAntes: _diasAntes,
@@ -111,14 +155,16 @@ class _AgregarEditarPagoScreenState
       if (mounted) Navigator.pop(context);
     } catch (e) {
       if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Error guardando pago: $e")),
+      UIHelpers.showErrorSnackBar(
+        context: context,
+        message: "Error guardando pago: $e",
       );
     }
   }
 
   @override
   void dispose() {
+    _montoController.removeListener(_actualizarMontoFormateado);
     _descripcionController.dispose();
     _montoController.dispose();
     super.dispose();
@@ -164,19 +210,26 @@ class _AgregarEditarPagoScreenState
                     ),
                     const SizedBox(height: 16),
 
-                    // Campo Monto
+                    // Campo Monto con formato en tiempo real
                     TextFormField(
                       controller: _montoController,
                       keyboardType: TextInputType.number,
-                      decoration: const InputDecoration(
+                      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                      decoration: InputDecoration(
                         labelText: "Monto",
-                        prefixText: '\$ ',
-                        border: OutlineInputBorder(),
+                        border: const OutlineInputBorder(),
+                        hintText: "0",
                       ),
+                      onChanged: (value) {
+                        _formatearMontoEnTiempoReal(value);
+                      },
                       validator: (value) {
-                        if (value?.isEmpty ?? true) return "Campo requerido";
-                        if (double.tryParse(value!) == null) {
-                          return "Valor inválido";
+                        final cleaned =
+                            value?.replaceAll(RegExp(r'[^0-9]'), '') ?? '';
+                        if (cleaned.isEmpty) return "Campo requerido";
+                        if (double.tryParse(cleaned) == null ||
+                            double.parse(cleaned) <= 0) {
+                          return "Monto inválido";
                         }
                         return null;
                       },
@@ -196,13 +249,13 @@ class _AgregarEditarPagoScreenState
                       title: const Text("Pago programado/recurrente"),
                       value: _esProgramado,
                       onChanged: (value) async {
-                        if (value) {
+                        if (value && !_esProgramado) {
                           await _mostrarDialogoDias();
                           await _mostrarDialogoFrecuencia();
                         }
                         setState(() => _esProgramado = value);
                       },
-                      activeColor: Themes.degradientLight,
+                      activeThumbColor: Themes.degradientLight,
                     ),
                     const SizedBox(height: 8),
 
@@ -223,7 +276,6 @@ class _AgregarEditarPagoScreenState
                         ),
                       ),
                     ],
-
                     const SizedBox(height: 24),
 
                     // Botón guardar

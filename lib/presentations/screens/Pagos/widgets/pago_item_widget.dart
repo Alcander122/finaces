@@ -1,5 +1,6 @@
-// Widget reusable para ítems de pago (pendientes y programados)
-import 'package:finances/core/data/models/pago_model.dart';
+// pago_item_widget.dart
+import 'package:finances/core/data/models/pago_model.dart'; // Importar el helper
+import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -24,7 +25,6 @@ class PagoItemWidget extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-
     return Card(
       margin: const EdgeInsets.symmetric(vertical: 8, horizontal: 16),
       elevation: 2,
@@ -48,7 +48,7 @@ class PagoItemWidget extends StatelessWidget {
           children: [
             const SizedBox(height: 4),
             Text(
-              'Monto: \$${NumberFormat("#,###", "es_CO").format(pago.monto.round())}',
+              'Monto: ${UIHelpers.formatCurrency(pago.monto)}',
               style: theme.textTheme.bodyMedium,
             ),
             const SizedBox(height: 2),
