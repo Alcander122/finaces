@@ -163,7 +163,7 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
       }
 
       if (mounted) {
-        UIHelpers.showSuccessSnackBarNew(
+        UIHelpers.showSuccessSnackBar(
             context: context, message: 'Inversión guardada');
         Navigator.pop(context);
       }
