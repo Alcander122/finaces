@@ -31,7 +31,7 @@ class _AgregarEditarPagoScreenState
   bool _datosInicializados = false;
 
   // Para mostrar el monto formateado en tiempo real
-  String _montoFormateado = '';
+  String montoFormateado = '';
 
   @override
   void initState() {
@@ -65,11 +65,11 @@ class _AgregarEditarPagoScreenState
   void _actualizarMontoFormateado() {
     final text = _montoController.text.replaceAll(RegExp(r'[^0-9]'), '');
     if (text.isEmpty) {
-      setState(() => _montoFormateado = '');
+      setState(() => montoFormateado = '');
       return;
     }
     final value = double.tryParse(text) ?? 0;
-    setState(() => _montoFormateado = UIHelpers.formatCurrency(value));
+    setState(() => montoFormateado = UIHelpers.formatCurrency(value));
   }
 
   void _formatearMontoEnTiempoReal(String input) {

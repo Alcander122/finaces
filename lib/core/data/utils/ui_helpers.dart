@@ -127,6 +127,24 @@ class UIHelpers {
     }
   }
 
+  // === 2. NUEVA: para tasas (sin decimales innecesarios) ===
+  static String formatRate(double rate, {String toCurrency = 'COP'}) {
+    final formatter = NumberFormat('#,##0.####', 'es_CO');
+    final symbol =
+        toCurrency == 'COP' ? '\$' : (toCurrency == 'USD' ? 'US\$' : '€');
+    return '$symbol${formatter.format(rate)}';
+  }
+
+// === 3. NUEVA: para montos convertidos (sin decimales si es entero) ===
+  static String formatCurrencyAmount(double value, {String currency = 'COP'}) {
+    final formatter = NumberFormat.currency(
+      locale: 'es_CO',
+      symbol: currency == 'COP' ? '\$' : (currency == 'USD' ? 'US\$' : '€'),
+      decimalDigits: 0, // SIN decimales
+    );
+    return formatter.format(value);
+  }
+
   // --------------------- FORMATEO ---------------------
 
   /// Formatea un número a formato de moneda local (COP).

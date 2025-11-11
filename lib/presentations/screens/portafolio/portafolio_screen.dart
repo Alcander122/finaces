@@ -9,7 +9,7 @@ import 'package:finances/presentations/screens/portafolio/portafolio_form_screen
 import 'package:finances/presentations/screens/portafolio/widgets/portafolio_chart.dart';
 import 'package:finances/core/data/services/portafolio_service.dart';
 import 'package:finances/presentations/theme/themes.dart';
-import 'package:intl/intl.dart';
+import 'package:finances/core/data/utils/ui_helpers.dart';
 
 class PortafolioScreen extends ConsumerWidget {
   const PortafolioScreen({super.key});
@@ -17,11 +17,6 @@ class PortafolioScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final user = FirebaseAuth.instance.currentUser;
-    final formatter = NumberFormat.currency(
-      locale: 'es_CO',
-      symbol: '\$',
-      decimalDigits: 2,
-    );
 
     if (user == null) {
       return const Scaffold(
@@ -130,7 +125,7 @@ class PortafolioScreen extends ConsumerWidget {
                                                 ),
                                                 const SizedBox(height: 2),
                                                 Text(
-                                                  'Total: ${formatter.format(total)}',
+                                                  'Total: ${UIHelpers.formatCurrency(total)}',
                                                   style: const TextStyle(
                                                     fontSize: 13,
                                                     color: Colors.grey,
