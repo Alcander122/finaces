@@ -37,20 +37,23 @@ class Pago {
       fechaVencimiento: fechaVencimiento ?? this.fechaVencimiento,
       estaProgramado: estaProgramado ?? this.estaProgramado,
       notificacionAntes: notificacionAntes ?? this.notificacionAntes,
-      frecuenciaRecurrencia: frecuenciaRecurrencia ?? this.frecuenciaRecurrencia,
+      frecuenciaRecurrencia:
+          frecuenciaRecurrencia ?? this.frecuenciaRecurrencia,
     );
   }
 
   // Convierte un Map en un objeto Pago
-  factory Pago.fromMap(Map<String, dynamic> map) {
+  factory Pago.fromFirestore(DocumentSnapshot doc) {
+    final data = doc.data() as Map<String, dynamic>;
     return Pago(
-      id: map['id'] ?? '',
-      descripcion: map['descripcion'] ?? '',
-      monto: (map['monto'] as num).toDouble(),
-      fechaVencimiento: (map['fechaVencimiento'] as Timestamp).toDate(),
-      estaProgramado: map['estaProgramado'] ?? false,
-      notificacionAntes: map['notificacionAntes'] ?? 1, // Por defecto 1 día
-      frecuenciaRecurrencia: map['frecuenciaRecurrencia'] ?? 'mensual', // Por defecto mensual
+      id: doc.id, // ← Correcto
+      descripcion: data['descripcion'] ?? '',
+      monto: (data['monto'] as num?)?.toDouble() ?? 0.0,
+      fechaVencimiento:
+          (data['fechaVencimiento'] as Timestamp?)?.toDate() ?? DateTime.now(),
+      estaProgramado: data['estaProgramado'] ?? false,
+      notificacionAntes: data['notificacionAntes'] ?? 1,
+      frecuenciaRecurrencia: data['frecuenciaRecurrencia'] ?? 'mensual',
     );
   }
 

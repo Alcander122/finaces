@@ -401,7 +401,7 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  // Tarjetas de acceso rápido - VERSIÓN CORREGIDA
+  // Tarjetas de acceso rápido
   Widget _buildMenuCardsSeccion(BuildContext context) {
     final List<Map<String, dynamic>> tips = [
       {
@@ -432,6 +432,14 @@ class HomeScreen extends ConsumerWidget {
     ];
 
     final bool hayMasOpciones = tips.length > 3;
+    final ScrollController scrollController = ScrollController();
+    void scrollHorizontal(double offset) {
+      scrollController.animateTo(
+        scrollController.offset + offset,
+        duration: const Duration(milliseconds: 400),
+        curve: Curves.easeInOut,
+      );
+    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
@@ -439,15 +447,16 @@ class HomeScreen extends ConsumerWidget {
         Row(
           mainAxisAlignment: MainAxisAlignment.spaceBetween,
           children: [
-            const Text('Accesos rápidos',
-                style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+            const Text(
+              'Accesos rápidos',
+              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
+            ),
             if (hayMasOpciones)
               Row(
-                children: [
-                  const Text('Más opciones ',
+                children: const [
+                  Text('Más opciones ',
                       style: TextStyle(color: Colors.blue, fontSize: 14)),
-                  const Icon(Icons.arrow_forward_ios,
-                      size: 14, color: Colors.blue),
+                  Icon(Icons.arrow_forward_ios, size: 14, color: Colors.blue),
                 ],
               ),
           ],
@@ -458,6 +467,7 @@ class HomeScreen extends ConsumerWidget {
           child: Stack(
             children: [
               ListView.builder(
+                controller: scrollController,
                 scrollDirection: Axis.horizontal,
                 padding: const EdgeInsets.only(left: 8, right: 16),
                 itemCount: tips.length,
@@ -467,15 +477,17 @@ class HomeScreen extends ConsumerWidget {
 
                   return GestureDetector(
                     onTap: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (_) => ProviderScope(child: item['screen']),
-                        )),
+                      context,
+                      MaterialPageRoute(
+                        builder: (_) => ProviderScope(child: item['screen']),
+                      ),
+                    ),
                     child: Container(
                       width: 180,
                       margin: EdgeInsets.only(
-                          right: esUltimoElemento ? 0 : 24,
-                          left: index == 0 ? 8 : 0),
+                        right: esUltimoElemento ? 0 : 24,
+                        left: index == 0 ? 8 : 0,
+                      ),
                       padding: const EdgeInsets.all(12),
                       decoration: BoxDecoration(
                         gradient: const LinearGradient(
@@ -494,63 +506,66 @@ class HomeScreen extends ConsumerWidget {
                               offset: Offset(0, 2)),
                         ],
                       ),
-                      child: Stack(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              item['icon'] as Widget,
-                              const SizedBox(height: 8),
-                              Text(
-                                item['title'],
-                                style: const TextStyle(
-                                    fontSize: 16,
-                                    fontWeight: FontWeight.bold,
-                                    color: Themes.white),
-                              ),
-                              const SizedBox(height: 4),
-                              Text(
-                                item['description'],
-                                style: const TextStyle(
-                                    fontSize: 13, color: Colors.white70),
-                              ),
-                            ],
-                          ),
-                          if (index == tips.length - 1 && hayMasOpciones)
-                            const Align(
-                              alignment: Alignment.centerRight,
-                              child: DecoratedBox(
-                                decoration: BoxDecoration(
-                                  gradient: LinearGradient(
-                                    begin: Alignment.centerRight,
-                                    end: Alignment.centerLeft,
-                                    colors: [Colors.white, Colors.transparent],
-                                    stops: [0.3, 1.0],
-                                  ),
-                                ),
-                                child: SizedBox(
-                                    width: 30, height: double.infinity),
-                              ),
+                          item['icon'] as Widget,
+                          const SizedBox(height: 8),
+                          Text(
+                            item['title'],
+                            style: const TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                              color: Themes.white,
                             ),
+                          ),
+                          const SizedBox(height: 4),
+                          Text(
+                            item['description'],
+                            style: const TextStyle(
+                              fontSize: 13,
+                              color: Colors.white70,
+                            ),
+                          ),
                         ],
                       ),
                     ),
                   );
                 },
               ),
-              if (hayMasOpciones)
-                Positioned(
-                  right: 12,
-                  top: 50,
-                  bottom: 50,
+              Positioned(
+                left: 0,
+                top: 50,
+                bottom: 50,
+                child: InkWell(
+                  onTap: () => scrollHorizontal(-200),
                   child: Container(
                     padding: const EdgeInsets.all(6),
                     decoration: BoxDecoration(
                       color: Colors.black26,
                       borderRadius: BorderRadius.circular(20),
                     ),
-                    child: const Icon(Icons.chevron_right,
+                    child: const Icon(Icons.chevron_left,
                         color: Colors.white, size: 20),
+                  ),
+                ),
+              ),
+              if (hayMasOpciones)
+                Positioned(
+                  right: 0,
+                  top: 50,
+                  bottom: 50,
+                  child: InkWell(
+                    onTap: () => scrollHorizontal(200),
+                    child: Container(
+                      padding: const EdgeInsets.all(6),
+                      decoration: BoxDecoration(
+                        color: Colors.black26,
+                        borderRadius: BorderRadius.circular(20),
+                      ),
+                      child: const Icon(Icons.chevron_right,
+                          color: Colors.white, size: 20),
+                    ),
                   ),
                 ),
             ],

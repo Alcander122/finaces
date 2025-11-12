@@ -55,7 +55,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
   Future<void> _loadLastEmail() async {
     final prefs = await SharedPreferences.getInstance();
     final lastEmail = prefs.getString('last_email');
-    
+
     // Si existe un último correo, lo pre-rellenamos
     if (lastEmail != null && lastEmail.isNotEmpty) {
       _emailController.text = lastEmail;
@@ -86,7 +86,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
       final tutorialSeen = await ref.read(tutorialProvider.future);
 
       if (mounted) {
-        UIHelpers.showSuccessSnackBarNew(
+        UIHelpers.showSuccessSnackBar(
           context: context,
           message: 'Inicio de sesión exitoso',
         );
@@ -205,7 +205,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
       setState(() => _isLoading = true);
       await FirebaseAuth.instance.sendPasswordResetEmail(email: email);
       if (mounted) {
-        UIHelpers.showSuccessSnackBarNew(
+        UIHelpers.showSuccessSnackBar(
           context: context,
           message: ErrorStrings.passwordResetSuccess,
         );

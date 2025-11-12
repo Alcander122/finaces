@@ -7,6 +7,8 @@ import 'package:finances/presentations/screens/Pagos/widgets/pago_item_widget.da
 import 'package:finances/presentations/screens/Pagos/widgets/empty_state_widget.dart';
 import 'package:finances/presentations/screens/Pagos/widgets/confirm_delete_dialog.dart';
 
+import '../../../utils/ui_helpers.dart';
+
 class PendientesTab extends ConsumerWidget {
   final String userId;
 
@@ -43,7 +45,7 @@ class PendientesTab extends ConsumerWidget {
               color: Colors.orange,
               textoFecha: 'Vence',
               onEditar: () => Navigator.pushNamed(
-                context, 
+                context,
                 '/editar-pago',
                 arguments: pago,
               ),
@@ -57,15 +59,17 @@ class PendientesTab extends ConsumerWidget {
     );
   }
 
-  Future<void> _eliminarPago(BuildContext context, WidgetRef ref, String pagoId) async {
+  Future<void> _eliminarPago(
+      BuildContext context, WidgetRef ref, String pagoId) async {
     final confirm = await showConfirmDeleteDialog(context);
     if (confirm == true) {
       try {
         await ref.read(paymentProvider(userId).notifier).eliminarPago(pagoId);
       } catch (e) {
         if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error eliminando pago: $e")),
+        UIHelpers.showErrorSnackBar(
+          context: context,
+          message: "Error eliminando pago: $e",
         );
       }
     }

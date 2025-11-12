@@ -176,7 +176,7 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
         // ✅ mostramos SnackBar en el siguiente frame
         Future.delayed(Duration.zero, () {
           if (mounted) {
-            UIHelpers.showSuccessSnackBarNew(
+            UIHelpers.showSuccessSnackBar(
               context: parentContext,
               message: _editId == null
                   ? 'Ingreso creado correctamente'
@@ -235,7 +235,7 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
       if (mounted) {
         Future.delayed(Duration.zero, () {
           if (mounted) {
-            UIHelpers.showSuccessSnackBarNew(
+            UIHelpers.showSuccessSnackBar(
               context: context,
               message: 'Ingreso eliminado correctamente',
             );

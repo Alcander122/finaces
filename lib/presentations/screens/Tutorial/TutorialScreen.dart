@@ -1,4 +1,4 @@
-// TutorialScreen.dart (CORREGIDO Y COMENTADO)
+// TutorialScreen.dart
 import 'package:finances/core/data/providers/tutorial_provider.dart';
 import 'package:finances/presentations/screens/Tutorial/widgets/tutorial_page_widget.dart';
 import 'package:finances/routes/app_routes.dart';
@@ -70,7 +70,7 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
     },
     {
       'icon': Icons.fingerprint,
-      'title': 'Inicia Session con tu huella ',
+      'title': 'Inicia sesión con tu huella',
       'description':
           'Accede fácilmente con tu huella digital. Activa esta opción desde tu perfil para mayor seguridad y comodidad.',
       'color': Colors.pink,
@@ -95,40 +95,28 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
     });
   }
 
-  /// Salta el tutorial y lo marca como visto
+  /// Salta el tutorial → marca como visto **solo si era primera vez**
   void _skipTutorial() async {
-    try {
-      debugPrint(
-          '>>> [_skipTutorial] Intentando marcar tutorial como visto y navegar a home...');
-      final notifier = ref.read(tutorialNotifierProvider);
-      await notifier
-          .markAsSeen(); // ✅ Marca el tutorial como visto usando la clave correcta
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
-      debugPrint('>>> [_skipTutorial] Navegación completada.');
-    } catch (e) {
-      debugPrint('>>> [_skipTutorial] Error: $e');
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
+    final hasSeen = ref.read(tutorialProvider).valueOrNull ?? false;
+
+    if (!hasSeen) {
+      await ref.read(tutorialNotifierProvider).markAsSeen();
     }
+
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, AppRoutes.home);
   }
 
-  /// Finaliza el tutorial y lo marca como visto
+  /// Finaliza el tutorial → marca como visto **solo si era primera vez**
   void _finishTutorial() async {
-    try {
-      debugPrint(
-          '>>> [_finishTutorial] Intentando marcar tutorial como visto y navegar a home...');
-      final notifier = ref.read(tutorialNotifierProvider);
-      await notifier
-          .markAsSeen(); // ✅ Marca el tutorial como visto usando la clave correcta
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
-      debugPrint('>>> [_finishTutorial] Navegación completada.');
-    } catch (e) {
-      debugPrint('>>> [_finishTutorial] Error: $e');
-      if (!mounted) return;
-      Navigator.pushReplacementNamed(context, AppRoutes.home);
+    final hasSeen = ref.read(tutorialProvider).valueOrNull ?? false;
+
+    if (!hasSeen) {
+      await ref.read(tutorialNotifierProvider).markAsSeen();
     }
+
+    if (!mounted) return;
+    Navigator.pushReplacementNamed(context, AppRoutes.home);
   }
 
   @override
@@ -144,6 +132,7 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
         ),
         child: Column(
           children: [
+            // Botón "Saltar"
             Padding(
               padding: const EdgeInsets.only(top: 60, right: 20),
               child: Row(
@@ -155,22 +144,21 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
                       foregroundColor: Colors.white,
                       backgroundColor: Colors.black.withValues(alpha: 0.2),
                       shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(20),
-                      ),
+                          borderRadius: BorderRadius.circular(20)),
                       padding: const EdgeInsets.symmetric(
                           horizontal: 16, vertical: 8),
                     ),
                     child: const Text(
                       'Saltar',
-                      style: TextStyle(
-                        fontWeight: FontWeight.bold,
-                        fontSize: 14,
-                      ),
+                      style:
+                          TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
                     ),
                   ),
                 ],
               ),
             ),
+
+            // Contenido del tutorial
             Expanded(
               child: PageView.builder(
                 controller: _pageController,
@@ -191,10 +179,13 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
                 },
               ),
             ),
+
+            // Indicadores + botón
             Padding(
               padding: const EdgeInsets.only(bottom: 40),
               child: Column(
                 children: [
+                  // Indicadores de página
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: List.generate(_pages.length, (index) {
@@ -212,6 +203,8 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
                     }),
                   ),
                   const SizedBox(height: 30),
+
+                  // Botón Siguiente / Empezar
                   SizedBox(
                     width: 200,
                     child: ElevatedButton(
@@ -228,8 +221,7 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: Colors.white,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(25),
-                        ),
+                            borderRadius: BorderRadius.circular(25)),
                         padding: const EdgeInsets.symmetric(vertical: 16),
                         elevation: 5,
                       ),

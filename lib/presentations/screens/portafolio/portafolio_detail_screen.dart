@@ -9,7 +9,7 @@ import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:tuple/tuple.dart';
-import 'package:intl/intl.dart';
+import 'package:finances/core/data/utils/ui_helpers.dart';
 
 class PortafolioDetailScreen extends ConsumerWidget {
   final Portafolio portafolio;
@@ -20,12 +20,6 @@ class PortafolioDetailScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final investments = ref.watch(
       investmentsProvider(Tuple2(portafolio.userId, portafolio.id)),
-    );
-
-    final currencyFormatter = NumberFormat.currency(
-      locale: 'es_CO',
-      symbol: '\$',
-      decimalDigits: 2,
     );
 
     return Scaffold(
@@ -99,8 +93,7 @@ class PortafolioDetailScreen extends ConsumerWidget {
                                 ),
                               ),
                               subtitle: Text(
-                                '${currencyFormatter.format(investment.invMensual)} ${investment.moneda}',
-                              ),
+                                  '${UIHelpers.formatCurrency(investment.invMensual)} ${investment.moneda}'),
                               trailing: Row(
                                 mainAxisSize: MainAxisSize.min,
                                 children: [

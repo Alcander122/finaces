@@ -1,10 +1,13 @@
+// investment_form_screen.dart
 import 'package:finances/core/data/models/investment_model.dart';
 import 'package:finances/core/data/services/currency_service.dart';
 import 'package:finances/core/data/services/investment_service.dart';
-import 'package:finances/core/data/utils/Portafolio_validator.dart';
+import 'package:finances/core/data/utils/form_validator.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart'; // ← NECESARIO
 import 'package:intl/intl.dart';
 import 'package:uuid/uuid.dart';
+import 'package:finances/core/data/utils/ui_helpers.dart';
 
 class InvestmentFormScreen extends StatefulWidget {
   final String userId;
@@ -19,40 +22,28 @@ class InvestmentFormScreen extends StatefulWidget {
   });
 
   @override
-  InvestmentFormScreenState createState() => InvestmentFormScreenState();
+  State<InvestmentFormScreen> createState() => _InvestmentFormScreenState();
 }
 
-class InvestmentFormScreenState extends State<InvestmentFormScreen> {
+class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _montoController = TextEditingController();
   final _descripcionController = TextEditingController();
-  final CurrencyService currencyService = CurrencyService();
-  final FormValidator validator = FormValidator();
+  final _currencyService = CurrencyService();
+  final _validator = FormValidator();
 
   late String _selectedMoneda;
   late String _selectedMes;
   late String _selectedOrigen;
   late String _selectedActivo;
   late String _selectedEstado;
-  double _tasaConversion = 1.0;
-  double _montoConvertido = 0.0;
   late DateTime _selectedFechaInversion;
 
-  final List<String> _meses = [
-    'Enero',
-    'Febrero',
-    'Marzo',
-    'Abril',
-    'Mayo',
-    'Junio',
-    'Julio',
-    'Agosto',
-    'Septiembre',
-    'Octubre',
-    'Noviembre',
-    'Diciembre'
-  ];
+  double _tasaConversion = 1.0;
+  double _montoConvertido = 0.0;
+  bool _isLoadingConversion = false;
 
+  final List<String> _meses = DateFormat.MMMM('es').dateSymbols.MONTHS;
   final List<String> _origenes = [
     'Ahorros',
     'Salario',
@@ -69,92 +60,127 @@ class InvestmentFormScreenState extends State<InvestmentFormScreen> {
   @override
   void initState() {
     super.initState();
-
-    _selectedMoneda = 'COP';
-    _selectedMes = _meses[DateTime.now().month - 1];
-    _selectedOrigen = _origenes[0];
-    _selectedActivo = _activos[0];
-    _selectedEstado = 'Activo';
-    _selectedFechaInversion = DateTime.now();
-
-    if (widget.investment != null) {
-      _montoController.text = widget.investment!.invMensual.toString();
-      _descripcionController.text = widget.investment!.descripcion;
-      _selectedMoneda = widget.investment!.moneda;
-      _selectedMes = widget.investment!.mes;
-      _selectedOrigen = widget.investment!.origen;
-      _selectedActivo = widget.investment!.activo;
-      _selectedEstado = widget.investment!.estado;
-      _selectedFechaInversion = widget.investment!.fechaInversion;
-    }
-
+    _initializeFields();
     _montoController.addListener(_updateConversion);
     _updateConversion();
   }
 
-  Future<void> _updateConversion() async {
-    final monto = double.tryParse(_montoController.text) ?? 0;
+  void _initializeFields() {
+    final now = DateTime.now();
+    _selectedMoneda = widget.investment?.moneda ?? 'COP';
+    _selectedMes = widget.investment?.mes ?? _meses[now.month - 1];
+    _selectedOrigen = widget.investment?.origen ?? _origenes[0];
+    _selectedActivo = widget.investment?.activo ?? _activos[0];
+    _selectedEstado = widget.investment?.estado ?? 'Activo';
+    _selectedFechaInversion = widget.investment?.fechaInversion ?? now;
 
-    // Tasa de conversión fija para COP a USD (1 COP = 0.0003 USD)
-    const tasaCOPtoUSD = 0.0003;
-    const tasaUSDtoCOP = 1 / tasaCOPtoUSD;
+    // ← MONTO CON 2 DECIMALES SIEMPRE
+    final monto = widget.investment?.invMensual ?? 0.0;
+    _montoController.text = UIHelpers.formatCurrency(monto);
 
-    setState(() {
-      if (_selectedMoneda == 'COP') {
-        // Convertir de COP a USD
-        _tasaConversion = tasaCOPtoUSD;
-        _montoConvertido = monto * _tasaConversion;
-      } else {
-        // Convertir de USD a COP
-        _tasaConversion = tasaUSDtoCOP;
-        _montoConvertido = monto * _tasaConversion;
-      }
-    });
+    _descripcionController.text = widget.investment?.descripcion ?? '';
   }
 
-  Future<void> _selectFechaInversion(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+  Future<void> _updateConversion() async {
+    // ← LIMPIAR FORMATO PARA OBTENER NÚMERO REAL
+    final rawText = _montoController.text;
+    final cleanText =
+        rawText.replaceAll(RegExp(r'[^\d,]'), '').replaceAll('.', '');
+    final monto = double.tryParse(cleanText.replaceAll(',', '.')) ?? 0.0;
+
+    if (monto <= 0 || _selectedMoneda == 'COP') {
+      setState(() {
+        _tasaConversion = 1.0;
+        _montoConvertido = monto;
+        _isLoadingConversion = false;
+      });
+      return;
+    }
+
+    setState(() => _isLoadingConversion = true);
+
+    try {
+      final rate =
+          await _currencyService.getExchangeRate(_selectedMoneda, 'COP');
+      setState(() {
+        _tasaConversion = rate;
+        _montoConvertido = monto * rate;
+      });
+    } catch (e) {
+      if (mounted) {
+        UIHelpers.showErrorSnackBar(
+            context: context, message: 'Error en conversión');
+      }
+    } finally {
+      if (mounted) setState(() => _isLoadingConversion = false);
+    }
+  }
+
+  Future<void> _selectFechaInversion() async {
+    final picked = await showDatePicker(
       context: context,
       initialDate: _selectedFechaInversion,
       firstDate: DateTime(1900),
       lastDate: DateTime(2100),
     );
-    if (picked != null && picked != _selectedFechaInversion) {
-      setState(() {
-        _selectedFechaInversion = picked;
-      });
+    if (picked != null) {
+      setState(() => _selectedFechaInversion = picked);
     }
   }
 
   Future<void> _guardarInversion() async {
-    if (_formKey.currentState!.validate()) {
-      final investment = Investment(
-        id: widget.investment?.id ?? const Uuid().v4(),
-        userId: widget.userId,
-        portafolioId: widget.portafolioId,
-        fecha: DateTime.now(),
-        mes: _selectedMes,
-        invMensual: double.parse(_montoController.text),
-        moneda: _selectedMoneda,
-        descripcion: _descripcionController.text,
-        estado: _selectedEstado,
-        fechaInversion: _selectedFechaInversion,
-        origen: _selectedOrigen,
-        activo: _selectedActivo,
-      );
+    if (!_formKey.currentState!.validate()) return;
 
+    // ← OBTENER NÚMERO LIMPIO
+    final rawText = _montoController.text;
+    final cleanText =
+        rawText.replaceAll(RegExp(r'[^\d,]'), '').replaceAll('.', '');
+    final monto = double.tryParse(cleanText.replaceAll(',', '.')) ?? 0.0;
+
+    final investment = Investment(
+      id: widget.investment?.id ?? const Uuid().v4(),
+      userId: widget.userId,
+      portafolioId: widget.portafolioId,
+      fecha: DateTime.now(),
+      mes: _selectedMes,
+      invMensual: monto,
+      moneda: _selectedMoneda,
+      descripcion: _descripcionController.text,
+      estado: _selectedEstado,
+      fechaInversion: _selectedFechaInversion,
+      origen: _selectedOrigen,
+      activo: _selectedActivo,
+    );
+
+    try {
+      final service = InvestmentService();
       if (widget.investment == null) {
-        await InvestmentService()
-            .agregarInvestment(widget.userId, widget.portafolioId, investment);
+        await service.agregarInvestment(
+            widget.userId, widget.portafolioId, investment);
       } else {
-        await InvestmentService().actualizarInvestment(widget.userId,
-            widget.portafolioId, widget.investment!.id, investment);
+        await service.actualizarInvestment(widget.userId, widget.portafolioId,
+            widget.investment!.id, investment);
       }
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Inversión guardada correctamente')),
-      );
-      Navigator.pop(context);
+
+      if (mounted) {
+        UIHelpers.showSuccessSnackBar(
+            context: context, message: 'Inversión guardada');
+        Navigator.pop(context);
+      }
+    } catch (e) {
+      if (mounted) {
+        UIHelpers.showErrorSnackBar(
+            context: context, message: 'Error al guardar');
+      }
     }
+  }
+
+  @override
+  void dispose() {
+    _montoController.removeListener(_updateConversion);
+    _montoController.dispose();
+    _descripcionController.dispose();
+    super.dispose();
   }
 
   @override
@@ -165,124 +191,149 @@ class InvestmentFormScreenState extends State<InvestmentFormScreen> {
             widget.investment == null ? "Nueva Inversión" : "Editar Inversión"),
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16.0),
+        padding: const EdgeInsets.all(16),
         child: Form(
           key: _formKey,
           child: Column(
             children: [
-              // Campo de Monto
+              // === MONTO CON FORMATO $ 2.000,00 ===
               TextFormField(
                 controller: _montoController,
-                decoration: const InputDecoration(labelText: 'Monto'),
+                decoration: const InputDecoration(labelText: 'Monto *'),
                 keyboardType: TextInputType.numberWithOptions(decimal: true),
-                validator: (value) {
-                  if (value == null || value.isEmpty) return 'Ingrese un monto';
-                  final amount = double.tryParse(value);
-                  if (amount == null) return 'Monto inválido';
-                  if (amount <= 0) return 'Monto debe ser positivo';
-                  return null;
+                inputFormatters: [
+                  FilteringTextInputFormatter.allow(RegExp(r'[\d,.]')),
+                ],
+                onChanged: (value) {
+                  final clean = value
+                      .replaceAll(RegExp(r'[^\d,]'), '')
+                      .replaceAll('.', '');
+                  final parts = clean.split(',');
+                  final integer = parts[0];
+                  final decimal = parts.length > 1
+                      ? parts[1].substring(0, parts[1].length.clamp(0, 2))
+                      : '00';
+                  final numStr = '$integer.$decimal';
+                  final num = double.tryParse(numStr);
+                  if (num != null) {
+                    final formatted = UIHelpers.formatCurrency(num);
+                    _montoController.value = TextEditingValue(
+                      text: formatted,
+                      selection:
+                          TextSelection.collapsed(offset: formatted.length),
+                    );
+                  }
+                  _updateConversion();
                 },
+                validator: _validator.validateAmount,
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
-              // Selector de Moneda
+              // === MONEDA ===
               DropdownButtonFormField<String>(
                 initialValue: _selectedMoneda,
                 items: ['COP', 'USD', 'EUR']
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
-                onChanged: (value) async {
-                  setState(() => _selectedMoneda = value!);
+                onChanged: (v) async {
+                  setState(() => _selectedMoneda = v!);
                   await _updateConversion();
                 },
                 decoration: const InputDecoration(labelText: 'Moneda'),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
-              // Tasa de conversión
-              Text(
-                'Tasa de conversión: 1 $_selectedMoneda = ${_tasaConversion.toStringAsFixed(4)} ${_selectedMoneda == 'COP' ? 'USD' : 'COP'}',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-              ),
-              const SizedBox(height: 10),
+              // === CONVERSIÓN ===
+              if (_isLoadingConversion)
+                const LinearProgressIndicator(minHeight: 2)
+              else ...[
+                Text(
+                  'Tasa: 1 $_selectedMoneda = ${UIHelpers.formatRate(_tasaConversion)}',
+                  style: TextStyle(fontSize: 13, color: Colors.grey[700]),
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  'Convertido: ${UIHelpers.formatCurrency(_montoConvertido)}',
+                  style: const TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.green),
+                ),
+              ],
+              const SizedBox(height: 12),
 
-              // Monto convertido (con decimales)
-              Text(
-                'Monto convertido: ${_montoConvertido.toStringAsFixed(2)} ${_selectedMoneda == 'COP' ? 'USD' : 'COP'}',
-                style: TextStyle(fontSize: 14, color: Colors.grey[600]),
-              ),
-              const SizedBox(height: 10),
-
-              // Selector de Fecha de Inversión
+              // === FECHA ===
               InkWell(
-                onTap: () => _selectFechaInversion(context),
+                onTap: _selectFechaInversion,
                 child: InputDecorator(
                   decoration:
                       const InputDecoration(labelText: 'Fecha de Inversión'),
                   child: Text(
-                    DateFormat('dd/MM/yyyy').format(_selectedFechaInversion),
-                    style: const TextStyle(fontSize: 16),
-                  ),
+                      DateFormat('dd/MM/yyyy').format(_selectedFechaInversion)),
                 ),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
-              // Selector de Mes
+              // === MES ===
               DropdownButtonFormField<String>(
                 initialValue: _selectedMes,
                 items: _meses
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
-                onChanged: (value) => setState(() => _selectedMes = value!),
+                onChanged: (v) => setState(() => _selectedMes = v!),
                 decoration: const InputDecoration(labelText: 'Mes'),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
-              // Selector de Origen
+              // === ORIGEN ===
               DropdownButtonFormField<String>(
                 initialValue: _selectedOrigen,
                 items: _origenes
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
-                onChanged: (value) => setState(() => _selectedOrigen = value!),
+                onChanged: (v) => setState(() => _selectedOrigen = v!),
                 decoration: const InputDecoration(labelText: 'Origen'),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
-              // Selector de Activo
+              // === ACTIVO ===
               DropdownButtonFormField<String>(
                 initialValue: _selectedActivo,
                 items: _activos
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
-                onChanged: (value) => setState(() => _selectedActivo = value!),
+                onChanged: (v) => setState(() => _selectedActivo = v!),
                 decoration: const InputDecoration(labelText: 'Activo'),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
-              // Selector de Estado
+              // === ESTADO ===
               DropdownButtonFormField<String>(
                 initialValue: _selectedEstado,
                 items: ['Activo', 'Inactivo']
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
-                onChanged: (value) => setState(() => _selectedEstado = value!),
+                onChanged: (v) => setState(() => _selectedEstado = v!),
                 decoration: const InputDecoration(labelText: 'Estado'),
               ),
-              const SizedBox(height: 10),
+              const SizedBox(height: 12),
 
-              // Campo de Descripción
+              // === DESCRIPCIÓN ===
               TextFormField(
                 controller: _descripcionController,
                 decoration: const InputDecoration(labelText: 'Descripción'),
                 maxLength: 100,
+                validator: _validator.validateDescription,
               ),
-              const SizedBox(height: 20),
+              const SizedBox(height: 24),
 
-              // Botón de Guardar
-              ElevatedButton(
-                onPressed: _guardarInversion,
-                child: const Text('Guardar'),
+              // === GUARDAR ===
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: _guardarInversion,
+                  child: const Text('Guardar Inversión'),
+                ),
               ),
             ],
           ),

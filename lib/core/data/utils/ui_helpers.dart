@@ -1,101 +1,81 @@
 // utils/ui_helpers.dart
+import 'package:finances/core/errors/handlers/auth_error_handler.dart';
+import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-/// Clase de utilidades generales para UI.
-/// Contiene métodos para mostrar SnackBars, diálogos,
-/// validaciones de contexto y formateo de números.
+/// Clase de utilidades generales para UI: SnackBars, diálogos, validaciones.
 class UIHelpers {
-  // --------------------- SNACKBARS ---------------------
+  // ===================== SNACKBARS =====================
 
-  /// Muestra un SnackBar de éxito (verde).
-  static void showSuccessSnackBarNew({
+  /// Muestra un SnackBar de éxito (verde)
+  static void showSuccessSnackBar({
     required BuildContext context,
     required String message,
   }) {
-    _showSnackBar(
-      context,
-      message,
-      backgroundColor: Colors.green,
-      duration: const Duration(seconds: 2),
-    );
+    _showSnackBar(context, message, backgroundColor: Colors.green);
   }
 
-  /// Muestra un SnackBar de error (rojo).
+  /// Muestra un SnackBar de error (rojo)
   static void showErrorSnackBar({
     required BuildContext context,
     required String message,
   }) {
-    _showSnackBar(
-      context,
-      message,
-      backgroundColor: Colors.red,
-      duration: const Duration(seconds: 3),
-    );
+    _showSnackBar(context, message, backgroundColor: Colors.red);
   }
 
-  /// Muestra un SnackBar informativo (azul).
+  /// Muestra un SnackBar de error de Firebase usando AuthErrorHandler
+  static void showErrorSnackBarFromAuth({
+    required BuildContext context,
+    required FirebaseAuthException error,
+  }) {
+    final message = AuthErrorHandler.handle(error);
+    _showSnackBar(context, message, backgroundColor: Colors.red);
+  }
+
+  /// Muestra un SnackBar informativo (azul)
   static void showInfoSnackBar({
     required BuildContext context,
     required String message,
   }) {
-    _showSnackBar(
-      context,
-      message,
-      backgroundColor: Colors.blue,
-      duration: const Duration(seconds: 2),
-    );
+    _showSnackBar(context, message, backgroundColor: Colors.blue);
   }
 
-  /// 🔒 Método privado centralizado para evitar duplicación
+  /// Método privado: evita duplicación y asegura seguridad
   static void _showSnackBar(
     BuildContext context,
     String message, {
     Color backgroundColor = Colors.black,
-    Duration duration = const Duration(seconds: 2),
+    Duration duration = const Duration(seconds: 3),
   }) {
-    // ⚠️ Primero: verificar que el widget no esté desmontado
-    if (!context.mounted) {
-      debugPrint("⚠️ Context desmontado, no se puede mostrar SnackBar.");
-      return;
-    }
+    if (!context.mounted) return;
 
-    // ✅ Intentamos obtener el ScaffoldMessenger asociado al contexto
     final messenger = ScaffoldMessenger.maybeOf(context);
+    if (messenger == null) return;
 
-    if (messenger == null) {
-      // ⚠️ Contexto inválido, no hay Scaffold activo
-      debugPrint(
-          "⚠️ No se encontró ScaffoldMessenger. No se puede mostrar SnackBar.");
-      return;
-    }
-
-    // ✅ Limpia los SnackBars previos antes de mostrar uno nuevo
     messenger.clearSnackBars();
-
-    // ✅ Mostrar SnackBar de forma segura
     messenger.showSnackBar(
       SnackBar(
-        content: Text(message),
+        content: Text(message, style: const TextStyle(color: Colors.white)),
         backgroundColor: backgroundColor,
         duration: duration,
         behavior: SnackBarBehavior.floating,
+        margin: const EdgeInsets.all(16),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       ),
     );
   }
 
-  // --------------------- DIALOGOS ---------------------
+  // ===================== DIÁLOGOS =====================
 
-  /// Muestra un diálogo de carga con un [CircularProgressIndicator].
-  static void showLoadingDialog(
-    BuildContext context, {
-    String message = 'Cargando...',
-  }) {
-    if (!context.mounted) return; // ⚠️ Evita mostrar si el widget ya no existe
+  /// Muestra diálogo de carga
+  static void showLoadingDialog(BuildContext context,
+      {String message = 'Cargando...'}) {
+    if (!context.mounted) return;
     showDialog(
       context: context,
-      barrierDismissible: false, // ❌ No se puede cerrar tocando fuera
-      builder: (dialogContext) => AlertDialog(
+      barrierDismissible: false,
+      builder: (_) => AlertDialog(
         content: Row(
           children: [
             const CircularProgressIndicator(),
@@ -107,31 +87,34 @@ class UIHelpers {
     );
   }
 
-  /// Cierra el diálogo de carga mostrado con [showLoadingDialog].
+  /// Cierra diálogo de carga
   static void hideLoadingDialog(BuildContext context) {
-    if (!context.mounted) return; // ⚠️ Evita cerrar si ya no existe
-    if (Navigator.of(context, rootNavigator: true).canPop()) {
-      Navigator.of(context, rootNavigator: true).pop();
+    if (!context.mounted) return;
+    if (Navigator.canPop(context)) {
+      Navigator.of(context).pop();
     }
   }
 
-  // --------------------- VALIDACIONES ---------------------
+  // ===================== FORMATEO =====================
 
-  /// Verifica si el contexto actual tiene un [Scaffold] disponible.
-  static bool hasScaffold(BuildContext context) {
-    try {
-      Scaffold.of(context);
-      return true;
-    } catch (e) {
-      return false;
-    }
-  }
-
-  // --------------------- FORMATEO ---------------------
-
-  /// Formatea un número a formato de moneda local (COP).
   static String formatCurrency(double value) {
     final formatter = NumberFormat.decimalPattern('es_CO');
     return '\$${formatter.format(value)}';
+  }
+
+  static String formatCurrencyAmount(double value, {String currency = 'COP'}) {
+    final formatter = NumberFormat.currency(
+      locale: 'es_CO',
+      symbol: currency == 'COP' ? '\$' : (currency == 'USD' ? 'US\$' : '€'),
+      decimalDigits: 0,
+    );
+    return formatter.format(value);
+  }
+
+  static String formatRate(double rate, {String toCurrency = 'COP'}) {
+    final formatter = NumberFormat('#,##0.####', 'es_CO');
+    final symbol =
+        toCurrency == 'COP' ? '\$' : (toCurrency == 'USD' ? 'US\$' : '€');
+    return '$symbol${formatter.format(rate)}';
   }
 }

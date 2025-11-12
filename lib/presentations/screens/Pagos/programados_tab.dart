@@ -1,4 +1,3 @@
-// Tab de pagos programados (refactorizado)
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
@@ -6,6 +5,8 @@ import 'package:finances/core/data/providers/payment_provider.dart';
 import 'package:finances/presentations/screens/Pagos/widgets/pago_item_widget.dart';
 import 'package:finances/presentations/screens/Pagos/widgets/empty_state_widget.dart';
 import 'package:finances/presentations/screens/Pagos/widgets/confirm_delete_dialog.dart';
+
+import 'package:finances/core/data/utils/ui_helpers.dart';
 
 class ProgramadosTab extends ConsumerWidget {
   final String userId;
@@ -43,7 +44,7 @@ class ProgramadosTab extends ConsumerWidget {
               color: Colors.green,
               textoFecha: 'Próximo',
               onEditar: () => Navigator.pushNamed(
-                context, 
+                context,
                 '/editar-pago',
                 arguments: pago,
               ),
@@ -57,16 +58,16 @@ class ProgramadosTab extends ConsumerWidget {
     );
   }
 
-  Future<void> _eliminarPago(BuildContext context, WidgetRef ref, String pagoId) async {
+  Future<void> _eliminarPago(
+      BuildContext context, WidgetRef ref, String pagoId) async {
     final confirm = await showConfirmDeleteDialog(context);
     if (confirm == true) {
       try {
         await ref.read(paymentProvider(userId).notifier).eliminarPago(pagoId);
       } catch (e) {
         if (!context.mounted) return;
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text("Error eliminando pago: $e")),
-        );
+        UIHelpers.showErrorSnackBar(
+            context: context, message: "Error al eliminar el pago: $e");
       }
     }
   }

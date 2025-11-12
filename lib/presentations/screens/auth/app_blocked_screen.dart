@@ -1,4 +1,5 @@
 // lib/presentations/screens/app_blocked_screen.dart
+import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/services/BiometricAuthService.dart';
@@ -123,20 +124,15 @@ class _AppBlockedScreenState extends ConsumerState<AppBlockedScreen> {
               const SizedBox(height: 15),
               // 🔑 BOTÓN CORREGIDO: Ya NO llama a signOut()
               TextButton(
-                onPressed: () {
-                  // ✅ Navegamos directamente al login
-                  // El usuario YA está deslogueado (eso se hizo al presionar "Salir")
-                  // No es necesario cerrar sesión otra vez.
+                onPressed: () async {
+                  await ref.read(authProvider.notifier).signOut();
                   Navigator.pushNamedAndRemoveUntil(
                     context,
                     AppRoutes.login,
-                    (Route<dynamic> r) => false,
+                    (r) => false,
                   );
                 },
-                child: const Text(
-                  "Ingresar con contraseña",
-                  style: TextStyle(fontSize: 16),
-                ),
+                child: const Text("Ingresar con contraseña"),
               ),
             ],
           ),

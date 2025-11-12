@@ -25,8 +25,8 @@ class CurrencyService {
     }
 
     // 🔙 Valor de respaldo (ejemplo COP/USD realista)
-    if (from == 'COP' && to == 'USD') return 0.00025;
-    if (from == 'USD' && to == 'COP') return 4000.0;
+    if (from == 'USD' && to == 'COP') return 4200.0;
+    if (from == 'COP' && to == 'USD') return 1 / 4200.0;
 
     // 🔙 Si no hay datos, devolvemos 1.0 (equivalente)
     return 1.0;

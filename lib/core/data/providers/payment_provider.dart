@@ -97,20 +97,20 @@ class PaymentNotifier extends StateNotifier<AsyncValue<List<Pago>>> {
 
       // Verifica si el documento existe
       if (snapshot.exists) {
-        // Obtiene el pago anterior desde Firestore
-        final previousPago =
-            Pago.fromMap(snapshot.data() as Map<String, dynamic>);
+        // Obtiene el pago anterior desde Firestore usando fromFirestore
+        final previousPago = Pago.fromFirestore(snapshot);
         debugPrint("Editando pago. ID: ${updatedPago.id}");
 
         // Si el pago anterior estaba programado, cancela su notificación
         if (previousPago.estaProgramado) {
-           debugPrint("Cancelando notificación anterior para pago: ${previousPago.id}");
-          // Usa el ID del pago anterior para cancelar la notificación
+          debugPrint(
+              "Cancelando notificación anterior para pago: ${previousPago.id}");
           await NotificationService().cancelRecurringNotification(
-              _getNotificationId(previousPago.id)); // <-- Corrección: usar helper
+            _getNotificationId(previousPago.id),
+          );
         }
       } else {
-         debugPrint("El documento a editar no existe. ID: ${updatedPago.id}");
+        debugPrint("El documento a editar no existe. ID: ${updatedPago.id}");
       }
 
       // Actualiza el pago en Firestore
@@ -118,12 +118,13 @@ class PaymentNotifier extends StateNotifier<AsyncValue<List<Pago>>> {
 
       // Si el pago actualizado es programado, programa su nueva notificación
       if (updatedPago.estaProgramado) {
-        debugPrint("Programando nueva notificación para pago editado: ${updatedPago.id}");
+        debugPrint(
+            "Programando nueva notificación para pago editado: ${updatedPago.id}");
         // Programa la notificación pasando el objeto actualizado (que ya tiene el ID)
         await NotificationService().scheduleRecurringNotification(updatedPago);
       }
     } catch (e) {
-       debugPrint("Error en editarPago: $e");
+      debugPrint("Error en editarPago: $e");
       rethrow;
     }
   }
