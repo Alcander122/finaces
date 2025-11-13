@@ -1,11 +1,11 @@
-// investment_form_screen.dart
 import 'package:finances/core/data/models/investment_model.dart';
 import 'package:finances/core/data/services/currency_service.dart';
 import 'package:finances/core/data/services/investment_service.dart';
 import 'package:finances/core/data/utils/form_validator.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter/services.dart'; // ← NECESARIO
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
+import 'dart:math';
 import 'package:uuid/uuid.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
 
@@ -32,6 +32,7 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
   final _currencyService = CurrencyService();
   final _validator = FormValidator();
 
+  // === VALORES SELECCIONADOS ===
   late String _selectedMoneda;
   late String _selectedMes;
   late String _selectedOrigen;
@@ -39,17 +40,22 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
   late String _selectedEstado;
   late DateTime _selectedFechaInversion;
 
+  // === CONVERSIÓN DE MONEDA ===
   double _tasaConversion = 1.0;
   double _montoConvertido = 0.0;
   bool _isLoadingConversion = false;
 
-  final List<String> _meses = DateFormat.MMMM('es').dateSymbols.MONTHS;
+  // === LISTAS DE OPCIONES ===
+  // MESES: Capitalizados correctamente (Enero, Febrero, ...)
+  late final List<String> _meses;
+
   final List<String> _origenes = [
     'Ahorros',
     'Salario',
     'Rendimientos',
     'Otros'
   ];
+
   final List<String> _activos = [
     'ETF SP&500',
     'Acciones',
@@ -60,29 +66,83 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
   @override
   void initState() {
     super.initState();
-    _initializeFields();
+
+    // 1. Generar lista de meses capitalizados
+    _meses = DateFormat.MMMM('es')
+        .dateSymbols
+        .MONTHS
+        .map((mes) => mes[0].toUpperCase() + mes.substring(1).toLowerCase())
+        .toList();
+
+// Listener DESPUÉS de inicializar
     _montoController.addListener(_updateConversion);
-    _updateConversion();
+
+    // Conversión inicial DESPUÉS del primer frame
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (mounted) {
+        _updateConversion();
+        // Validar después de cargar para limpiar errores visuales
+        _formKey.currentState?.validate();
+      }
+    });
+    // 2. Inicializar todos los campos
+    _initializeFields();
+
+    // 3. Escuchar cambios en el monto para conversión
+    _montoController.addListener(_updateConversion);
+    _updateConversion(); // Conversión inicial
   }
 
+  /// Inicializa todos los campos del formulario
   void _initializeFields() {
     final now = DateTime.now();
+
+    // === MONEDA ===
     _selectedMoneda = widget.investment?.moneda ?? 'COP';
-    _selectedMes = widget.investment?.mes ?? _meses[now.month - 1];
+
+    // === MES (NORMALIZADO) ===
+    final mesFromDb = widget.investment?.mes;
+    _selectedMes = _normalizeMonth(mesFromDb) ?? _meses[now.month - 1];
+
+    // === ORIGEN, ACTIVO, ESTADO ===
     _selectedOrigen = widget.investment?.origen ?? _origenes[0];
     _selectedActivo = widget.investment?.activo ?? _activos[0];
     _selectedEstado = widget.investment?.estado ?? 'Activo';
+
+    // === FECHA DE INVERSIÓN ===
     _selectedFechaInversion = widget.investment?.fechaInversion ?? now;
 
-    // ← MONTO CON 2 DECIMALES SIEMPRE
+    // === MONTO (SIEMPRE 2 DECIMALES) ===
     final monto = widget.investment?.invMensual ?? 0.0;
     _montoController.text = UIHelpers.formatCurrency(monto);
 
+    // === DESCRIPCIÓN ===
     _descripcionController.text = widget.investment?.descripcion ?? '';
   }
 
+  /// Normaliza cualquier variante del mes a su forma capitalizada estándar
+  /// Ej: "octubre", "OCTUBRE", "Octubre" → "Octubre"
+  String? _normalizeMonth(String? mes) {
+    if (mes == null || mes.trim().isEmpty) return null;
+
+    final cleaned = mes.trim();
+    final lowerCase = cleaned.toLowerCase();
+
+    // Buscar en la lista original en minúsculas
+    final index = DateFormat.MMMM('es').dateSymbols.MONTHS.indexWhere(
+          (m) => m.toLowerCase() == lowerCase,
+        );
+
+    if (index != -1) {
+      return _meses[index]; // Devuelve "Octubre", "Enero", etc.
+    }
+
+    return null; // No encontrado
+  }
+
+  /// Actualiza la conversión de moneda en tiempo real
   Future<void> _updateConversion() async {
-    // ← LIMPIAR FORMATO PARA OBTENER NÚMERO REAL
+    // Limpiar formato: "$ 1.234,56" → "1234.56"
     final rawText = _montoController.text;
     final cleanText =
         rawText.replaceAll(RegExp(r'[^\d,]'), '').replaceAll('.', '');
@@ -109,13 +169,16 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
     } catch (e) {
       if (mounted) {
         UIHelpers.showErrorSnackBar(
-            context: context, message: 'Error en conversión');
+            context: context, message: 'Error en conversión de moneda');
       }
     } finally {
-      if (mounted) setState(() => _isLoadingConversion = false);
+      if (mounted) {
+        setState(() => _isLoadingConversion = false);
+      }
     }
   }
 
+  /// Abre el selector de fecha
   Future<void> _selectFechaInversion() async {
     final picked = await showDatePicker(
       context: context,
@@ -128,10 +191,11 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
     }
   }
 
+  /// Guarda o actualiza la inversión
   Future<void> _guardarInversion() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // ← OBTENER NÚMERO LIMPIO
+    // Limpiar monto
     final rawText = _montoController.text;
     final cleanText =
         rawText.replaceAll(RegExp(r'[^\d,]'), '').replaceAll('.', '');
@@ -142,7 +206,7 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
       userId: widget.userId,
       portafolioId: widget.portafolioId,
       fecha: DateTime.now(),
-      mes: _selectedMes,
+      mes: _selectedMes, // ← Siempre capitalizado y válido
       invMensual: monto,
       moneda: _selectedMoneda,
       descripcion: _descripcionController.text,
@@ -196,7 +260,7 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
           key: _formKey,
           child: Column(
             children: [
-              // === MONTO CON FORMATO $ 2.000,00 ===
+              // === MONTO CON FORMATO ===
               TextFormField(
                 controller: _montoController,
                 decoration: const InputDecoration(labelText: 'Monto *'),
@@ -205,24 +269,35 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
                   FilteringTextInputFormatter.allow(RegExp(r'[\d,.]')),
                 ],
                 onChanged: (value) {
+                  // Evitar bucle infinito
+                  if (value == _montoController.text) return;
+
                   final clean = value
                       .replaceAll(RegExp(r'[^\d,]'), '')
                       .replaceAll('.', '');
+
                   final parts = clean.split(',');
                   final integer = parts[0];
                   final decimal = parts.length > 1
-                      ? parts[1].substring(0, parts[1].length.clamp(0, 2))
+                      ? parts[1]
+                          .substring(0, min(2, parts[1].length))
+                          .padRight(2, '0')
                       : '00';
-                  final numStr = '$integer.$decimal';
-                  final num = double.tryParse(numStr);
-                  if (num != null) {
-                    final formatted = UIHelpers.formatCurrency(num);
-                    _montoController.value = TextEditingValue(
-                      text: formatted,
-                      selection:
-                          TextSelection.collapsed(offset: formatted.length),
-                    );
+
+                  final numberStr = '$integer.$decimal';
+                  final number = double.tryParse(numberStr);
+
+                  if (number != null && number > 0) {
+                    final formatted = UIHelpers.formatCurrency(number);
+                    if (formatted != _montoController.text) {
+                      _montoController.value = TextEditingValue(
+                        text: formatted,
+                        selection:
+                            TextSelection.collapsed(offset: formatted.length),
+                      );
+                    }
                   }
+
                   _updateConversion();
                 },
                 validator: _validator.validateAmount,
@@ -231,7 +306,7 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
 
               // === MONEDA ===
               DropdownButtonFormField<String>(
-                initialValue: _selectedMoneda,
+                value: _selectedMoneda,
                 items: ['COP', 'USD', 'EUR']
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
@@ -262,7 +337,7 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
               ],
               const SizedBox(height: 12),
 
-              // === FECHA ===
+              // === FECHA DE INVERSIÓN ===
               InkWell(
                 onTap: _selectFechaInversion,
                 child: InputDecorator(
@@ -274,9 +349,9 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
               ),
               const SizedBox(height: 12),
 
-              // === MES ===
+              // === MES (SOLUCIONADO) ===
               DropdownButtonFormField<String>(
-                initialValue: _selectedMes,
+                value: _selectedMes,
                 items: _meses
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
@@ -287,7 +362,7 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
 
               // === ORIGEN ===
               DropdownButtonFormField<String>(
-                initialValue: _selectedOrigen,
+                value: _selectedOrigen,
                 items: _origenes
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
@@ -298,7 +373,7 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
 
               // === ACTIVO ===
               DropdownButtonFormField<String>(
-                initialValue: _selectedActivo,
+                value: _selectedActivo,
                 items: _activos
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
@@ -309,7 +384,7 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
 
               // === ESTADO ===
               DropdownButtonFormField<String>(
-                initialValue: _selectedEstado,
+                value: _selectedEstado,
                 items: ['Activo', 'Inactivo']
                     .map((e) => DropdownMenuItem(value: e, child: Text(e)))
                     .toList(),
@@ -327,7 +402,7 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
               ),
               const SizedBox(height: 24),
 
-              // === GUARDAR ===
+              // === BOTÓN GUARDAR ===
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
