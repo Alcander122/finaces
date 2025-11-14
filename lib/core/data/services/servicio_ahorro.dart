@@ -27,6 +27,7 @@ class AhorroService {
     required String nombre,
     required double montoObjetivo,
     required DateTime fechaObjetivo,
+    required DateTime fechaCreacion,
   }) async {
     await _firestore
         .collection('users')

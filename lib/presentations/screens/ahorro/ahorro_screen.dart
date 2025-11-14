@@ -1,14 +1,17 @@
+// ahorro_screen.dart
 import 'package:finances/core/data/models/objetivo_ahorro.dart';
 import 'package:finances/core/data/services/servicio_ahorro.dart';
 import 'package:finances/core/data/utils/ahorro_validator.dart';
-import 'package:finances/core/data/utils/thousands_formatter.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
+import 'package:finances/presentations/widgets/custom_form_container.dart';
+import 'package:finances/presentations/widgets/app_input_style.dart';
 import 'package:finances/presentations/theme/themes.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
-// Importa tus archivos locales
+// Importa tus widgets locales
 import 'detalles_transacciones.dart';
 import 'dialogo_transaccion.dart';
 import 'widgets/elemento_objetivo_ahorro.dart';
@@ -23,6 +26,32 @@ class AhorroScreen extends StatefulWidget {
 class AhorroScreenState extends State<AhorroScreen> {
   final AhorroService _ahorroService = AhorroService();
 
+  // Variables del formulario
+  late GlobalKey<FormState> _metaFormKey;
+  late TextEditingController _nombreCtrl;
+  late TextEditingController _montoCtrl;
+  late TextEditingController _fechaCtrl;
+  late DateTime _fechaObjetivo;
+  late AhorroValidator _validator;
+
+  @override
+  void initState() {
+    super.initState();
+    _metaFormKey = GlobalKey<FormState>();
+    _nombreCtrl = TextEditingController();
+    _montoCtrl = TextEditingController();
+    _fechaCtrl = TextEditingController();
+    _validator = AhorroValidator();
+  }
+
+  @override
+  void dispose() {
+    _nombreCtrl.dispose();
+    _montoCtrl.dispose();
+    _fechaCtrl.dispose();
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -31,7 +60,6 @@ class AhorroScreenState extends State<AhorroScreen> {
         title: 'Metas',
         showProfileIcon: false,
       ),
-      // Permite que el contenido se ajuste cuando aparece el teclado
       resizeToAvoidBottomInset: true,
       body: StreamBuilder<List<ObjetivoAhorro>>(
         stream: _ahorroService.obtenerMetas(),
@@ -57,44 +85,7 @@ class AhorroScreenState extends State<AhorroScreen> {
                     _mostrarDialogo(context, meta.id!, tipo),
                 onVerDetalles: () =>
                     _mostrarDetallesTransacciones(context, meta),
-                onEliminar: () async {
-                  final confirmar = await showDialog<bool>(
-                    context: context,
-                    builder: (ctx) => AlertDialog(
-                      title: const Text('Eliminar meta'),
-                      content: Text(
-                          '¿Seguro que quieres eliminar la meta "${meta.nombre}"?'),
-                      actions: [
-                        TextButton(
-                          onPressed: () => Navigator.pop(ctx, false),
-                          child: const Text('Cancelar'),
-                        ),
-                        ElevatedButton(
-                          style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.red),
-                          onPressed: () => Navigator.pop(ctx, true),
-                          child: const Text('Eliminar'),
-                        ),
-                      ],
-                    ),
-                  );
-
-                  if (confirmar == true) {
-                    try {
-                      await _ahorroService.eliminarMeta(meta.id!);
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(
-                            content: Text('Meta "${meta.nombre}" eliminada')),
-                      );
-                    } catch (e) {
-                      if (!mounted) return;
-                      ScaffoldMessenger.of(context).showSnackBar(
-                        SnackBar(content: Text('Error al eliminar: $e')),
-                      );
-                    }
-                  }
-                },
+                onEliminar: () async => await _eliminarMeta(context, meta),
               );
             },
           );
@@ -102,11 +93,13 @@ class AhorroScreenState extends State<AhorroScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _mostrarDialogoNuevaMeta(context),
-        child: const Icon(Icons.add),
+        backgroundColor: Themes.primary,
+        child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 
+  // === DIÁLOGO DE TRANSACCIÓN ===
   Future<void> _mostrarDialogo(
       BuildContext context, String metaId, String tipo) async {
     showDialog(
@@ -118,10 +111,12 @@ class AhorroScreenState extends State<AhorroScreen> {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
-            if (snapshot.hasError) {
+            if (snapshot.hasError ||
+                !snapshot.hasData ||
+                snapshot.data!.isEmpty) {
               return AlertDialog(
                 title: const Text('Error'),
-                content: Text('Error: ${snapshot.error}'),
+                content: const Text('No se pudo cargar la meta'),
                 actions: [
                   TextButton(
                     onPressed: () => Navigator.pop(dialogContext),
@@ -130,47 +125,26 @@ class AhorroScreenState extends State<AhorroScreen> {
                 ],
               );
             }
-            if (!snapshot.hasData || snapshot.data!.isEmpty) {
-              return AlertDialog(
-                title: const Text('Sin Metas'),
-                content: const Text('No hay metas disponibles'),
-                actions: [
-                  TextButton(
-                    onPressed: () => Navigator.pop(dialogContext),
-                    child: const Text('Cerrar'),
-                  ),
-                ],
-              );
-            }
-            final metas = snapshot.data!;
-            final metaSeleccionada = metas.firstWhere((m) => m.id == metaId);
 
+            final meta = snapshot.data!.firstWhere((m) => m.id == metaId);
             return DialogoTransaccion(
               onGuardar: (monto, descripcion) {
-                // Validación adicional para depósitos
                 if (tipo == 'deposito') {
-                  final restante = metaSeleccionada.montoObjetivo -
-                      metaSeleccionada.montoActual;
+                  final restante = meta.montoRestante;
                   if (monto > restante) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(
-                          'No puedes depositar más de ${UIHelpers.formatCurrency(restante)}. '
-                          'La meta es de ${UIHelpers.formatCurrency(metaSeleccionada.montoObjetivo)}',
-                        ),
-                      ),
+                    UIHelpers.showErrorSnackBar(
+                      context: context,
+                      message:
+                          'No puedes depositar más de ${UIHelpers.formatCurrency(restante)}',
                     );
-                    return; // ❌ no guarda la transacción
+                    return;
                   }
                 }
-
                 _manejarTransaccion(
                     dialogContext, metaId, tipo, monto, descripcion);
               },
-              maxMonto: tipo == 'retiro'
-                  ? metaSeleccionada.montoActual
-                  : (metaSeleccionada.montoObjetivo -
-                      metaSeleccionada.montoActual),
+              maxMonto:
+                  tipo == 'retiro' ? meta.montoActual : meta.montoRestante,
               titulo:
                   tipo == 'retiro' ? 'Realizar Retiro' : 'Realizar Depósito',
             );
@@ -190,161 +164,153 @@ class AhorroScreenState extends State<AhorroScreen> {
       descripcion: descripcion,
     )
         .then((_) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Operación exitosa')),
+      Navigator.pop(dialogContext);
+      UIHelpers.showSuccessSnackBar(
+        context: context,
+        message: 'Operación exitosa',
       );
     }).catchError((error) {
-      if (!mounted) return;
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Error: $error')),
+      UIHelpers.showErrorSnackBar(
+        context: context,
+        message: 'Error: $error',
       );
     });
   }
 
+  // === ELIMINAR META ===
+  Future<void> _eliminarMeta(BuildContext context, ObjetivoAhorro meta) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        title: const Text('Eliminar meta'),
+        content: Text('¿Seguro que quieres eliminar "${meta.nombre}"?'),
+        actions: [
+          TextButton(
+              onPressed: () => Navigator.pop(ctx, false),
+              child: const Text('Cancelar')),
+          ElevatedButton(
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar'),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar == true) {
+      try {
+        await _ahorroService.eliminarMeta(meta.id!);
+        UIHelpers.showSuccessSnackBar(
+          context: context,
+          message: 'Meta eliminada',
+        );
+      } catch (e) {
+        UIHelpers.showErrorSnackBar(
+          context: context,
+          message: 'Error: $e',
+        );
+      }
+    }
+  }
+
+  // === FORMULARIO NUEVA META ===
   void _mostrarDialogoNuevaMeta(BuildContext context) {
-    final formKey = GlobalKey<FormState>();
-    final nombreController = TextEditingController();
-    final montoController = TextEditingController();
-    final fechaController = TextEditingController();
-    final AhorroValidator validator = AhorroValidator();
+    _nombreCtrl.clear();
+    _montoCtrl.clear();
+    _fechaObjetivo = DateTime.now().add(const Duration(days: 30));
+    _fechaCtrl.text = DateFormat('dd/MM/yyyy').format(_fechaObjetivo);
 
     showDialog(
       context: context,
       builder: (dialogContext) => Dialog(
         backgroundColor: Colors.transparent,
         child: Center(
-          child: Card(
-            elevation: 10,
-            shape:
-                RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-            margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 24),
-            child: Padding(
-              padding: const EdgeInsets.all(20.0),
-              child: SingleChildScrollView(
-                child: Form(
-                  key: formKey,
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Text(
-                        'Nueva Meta de Ahorro',
-                        style: TextStyle(
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      TextFormField(
-                        controller: nombreController,
-                        decoration: InputDecoration(
-                          labelText: 'Nombre de la Meta',
-                          prefixIcon: const Icon(Icons.title),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        validator: (value) => validator.validateNombre(value),
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: montoController,
-                        keyboardType: TextInputType.number,
-                        inputFormatters: [ThousandsFormatter()],
-                        decoration: InputDecoration(
-                          labelText: 'Monto Objetivo',
-                          prefixIcon: const Icon(Icons.attach_money),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        validator: (value) =>
-                            validator.validateMonto(value, null),
-                      ),
-                      const SizedBox(height: 16),
-                      TextFormField(
-                        controller: fechaController,
-                        readOnly: true,
-                        decoration: InputDecoration(
-                          labelText: 'Fecha Objetivo',
-                          prefixIcon: const Icon(Icons.calendar_today),
-                          border: OutlineInputBorder(
-                            borderRadius: BorderRadius.circular(12),
-                          ),
-                        ),
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: DateTime.now(),
-                            firstDate: DateTime.now(),
-                            lastDate: DateTime(2100),
-                          );
-                          if (picked != null) {
-                            fechaController.text =
-                                DateFormat('yyyy-MM-dd').format(picked);
-                          }
-                        },
-                      ),
-                      const SizedBox(height: 24),
-                      Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          TextButton(
-                            onPressed: () => Navigator.pop(dialogContext),
-                            child: const Text('Cancelar'),
-                          ),
-                          ElevatedButton(
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: Themes.primary,
-                              padding: const EdgeInsets.symmetric(
-                                  vertical: 12, horizontal: 20),
-                              shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(12),
-                              ),
-                            ),
-                            onPressed: () {
-                              if (formKey.currentState!.validate()) {
-                                final nombre = nombreController.text.trim();
-                                final montoLimpio =
-                                    montoController.text.replaceAll('.', '');
-                                final montoObjetivo =
-                                    double.tryParse(montoLimpio) ?? 0;
-                                final fechaObjetivo =
-                                    DateTime.parse(fechaController.text);
-                                _ahorroService
-                                    .crearMeta(
-                                  nombre: nombre,
-                                  montoObjetivo: montoObjetivo,
-                                  fechaObjetivo: fechaObjetivo,
-                                )
-                                    .then((_) {
-                                  Navigator.pop(dialogContext);
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    const SnackBar(
-                                        content:
-                                            Text('Meta creada correctamente')),
-                                  );
-                                }).catchError((error) {
-                                  ScaffoldMessenger.of(context).showSnackBar(
-                                    SnackBar(content: Text('Error: $error')),
-                                  );
-                                });
-                              }
-                            },
-                            child: const Text(
-                              'Guardar',
-                              style: TextStyle(
-                                color: Colors.white,
-                                fontWeight: FontWeight.bold,
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
-                  ),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 400),
+            child: CustomFormContainer(
+              formKey: _metaFormKey,
+              onCancel: () => Navigator.pop(dialogContext),
+              onSave: () => _guardarMeta(dialogContext, context),
+              saveButtonText: 'Guardar',
+              cancelButtonText: 'Cancelar',
+              children: [
+                const Text(
+                  'Nueva Meta de Ahorro',
+                  style: TextStyle(
+                      fontSize: 18,
+                      fontWeight: FontWeight.bold,
+                      color: Themes.primary),
+                  textAlign: TextAlign.center,
                 ),
-              ),
+                const SizedBox(height: 20),
+
+                // Nombre
+                TextFormField(
+                  controller: _nombreCtrl,
+                  decoration: AppInputStyle.textField(
+                    label: 'Nombre de la Meta',
+                    suffixIcon: const Icon(Icons.title),
+                  ),
+                  validator: _validator.validateNombre,
+                ),
+                const SizedBox(height: 12),
+
+                // Monto
+                TextFormField(
+                  controller: _montoCtrl,
+                  keyboardType: TextInputType.number,
+                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+                  decoration: AppInputStyle.textField(
+                    label: 'Monto Objetivo',
+                    suffixIcon: const Icon(Icons.attach_money),
+                  ),
+                  onChanged: (value) {
+                    final clean = value.replaceAll(RegExp(r'[^\d]'), '');
+                    if (clean.isEmpty) {
+                      _montoCtrl.text = '';
+                      return;
+                    }
+                    final formatted =
+                        UIHelpers.formatCurrency(double.parse(clean));
+                    if (formatted != _montoCtrl.text) {
+                      _montoCtrl.text = formatted;
+                      _montoCtrl.selection =
+                          TextSelection.collapsed(offset: formatted.length);
+                    }
+                  },
+                  validator: (value) {
+                    final clean = value?.replaceAll(RegExp(r'[^\d]'), '') ?? '';
+                    return _validator.validateMonto(
+                        clean.isEmpty ? null : clean, null);
+                  },
+                ),
+                const SizedBox(height: 12),
+
+                // Fecha
+                TextFormField(
+                  controller: _fechaCtrl,
+                  readOnly: true,
+                  decoration: AppInputStyle.textField(
+                    label: 'Fecha Objetivo',
+                    suffixIcon: const Icon(Icons.calendar_today),
+                  ),
+                  onTap: () async {
+                    final picked = await showDatePicker(
+                      context: context,
+                      initialDate: _fechaObjetivo,
+                      firstDate: DateTime.now(),
+                      lastDate: DateTime(2100),
+                    );
+                    if (picked != null) {
+                      setState(() {
+                        _fechaObjetivo = picked;
+                        _fechaCtrl.text =
+                            DateFormat('dd/MM/yyyy').format(picked);
+                      });
+                    }
+                  },
+                ),
+              ],
             ),
           ),
         ),
@@ -352,7 +318,37 @@ class AhorroScreenState extends State<AhorroScreen> {
     );
   }
 
-  /// Navegación a la pantalla de detalles de transacciones
+  // === GUARDAR META ===
+  void _guardarMeta(BuildContext dialogContext, BuildContext scaffoldContext) {
+    if (!_metaFormKey.currentState!.validate()) return;
+
+    final nombre = _nombreCtrl.text.trim();
+    final montoLimpio = _montoCtrl.text.replaceAll(RegExp(r'[^\d]'), '');
+    final montoObjetivo = double.tryParse(montoLimpio) ?? 0;
+    final ahora = DateTime.now();
+
+    _ahorroService
+        .crearMeta(
+      nombre: nombre,
+      montoObjetivo: montoObjetivo,
+      fechaObjetivo: _fechaObjetivo,
+      fechaCreacion: ahora,
+    )
+        .then((_) {
+      Navigator.pop(dialogContext);
+      UIHelpers.showSuccessSnackBar(
+        context: scaffoldContext,
+        message: 'Meta creada correctamente',
+      );
+    }).catchError((error) {
+      UIHelpers.showErrorSnackBar(
+        context: scaffoldContext,
+        message: 'Error: $error',
+      );
+    });
+  }
+
+  // === NAVEGAR A DETALLES ===
   void _mostrarDetallesTransacciones(
       BuildContext context, ObjetivoAhorro meta) {
     Navigator.push(

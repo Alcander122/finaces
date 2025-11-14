@@ -1,3 +1,4 @@
+// core/data/models/objetivo_ahorro.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
 
 /// Clase que representa una transacción (depósito o retiro)
@@ -10,20 +11,30 @@ class Transaccion {
   Transaccion({
     required this.tipo,
     required this.monto,
-    DateTime? fecha, // Permite que la fecha sea opcional
+    DateTime? fecha,
     this.descripcion,
-  }) : fecha = fecha ??
-            DateTime
-                .now(); // Si no se pasa fecha, se asigna la fecha y hora actual
+  }) : fecha = fecha ?? DateTime.now();
 
-  /// Convierte la transacción en un mapa para guardarla en Firestore
+  /// Convierte la transacción en un mapa para Firestore
   Map<String, dynamic> toMap() {
     return {
       'tipo': tipo,
       'monto': monto,
-      'fecha': Timestamp.fromDate(fecha), // Se guarda como Timestamp
+      'fecha': Timestamp.fromDate(fecha),
       'descripcion': descripcion,
     };
+  }
+
+  /// Crea una Transaccion desde un mapa (Firestore)
+  factory Transaccion.fromMap(Map<String, dynamic> map) {
+    return Transaccion(
+      tipo: map['tipo'] as String,
+      monto: (map['monto'] as num).toDouble(),
+      fecha: map['fecha'] != null
+          ? (map['fecha'] as Timestamp).toDate()
+          : DateTime.now(),
+      descripcion: map['descripcion'] as String?,
+    );
   }
 }
 
@@ -43,54 +54,98 @@ class ObjetivoAhorro {
     this.id,
     required this.usuarioId,
     required this.nombre,
-    required this.montoActual,
+    this.montoActual = 0.0,
     required this.montoObjetivo,
     required this.fechaObjetivo,
-    required this.transacciones,
+    List<Transaccion>? transacciones,
     required this.fechaCreacion,
-    required this.fechaActualizacion,
-  });
+    DateTime? fechaActualizacion,
+  })  : transacciones = transacciones ?? [],
+        fechaActualizacion = fechaActualizacion ?? DateTime.now();
 
-  /// Getter que devuelve el progreso en porcentaje
-  double get progreso => (montoActual / montoObjetivo) * 100;
+  /// Progreso en porcentaje (0.0 a 100.0)
+  double get progreso {
+    if (montoObjetivo <= 0) return 0.0;
+    final p = (montoActual / montoObjetivo) * 100;
+    return p > 100 ? 100.0 : p;
+  }
 
-  /// Getter alternativo para compatibilidad con el código que usa `ahorroActual`
-  /// Básicamente es un alias de `montoActual`
+  /// Alias para compatibilidad con código viejo
   double get ahorroActual => montoActual;
 
-  /// Crea un objeto ObjetivoAhorro a partir de un documento de Firestore
+  /// Monto restante para completar la meta
+  double get montoRestante =>
+      (montoObjetivo - montoActual).clamp(0.0, double.infinity);
+
+  /// Convierte el objeto a mapa para guardar en Firestore
+  Map<String, dynamic> toMap() {
+    return {
+      'usuarioId': usuarioId,
+      'nombre': nombre,
+      'montoActual': montoActual,
+      'montoObjetivo': montoObjetivo,
+      'fechaObjetivo': Timestamp.fromDate(fechaObjetivo),
+      'transacciones': transacciones.map((t) => t.toMap()).toList(),
+      'fechaCreacion': Timestamp.fromDate(fechaCreacion),
+      'fechaActualizacion': Timestamp.fromDate(fechaActualizacion),
+    };
+  }
+
+  /// Crea un ObjetivoAhorro desde un documento de Firestore
   factory ObjetivoAhorro.desdeFirestore(DocumentSnapshot doc) {
-    Map data = doc.data() as Map<String, dynamic>;
+    final data = doc.data() as Map<String, dynamic>;
+
+    // Validación segura de campos
+    final List<Transaccion> transacciones = [];
+    if (data['transacciones'] != null) {
+      for (var t in data['transacciones']) {
+        if (t is Map<String, dynamic>) {
+          transacciones.add(Transaccion.fromMap(t));
+        }
+      }
+    }
 
     return ObjetivoAhorro(
       id: doc.id,
-      usuarioId: data['usuarioId'],
-      nombre: data['nombre'],
-      montoActual: data['montoActual'].toDouble(),
-      montoObjetivo: data['montoObjetivo'].toDouble(),
-      fechaObjetivo: data['fechaObjetivo'] == null
-          ? DateTime.now()
-          : (data['fechaObjetivo'] as Timestamp).toDate(),
-      transacciones: data['transacciones'] != null
-          ? List<Transaccion>.from(
-              data['transacciones'].map(
-                (t) => Transaccion(
-                  tipo: t['tipo'],
-                  monto: t['monto'].toDouble(),
-                  fecha: t['fecha'] != null
-                      ? (t['fecha'] as Timestamp).toDate()
-                      : DateTime.now(),
-                  descripcion: t['descripcion'],
-                ),
-              ),
-            )
-          : [],
-      fechaCreacion: data['fechaCreacion'] == null
-          ? DateTime.now()
-          : (data['fechaCreacion'] as Timestamp).toDate(),
-      fechaActualizacion: data['fechaActualizacion'] == null
-          ? DateTime.now()
-          : (data['fechaActualizacion'] as Timestamp).toDate(),
+      usuarioId: data['usuarioId'] as String? ?? '',
+      nombre: data['nombre'] as String? ?? 'Sin nombre',
+      montoActual: (data['montoActual'] as num?)?.toDouble() ?? 0.0,
+      montoObjetivo: (data['montoObjetivo'] as num?)?.toDouble() ?? 0.0,
+      fechaObjetivo: data['fechaObjetivo'] != null
+          ? (data['fechaObjetivo'] as Timestamp).toDate()
+          : DateTime.now().add(const Duration(days: 30)),
+      transacciones: transacciones,
+      fechaCreacion: data['fechaCreacion'] != null
+          ? (data['fechaCreacion'] as Timestamp).toDate()
+          : DateTime.now(),
+      fechaActualizacion: data['fechaActualizacion'] != null
+          ? (data['fechaActualizacion'] as Timestamp).toDate()
+          : DateTime.now(),
+    );
+  }
+
+  /// Crea una copia con campos actualizados
+  ObjetivoAhorro copyWith({
+    String? id,
+    String? usuarioId,
+    String? nombre,
+    double? montoActual,
+    double? montoObjetivo,
+    DateTime? fechaObjetivo,
+    List<Transaccion>? transacciones,
+    DateTime? fechaCreacion,
+    DateTime? fechaActualizacion,
+  }) {
+    return ObjetivoAhorro(
+      id: id ?? this.id,
+      usuarioId: usuarioId ?? this.usuarioId,
+      nombre: nombre ?? this.nombre,
+      montoActual: montoActual ?? this.montoActual,
+      montoObjetivo: montoObjetivo ?? this.montoObjetivo,
+      fechaObjetivo: fechaObjetivo ?? this.fechaObjetivo,
+      transacciones: transacciones ?? this.transacciones,
+      fechaCreacion: fechaCreacion ?? this.fechaCreacion,
+      fechaActualizacion: fechaActualizacion ?? this.fechaActualizacion,
     );
   }
 }
