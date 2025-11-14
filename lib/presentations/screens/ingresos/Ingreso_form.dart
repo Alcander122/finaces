@@ -9,11 +9,12 @@ import 'package:finances/core/data/models/ingreso.model.dart';
 import 'package:finances/core/data/utils/ingreso_validator.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/presentations/widgets/custom_form_container.dart';
 
 class IngresoFrom extends StatefulWidget {
   final Ingreso? ingreso;
   final Function(Ingreso) onSave;
-  final Function onCancel;
+  final VoidCallback onCancel;
 
   const IngresoFrom({
     super.key,
@@ -74,36 +75,24 @@ class _IngresoFromState extends State<IngresoFrom> {
     super.dispose();
   }
 
+// Solo el build cambia:
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      child: Container(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-        decoration: BoxDecoration(
-          color: Themes.white,
-          borderRadius: BorderRadius.circular(16),
-        ),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch, // estira los campos
-            children: [
-              _buildFechaIngresoField(),
-              const SizedBox(height: 12),
-              _buildQuincenaField(),
-              const SizedBox(height: 12),
-              _buildCategoriaField(),
-              const SizedBox(height: 12),
-              _buildConceptoField(),
-              const SizedBox(height: 12),
-              _buildValorField(),
-              const SizedBox(height: 20),
-              _buildButtonsRow(), // fila con cancelar y guardar
-            ],
-          ),
-        ),
-      ),
+    return CustomFormContainer(
+      formKey: _formKey,
+      onCancel: widget.onCancel,
+      onSave: _saveForm,
+      children: [
+        _buildFechaIngresoField(),
+        const SizedBox(height: 12),
+        _buildQuincenaField(),
+        const SizedBox(height: 12),
+        _buildCategoriaField(),
+        const SizedBox(height: 12),
+        _buildConceptoField(),
+        const SizedBox(height: 12),
+        _buildValorField(),
+      ],
     );
   }
 

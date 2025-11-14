@@ -3,6 +3,10 @@ import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 import 'package:finances/core/data/models/portafolio_model.dart';
 import 'package:finances/core/data/services/portafolio_service.dart';
+import 'package:finances/core/data/utils/ui_helpers.dart';
+import 'package:finances/presentations/widgets/custom_form_container.dart';
+import 'package:finances/presentations/widgets/app_input_style.dart';
+import 'package:finances/presentations/theme/themes.dart';
 
 class PortafolioFormScreen extends StatefulWidget {
   final String userId;
@@ -37,69 +41,152 @@ class PortafolioFormScreenState extends State<PortafolioFormScreen> {
     }
   }
 
-  void _guardarPortafolio() {
-    if (_formKey.currentState!.validate()) {
-      final portafolio = Portafolio(
-        id: widget.portafolio?.id ?? const Uuid().v4(),
-        userId: widget.userId,
-        nombre: _nombreController.text,
-        descripcion: _descripcionController.text.isNotEmpty
-            ? _descripcionController.text
-            : null,
-        fechaCreacion: _fechaCreacion,
-        nota: _notaController.text,
-      );
+  @override
+  void dispose() {
+    _nombreController.dispose();
+    _descripcionController.dispose();
+    _notaController.dispose();
+    super.dispose();
+  }
 
-      if (widget.portafolio == null) {
-        PortafolioService().agregarPortafolio(widget.userId, portafolio);
-      } else {
-        PortafolioService().actualizarPortafolio(widget.userId, portafolio);
-      }
+  void _guardarPortafolio() {
+    if (!_formKey.currentState!.validate()) return;
+
+    final portafolio = Portafolio(
+      id: widget.portafolio?.id ?? const Uuid().v4(),
+      userId: widget.userId,
+      nombre: _nombreController.text.trim(),
+      descripcion: _descripcionController.text.isNotEmpty
+          ? _descripcionController.text.trim()
+          : null,
+      fechaCreacion: _fechaCreacion,
+      nota: _notaController.text.trim(),
+    );
+
+    final service = PortafolioService();
+    final future = widget.portafolio == null
+        ? service.agregarPortafolio(widget.userId, portafolio)
+        : service.actualizarPortafolio(widget.userId, portafolio);
+
+    future.then((_) {
       Navigator.pop(context);
-    }
+      UIHelpers.showSuccessSnackBar(
+        context: context,
+        message: widget.portafolio == null
+            ? 'Portafolio creado correctamente'
+            : 'Portafolio actualizado correctamente',
+      );
+    }).catchError((error) {
+      UIHelpers.showErrorSnackBar(
+        context: context,
+        message: 'Error: $error',
+      );
+    });
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Themes.light,
       appBar: AppBar(
-        title: Text(widget.portafolio == null
-            ? "Nuevo Portafolio"
-            : "Editar Portafolio"),
+        backgroundColor: Themes.primary,
+        foregroundColor: Colors.white,
+        title: Text(
+          widget.portafolio == null ? "Nuevo Portafolio" : "Editar Portafolio",
+        ),
+        centerTitle: true,
       ),
-      body: Padding(
-        padding: const EdgeInsets.all(16.0),
-        child: Form(
-          key: _formKey,
-          child: ListView(
-            children: [
-              TextFormField(
-                controller: _nombreController,
-                decoration: const InputDecoration(labelText: "Nombre*"),
-                validator: (value) =>
-                    value!.isEmpty ? "Campo obligatorio" : null,
+      body: SingleChildScrollView(
+        padding: const EdgeInsets.all(16),
+        child: CustomFormContainer(
+          formKey: _formKey,
+          onCancel: () => Navigator.pop(context),
+          onSave: _guardarPortafolio,
+          saveButtonText: 'Guardar',
+          cancelButtonText: 'Cancelar',
+          children: [
+            // Título
+            Text(
+              widget.portafolio == null
+                  ? "Crear Portafolio"
+                  : "Editar Portafolio",
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Themes.primary,
               ),
-              TextFormField(
-                controller: _descripcionController,
-                decoration: const InputDecoration(labelText: "Descripción"),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
+
+            // Campo: Nombre
+            TextFormField(
+              controller: _nombreController,
+              decoration: AppInputStyle.textField(
+                label: 'Nombre *',
+                suffixIcon: const Icon(Icons.folder),
               ),
-              TextFormField(
-                controller: _notaController,
-                decoration: const InputDecoration(labelText: "Nota*"),
-                validator: (value) =>
-                    value!.isEmpty ? "Campo obligatorio" : null,
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'El nombre es obligatorio';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Campo: Descripción
+            TextFormField(
+              controller: _descripcionController,
+              decoration: AppInputStyle.textField(
+                label: 'Descripción',
+                suffixIcon: const Icon(Icons.description),
               ),
-              ListTile(
-                title: const Text("Fecha de creación"),
-                subtitle: Text(DateFormat('dd/MM/yyyy').format(_fechaCreacion)),
+              maxLines: 3,
+            ),
+            const SizedBox(height: 12),
+
+            // Campo: Nota
+            TextFormField(
+              controller: _notaController,
+              decoration: AppInputStyle.textField(
+                label: 'Nota *',
+                suffixIcon: const Icon(Icons.note),
               ),
-              const SizedBox(height: 20),
-              ElevatedButton(
-                onPressed: _guardarPortafolio,
-                child: const Text("Guardar Portafolio"),
+              validator: (value) {
+                if (value == null || value.trim().isEmpty) {
+                  return 'La nota es obligatoria';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // Campo: Fecha de Creación
+            TextFormField(
+              readOnly: true,
+              decoration: AppInputStyle.textField(
+                label: 'Fecha de Creación',
+                suffixIcon: const Icon(Icons.calendar_today),
               ),
-            ],
-          ),
+              controller: TextEditingController(
+                text: DateFormat('dd/MM/yyyy').format(_fechaCreacion),
+              ),
+              onTap: () async {
+                final picked = await showDatePicker(
+                  context: context,
+                  initialDate: _fechaCreacion,
+                  firstDate: DateTime(2000),
+                  lastDate: DateTime(2100),
+                );
+                if (picked != null) {
+                  setState(() {
+                    _fechaCreacion = picked;
+                  });
+                }
+              },
+            ),
+          ],
         ),
       ),
     );
