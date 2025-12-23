@@ -1,5 +1,6 @@
 // ingreso_table.dart
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:finances/presentations/theme/themes.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
@@ -105,7 +106,7 @@ class IngresoTable extends StatelessWidget {
                           message: "Actualizar registro",
                           child: IconButton(
                             icon: const Icon(Icons.edit,
-                                color: Colors.blue, size: 18),
+                                color: Themes.primary, size: 18),
                             onPressed: () => onEdit(ingreso),
                           ),
                         ),
