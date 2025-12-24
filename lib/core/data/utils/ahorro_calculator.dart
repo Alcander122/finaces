@@ -1,15 +1,17 @@
 // 📊 core/data/utils/ahorro_calculator.dart
 // ============================================================================
-// CLASE: AhorroCalculator + AhorroDesglose (VERSIÓN SEGURA Y ROBUSTA)
+// CLASE: AhorroCalculator + AhorroDesglose (VERSIÓN MEJORADA Y ROBUSTA)
 // ============================================================================
 
 /// 🎯 Clase principal que realiza todos los cálculos de ahorro
 class AhorroCalculator {
-  /// 🔹 Calcula el desglose completo de ahorros
+  /// 🔹 Calcula el desglose completo de ahorros RESTANTES
+  ///    - montoActual: cuánto ya ha ahorrado el usuario (por defecto 0)
   static AhorroDesglose calcularDesglose({
     required double montoObjetivo,
     required DateTime fechaObjetivo,
     DateTime? fechaInicio,
+    double montoActual = 0.0, // ← NUEVO: para calcular solo lo pendiente
   }) {
     fechaInicio ??= DateTime.now();
 
@@ -23,7 +25,6 @@ class AhorroCalculator {
     }
 
     final diasRestantes = fechaObjetivo.difference(fechaInicio).inDays;
-
     if (diasRestantes <= 0) {
       return AhorroDesglose.fechaPasada(
         montoObjetivo: montoObjetivo,
@@ -32,7 +33,11 @@ class AhorroCalculator {
       );
     }
 
-    final ahorrosDiarios = montoObjetivo / diasRestantes;
+    // Calculamos solo lo que falta por ahorrar
+    final double montoPendiente =
+        (montoObjetivo - montoActual).clamp(0.0, montoObjetivo);
+
+    final ahorrosDiarios = montoPendiente / diasRestantes;
     final ahorrosSemanal = ahorrosDiarios * 7;
     final ahorrosQuincenal = ahorrosDiarios * 15;
     final ahorrosMensual = ahorrosDiarios * 30;
@@ -67,7 +72,6 @@ class AhorroCalculator {
 // ============================================================================
 // CLASE: AhorroDesglose
 // ============================================================================
-
 class AhorroDesglose {
   final double montoObjetivo;
   final DateTime fechaInicio;
@@ -79,7 +83,6 @@ class AhorroDesglose {
   final double ahorrosMensual;
   final bool esValido;
 
-  /// Constructor principal (todos los parámetros required)
   const AhorroDesglose({
     required this.montoObjetivo,
     required this.fechaInicio,
@@ -92,7 +95,7 @@ class AhorroDesglose {
     required this.esValido,
   });
 
-  /// 🔥 Factory: Caso válido (cálculo exitoso)
+  /// 🔥 Factory: Caso válido
   factory AhorroDesglose.valido({
     required double montoObjetivo,
     required DateTime fechaInicio,
@@ -116,7 +119,7 @@ class AhorroDesglose {
     );
   }
 
-  /// 🔥 Factory: Caso inválido - Fecha ya pasó o datos inconsistentes
+  /// 🔥 Factory: Fecha pasada
   factory AhorroDesglose.fechaPasada({
     required double montoObjetivo,
     required DateTime fechaInicio,
@@ -135,7 +138,7 @@ class AhorroDesglose {
     );
   }
 
-  /// 🔥 Factory: Caso inválido genérico (para errores inesperados o datos corruptos)
+  /// 🔥 Factory: Caso inválido genérico
   factory AhorroDesglose.invalido({
     required double montoObjetivo,
     required DateTime fechaInicio,
@@ -156,19 +159,15 @@ class AhorroDesglose {
 
   /// Mensaje amigable sobre tiempo restante
   String get mensajeTiempoRestante {
-    if (diasRestantes <= 0) {
-      return 'La fecha ya pasó';
-    } else if (diasRestantes == 1) {
-      return '1 día restante';
-    } else if (diasRestantes < 7) {
-      return '$diasRestantes días restantes';
-    } else if (diasRestantes < 30) {
+    if (diasRestantes <= 0) return 'La fecha ya pasó';
+    if (diasRestantes == 1) return '1 día restante';
+    if (diasRestantes < 7) return '$diasRestantes días restantes';
+    if (diasRestantes < 30) {
       final semanas = (diasRestantes / 7).toStringAsFixed(1);
       return '$semanas semanas restantes';
-    } else {
-      final meses = (diasRestantes / 30).toStringAsFixed(1);
-      return '$meses meses restantes';
     }
+    final meses = (diasRestantes / 30).toStringAsFixed(1);
+    return '$meses meses restantes';
   }
 
   /// Período recomendado según tiempo disponible
