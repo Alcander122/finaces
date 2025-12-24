@@ -1,20 +1,20 @@
-// ahorro_screen.dart
+// 📱 lib/presentations/screens/Ahorro/ahorro_screen.dart
+// ============================================================================
+// PANTALLA: AhorroScreen - VERSIÓN 100% ESTABLE (ADIÓS AL ERROR DE CONTEXT)
+// ============================================================================
+
 import 'package:finances/core/data/models/objetivo_ahorro.dart';
 import 'package:finances/core/data/services/servicio_ahorro.dart';
 import 'package:finances/core/data/utils/ahorro_validator.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
-import 'package:finances/presentations/widgets/app_bar_finances.dart';
-import 'package:finances/presentations/widgets/custom_form_container.dart';
-import 'package:finances/presentations/widgets/app_input_style.dart';
-import 'package:finances/presentations/theme/themes.dart';
-import 'package:flutter/services.dart';
-import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
-// Importa tus widgets locales
-import 'detalles_transacciones.dart';
-import 'dialogo_transaccion.dart';
-import 'widgets/elemento_objetivo_ahorro.dart';
+import 'package:finances/presentations/screens/Ahorro/detalles_transacciones.dart';
+import 'package:finances/presentations/screens/ahorro/dialogo_nueva_meta_mejorado.dart';
+import 'package:finances/presentations/screens/ahorro/dialogo_transaccion.dart';
+import 'package:finances/presentations/screens/ahorro/widgets/elemento_objetivo_ahorro_mejorado.dart';
+import 'package:finances/presentations/widgets/app_bar_finances.dart';
+import 'package:finances/presentations/theme/themes.dart';
+import 'package:flutter/material.dart';
 
 class AhorroScreen extends StatefulWidget {
   const AhorroScreen({super.key});
@@ -25,128 +25,181 @@ class AhorroScreen extends StatefulWidget {
 
 class AhorroScreenState extends State<AhorroScreen> {
   final AhorroService _ahorroService = AhorroService();
-
-  // Variables del formulario
-  late GlobalKey<FormState> _metaFormKey;
-  late TextEditingController _nombreCtrl;
-  late TextEditingController _montoCtrl;
-  late TextEditingController _fechaCtrl;
-  late DateTime _fechaObjetivo;
-  late AhorroValidator _validator;
+  late AhorroValidator validator;
 
   @override
   void initState() {
     super.initState();
-    _metaFormKey = GlobalKey<FormState>();
-    _nombreCtrl = TextEditingController();
-    _montoCtrl = TextEditingController();
-    _fechaCtrl = TextEditingController();
-    _validator = AhorroValidator();
-  }
-
-  @override
-  void dispose() {
-    _nombreCtrl.dispose();
-    _montoCtrl.dispose();
-    _fechaCtrl.dispose();
-    super.dispose();
+    validator = AhorroValidator();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Themes.light,
-      appBar: const AppBarFinances(
-        title: 'Metas',
-        showProfileIcon: false,
-      ),
+      appBar: const AppBarFinances(title: 'Metas', showProfileIcon: false),
       resizeToAvoidBottomInset: true,
       body: StreamBuilder<List<ObjetivoAhorro>>(
         stream: _ahorroService.obtenerMetas(),
         builder: (context, snapshot) {
-          if (snapshot.hasError) {
-            return Center(child: Text('Error: ${snapshot.error}'));
-          }
-          if (!snapshot.hasData) {
+          if (snapshot.connectionState == ConnectionState.waiting) {
             return const Center(child: CircularProgressIndicator());
           }
-          final metas = snapshot.data!;
-          if (metas.isEmpty) {
-            return const Center(child: Text('No hay metas de ahorro creadas'));
+
+          if (snapshot.hasError) {
+            return Center(
+              child: Text('Error: ${snapshot.error}'),
+            );
           }
+
+          final metas = snapshot.data ?? [];
+
+          if (metas.isEmpty) {
+            return Center(
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Icon(Icons.savings_outlined,
+                      size: 64, color: Colors.grey),
+                  const SizedBox(height: 16),
+                  const Text('No hay metas de ahorro creadas'),
+                  const SizedBox(height: 24),
+                  ElevatedButton.icon(
+                    onPressed: _mostrarDialogoNuevaMeta,
+                    icon: const Icon(Icons.add),
+                    label: const Text('Crear primera meta'),
+                  ),
+                ],
+              ),
+            );
+          }
+
           return ListView.builder(
             padding: const EdgeInsets.all(16),
             itemCount: metas.length,
             itemBuilder: (context, index) {
               final meta = metas[index];
-              return ElementoObjetivoAhorro(
+
+              return ElementoObjetivoAhorroMejorado(
                 meta: meta,
                 onTransaccion: (tipo) =>
-                    _mostrarDialogo(context, meta.id!, tipo),
-                onVerDetalles: () =>
-                    _mostrarDetallesTransacciones(context, meta),
-                onEliminar: () async => await _eliminarMeta(context, meta),
+                    _mostrarDialogoTransaccion(meta.id!, tipo),
+                onVerDetalles: () => _mostrarDetallesTransacciones(meta),
+                onEliminar: () => _eliminarMeta(meta),
+                mostrarDesglose: true,
               );
             },
           );
         },
       ),
       floatingActionButton: FloatingActionButton(
-        onPressed: () => _mostrarDialogoNuevaMeta(context),
+        onPressed: _mostrarDialogoNuevaMeta,
         backgroundColor: Themes.primary,
         child: const Icon(Icons.add, color: Colors.white),
       ),
     );
   }
 
-  // === DIÁLOGO DE TRANSACCIÓN ===
-  Future<void> _mostrarDialogo(
-      BuildContext context, String metaId, String tipo) async {
+  // ============================================================================
+  // NUEVA META
+  // ============================================================================
+  void _mostrarDialogoNuevaMeta() {
     showDialog(
       context: context,
-      builder: (dialogContext) {
+      builder: (_) => DialogoNuevaMetaMejorado(
+        onGuardar: (nombre, monto, fecha) {
+          _ahorroService
+              .crearMeta(
+            nombre: nombre,
+            montoObjetivo: monto,
+            fechaObjetivo: fecha,
+            fechaCreacion: DateTime.now(),
+          )
+              .then((_) {
+            Navigator.pop(context); // Cerramos el diálogo desde aquí
+
+            if (!mounted) return;
+            UIHelpers.showSuccessSnackBar(
+                context: context, message: 'Meta "$nombre" creada');
+          }).catchError((error) {
+            if (!mounted) return;
+            UIHelpers.showErrorSnackBar(
+                context: context, message: 'Error: $error');
+          });
+        },
+      ),
+    );
+  }
+
+  // ============================================================================
+  // TRANSACCIÓN (depósito/retiro)
+  // ============================================================================
+  void _mostrarDialogoTransaccion(String metaId, String tipo) {
+    showDialog(
+      context: context,
+      builder: (_) {
         return FutureBuilder<List<ObjetivoAhorro>>(
           future: _ahorroService.obtenerMetas().first,
           builder: (context, snapshot) {
             if (snapshot.connectionState == ConnectionState.waiting) {
               return const Center(child: CircularProgressIndicator());
             }
-            if (snapshot.hasError ||
-                !snapshot.hasData ||
-                snapshot.data!.isEmpty) {
+
+            if (!snapshot.hasData || snapshot.data!.isEmpty) {
               return AlertDialog(
                 title: const Text('Error'),
                 content: const Text('No se pudo cargar la meta'),
                 actions: [
                   TextButton(
-                    onPressed: () => Navigator.pop(dialogContext),
-                    child: const Text('Cerrar'),
-                  ),
+                      onPressed: () => Navigator.pop(context),
+                      child: const Text('OK'))
                 ],
               );
             }
 
             final meta = snapshot.data!.firstWhere((m) => m.id == metaId);
+
             return DialogoTransaccion(
-              onGuardar: (monto, descripcion) {
-                if (tipo == 'deposito') {
-                  final restante = meta.montoRestante;
-                  if (monto > restante) {
-                    UIHelpers.showErrorSnackBar(
-                      context: context,
-                      message:
-                          'No puedes depositar más de ${UIHelpers.formatCurrency(restante)}',
-                    );
-                    return;
-                  }
-                }
-                _manejarTransaccion(
-                    dialogContext, metaId, tipo, monto, descripcion);
-              },
-              maxMonto:
-                  tipo == 'retiro' ? meta.montoActual : meta.montoRestante,
               titulo:
                   tipo == 'retiro' ? 'Realizar Retiro' : 'Realizar Depósito',
+              maxMonto:
+                  tipo == 'retiro' ? meta.montoActual : meta.montoRestante,
+              onGuardar: (monto, descripcion) {
+                // Validación de depósito excesivo
+                if (tipo == 'deposito' && monto > meta.montoRestante) {
+                  if (!mounted) return;
+                  UIHelpers.showErrorSnackBar(
+                    context: context,
+                    message:
+                        'No puedes depositar más de ${UIHelpers.formatCurrency(meta.montoRestante)}',
+                  );
+                  return;
+                }
+
+                // Procesar transacción
+                _ahorroService
+                    .agregarTransaccion(
+                  metaId: metaId,
+                  tipo: tipo,
+                  monto: monto,
+                  descripcion: descripcion,
+                )
+                    .then((_) {
+                  Navigator.pop(context);
+
+                  if (!mounted) return;
+                  UIHelpers.showSuccessSnackBar(
+                    context: context,
+                    message: tipo == 'deposito'
+                        ? 'Depósito realizado'
+                        : 'Retiro realizado',
+                  );
+                }).catchError((error) {
+                  if (!mounted) return;
+                  UIHelpers.showErrorSnackBar(
+                      context: context, message: 'Error: $error');
+                });
+              },
             );
           },
         );
@@ -154,208 +207,49 @@ class AhorroScreenState extends State<AhorroScreen> {
     );
   }
 
-  void _manejarTransaccion(BuildContext dialogContext, String metaId,
-      String tipo, double monto, String descripcion) {
-    _ahorroService
-        .agregarTransaccion(
-      metaId: metaId,
-      tipo: tipo,
-      monto: monto,
-      descripcion: descripcion,
-    )
-        .then((_) {
-      Navigator.pop(dialogContext);
-      UIHelpers.showSuccessSnackBar(
-        context: context,
-        message: 'Operación exitosa',
-      );
-    }).catchError((error) {
-      UIHelpers.showErrorSnackBar(
-        context: context,
-        message: 'Error: $error',
-      );
-    });
+  // ============================================================================
+  // DETALLES
+  // ============================================================================
+  void _mostrarDetallesTransacciones(ObjetivoAhorro meta) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (_) => DetallesTransacciones(meta: meta)),
+    );
   }
 
-  // === ELIMINAR META ===
-  Future<void> _eliminarMeta(BuildContext context, ObjetivoAhorro meta) async {
-    final confirmar = await showDialog<bool>(
+  // ============================================================================
+  // ELIMINAR
+  // ============================================================================
+  Future<void> _eliminarMeta(ObjetivoAhorro meta) async {
+    final confirm = await showDialog<bool>(
       context: context,
-      builder: (ctx) => AlertDialog(
+      builder: (_) => AlertDialog(
         title: const Text('Eliminar meta'),
-        content: Text('¿Seguro que quieres eliminar "${meta.nombre}"?'),
+        content: Text('¿Eliminar "${meta.nombre}"?'),
         actions: [
           TextButton(
-              onPressed: () => Navigator.pop(ctx, false),
+              onPressed: () => Navigator.pop(context, false),
               child: const Text('Cancelar')),
-          ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.red),
-            onPressed: () => Navigator.pop(ctx, true),
-            child: const Text('Eliminar'),
-          ),
+          TextButton(
+              onPressed: () => Navigator.pop(context, true),
+              child:
+                  const Text('Eliminar', style: TextStyle(color: Colors.red))),
         ],
       ),
     );
 
-    if (confirmar == true) {
+    if (confirm == true) {
       try {
         await _ahorroService.eliminarMeta(meta.id!);
+
+        if (!mounted) return;
         UIHelpers.showSuccessSnackBar(
-          context: context,
-          message: 'Meta eliminada',
-        );
+            context: context, message: 'Meta eliminada');
       } catch (e) {
+        if (!mounted) return;
         UIHelpers.showErrorSnackBar(
-          context: context,
-          message: 'Error: $e',
-        );
+            context: context, message: 'Error al eliminar');
       }
     }
-  }
-
-  // === FORMULARIO NUEVA META ===
-  void _mostrarDialogoNuevaMeta(BuildContext context) {
-    _nombreCtrl.clear();
-    _montoCtrl.clear();
-    _fechaObjetivo = DateTime.now().add(const Duration(days: 30));
-    _fechaCtrl.text = DateFormat('dd/MM/yyyy').format(_fechaObjetivo);
-
-    showDialog(
-      context: context,
-      builder: (dialogContext) => Dialog(
-        backgroundColor: Colors.transparent,
-        child: Center(
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 400),
-            child: CustomFormContainer(
-              formKey: _metaFormKey,
-              onCancel: () => Navigator.pop(dialogContext),
-              onSave: () => _guardarMeta(dialogContext, context),
-              saveButtonText: 'Guardar',
-              cancelButtonText: 'Cancelar',
-              children: [
-                const Text(
-                  'Nueva Meta de Ahorro',
-                  style: TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.bold,
-                      color: Themes.primary),
-                  textAlign: TextAlign.center,
-                ),
-                const SizedBox(height: 20),
-
-                // Nombre
-                TextFormField(
-                  controller: _nombreCtrl,
-                  decoration: AppInputStyle.textField(
-                    label: 'Nombre de la Meta',
-                    suffixIcon: const Icon(Icons.title),
-                  ),
-                  validator: _validator.validateNombre,
-                ),
-                const SizedBox(height: 12),
-
-                // Monto
-                TextFormField(
-                  controller: _montoCtrl,
-                  keyboardType: TextInputType.number,
-                  inputFormatters: [FilteringTextInputFormatter.digitsOnly],
-                  decoration: AppInputStyle.textField(
-                    label: 'Monto Objetivo',
-                    suffixIcon: const Icon(Icons.attach_money),
-                  ),
-                  onChanged: (value) {
-                    final clean = value.replaceAll(RegExp(r'[^\d]'), '');
-                    if (clean.isEmpty) {
-                      _montoCtrl.text = '';
-                      return;
-                    }
-                    final formatted =
-                        UIHelpers.formatCurrency(double.parse(clean));
-                    if (formatted != _montoCtrl.text) {
-                      _montoCtrl.text = formatted;
-                      _montoCtrl.selection =
-                          TextSelection.collapsed(offset: formatted.length);
-                    }
-                  },
-                  validator: (value) {
-                    final clean = value?.replaceAll(RegExp(r'[^\d]'), '') ?? '';
-                    return _validator.validateMonto(
-                        clean.isEmpty ? null : clean, null);
-                  },
-                ),
-                const SizedBox(height: 12),
-
-                // Fecha
-                TextFormField(
-                  controller: _fechaCtrl,
-                  readOnly: true,
-                  decoration: AppInputStyle.textField(
-                    label: 'Fecha Objetivo',
-                    suffixIcon: const Icon(Icons.calendar_today),
-                  ),
-                  onTap: () async {
-                    final picked = await showDatePicker(
-                      context: context,
-                      initialDate: _fechaObjetivo,
-                      firstDate: DateTime.now(),
-                      lastDate: DateTime(2100),
-                    );
-                    if (picked != null) {
-                      setState(() {
-                        _fechaObjetivo = picked;
-                        _fechaCtrl.text =
-                            DateFormat('dd/MM/yyyy').format(picked);
-                      });
-                    }
-                  },
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // === GUARDAR META ===
-  void _guardarMeta(BuildContext dialogContext, BuildContext scaffoldContext) {
-    if (!_metaFormKey.currentState!.validate()) return;
-
-    final nombre = _nombreCtrl.text.trim();
-    final montoLimpio = _montoCtrl.text.replaceAll(RegExp(r'[^\d]'), '');
-    final montoObjetivo = double.tryParse(montoLimpio) ?? 0;
-    final ahora = DateTime.now();
-
-    _ahorroService
-        .crearMeta(
-      nombre: nombre,
-      montoObjetivo: montoObjetivo,
-      fechaObjetivo: _fechaObjetivo,
-      fechaCreacion: ahora,
-    )
-        .then((_) {
-      Navigator.pop(dialogContext);
-      UIHelpers.showSuccessSnackBar(
-        context: scaffoldContext,
-        message: 'Meta creada correctamente',
-      );
-    }).catchError((error) {
-      UIHelpers.showErrorSnackBar(
-        context: scaffoldContext,
-        message: 'Error: $error',
-      );
-    });
-  }
-
-  // === NAVEGAR A DETALLES ===
-  void _mostrarDetallesTransacciones(
-      BuildContext context, ObjetivoAhorro meta) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => DetallesTransacciones(meta: meta),
-      ),
-    );
   }
 }
