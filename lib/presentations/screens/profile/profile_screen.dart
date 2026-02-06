@@ -1,5 +1,5 @@
-// profile_screen.dart
 import 'package:finances/core/data/providers/auth_provider.dart';
+import 'package:finances/core/data/providers/premium_provider.dart'; // 🆕 Para gestión de anuncios
 import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/presentations/screens/auth/welcome_screen.dart';
@@ -10,11 +10,12 @@ import 'package:finances/routes/app_routes.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+// Widgets internos del perfil
 import 'widgets/profile_header.dart';
 import 'widgets/profile_name_field.dart';
 import 'widgets/profile_biometric_settings.dart';
 
-/// Pantalla principal del perfil
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
 
@@ -25,6 +26,8 @@ class ProfileScreen extends ConsumerStatefulWidget {
 class ProfileScreenState extends ConsumerState<ProfileScreen> {
   final _formKey = GlobalKey<FormState>();
   final TextEditingController _nameController = TextEditingController();
+
+  // Estados locales para animaciones de carga
   bool _isSaving = false;
   bool _isDeleting = false;
 
@@ -34,6 +37,7 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
     _prefillUserName();
   }
 
+  /// Carga el nombre actual del usuario al iniciar la pantalla
   void _prefillUserName() {
     final user = FirebaseAuth.instance.currentUser;
     _nameController.text = user?.displayName ?? '';
@@ -47,57 +51,123 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    // Escuchamos los cambios de autenticación y de estado Premium
     final authState = ref.watch(authProvider);
+    final isPremium = ref.watch(premiumProvider);
+
     return Scaffold(
       backgroundColor: Themes.light,
       appBar: const AppBarFinances(title: 'Perfil', showProfileIcon: false),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: ConstrainedBox(
-          constraints: BoxConstraints(
-            minHeight: MediaQuery.of(context).size.height -
-                kToolbarHeight -
-                MediaQuery.of(context).padding.top -
-                32,
-          ),
-          child: IntrinsicHeight(
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                ProfileHeader(user: authState.user),
-                const SizedBox(height: 32),
-                _buildForm(),
-              ],
+        child: Column(
+          children: [
+            // 1. Encabezado con imagen y correo
+            ProfileHeader(user: authState.user),
+            const SizedBox(height: 32),
+
+            // 2. Formulario y Ajustes
+            Form(
+              key: _formKey,
+              child: Column(
+                children: [
+                  // Campo para editar nombre
+                  ProfileNameField(controller: _nameController),
+                  const SizedBox(height: 24),
+
+                  // Ajustes de huella / biometría
+                  const ProfileBiometricSettings(),
+                  const SizedBox(height: 24),
+
+                  // --- SECCIÓN MONETIZACIÓN (PREMIUM) ---
+                  if (!isPremium)
+                    _buildPremiumButton()
+                  else
+                    _buildPremiumBadge(),
+
+                  const SizedBox(height: 12),
+                  _buildRestoreButton(), // Obligatorio para tiendas de apps
+
+                  const Divider(height: 40),
+
+                  // --- ACCIONES DE CUENTA ---
+                  _buildSaveButton(),
+                  const SizedBox(height: 16),
+                  _buildExitButton(),
+                  const SizedBox(height: 16),
+                  _buildTutorialButton(),
+                  const SizedBox(height: 40),
+                  _buildDeleteAccountButton(),
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
-          ),
+          ],
         ),
       ),
     );
   }
 
-  /// Formulario principal
-  Widget _buildForm() {
-    return Form(
-      key: _formKey,
-      child: Column(
+  // ============================================================================
+  // SECCIÓN DE MONETIZACIÓN
+  // ============================================================================
+
+  /// Botón para comprar la versión sin anuncios
+  Widget _buildPremiumButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: ElevatedButton.icon(
+        icon: const Icon(Icons.auto_awesome, color: Colors.white),
+        label: const Text('Quitar Publicidad (Premium)',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        onPressed: () => ref.read(premiumProvider.notifier).buyPremium(),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.amber.shade800,
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+        ),
+      ),
+    );
+  }
+
+  /// Badge que se muestra cuando el usuario ya es premium
+  Widget _buildPremiumBadge() {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.amber.withOpacity(0.1),
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Colors.amber.shade700),
+      ),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          ProfileNameField(controller: _nameController),
-          const SizedBox(height: 24),
-          const ProfileBiometricSettings(),
-          const SizedBox(height: 24),
-          _buildSaveButton(),
-          const SizedBox(height: 16),
-          _buildExitButton(),
-          const SizedBox(height: 16),
-          _buildDeleteAccountButton(),
-          const SizedBox(height: 16),
-          _buildTutorialButton(), // ← NUEVO: Ver tutorial de nuevo
+          Icon(Icons.stars, color: Colors.amber.shade800),
+          const SizedBox(width: 10),
+          Text('USUARIO PREMIUM ACTIVO',
+              style: TextStyle(
+                  color: Colors.amber.shade900, fontWeight: FontWeight.bold)),
         ],
       ),
     );
   }
 
-  /// Botón: Guardar cambios
+  /// Botón para restaurar compras previas (Requisito legal de tiendas)
+  Widget _buildRestoreButton() {
+    return TextButton(
+      onPressed: () => ref.read(premiumProvider.notifier).restorePurchases(),
+      child: const Text('Restaurar compras anteriores',
+          style: TextStyle(
+              color: Colors.grey, decoration: TextDecoration.underline)),
+    );
+  }
+
+  // ============================================================================
+  // BOTONES DE ACCIÓN
+  // ============================================================================
+
+  /// Botón: Guardar cambios de nombre
   Widget _buildSaveButton() {
     return SizedBox(
       width: double.infinity,
@@ -127,36 +197,29 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
           .updateDisplayName(_nameController.text.trim());
       if (mounted) {
         UIHelpers.showSuccessSnackBar(
-          context: context,
-          message: ErrorStrings.profileUpdateSuccess,
-        );
-        Navigator.pop(context);
-      }
-    } on FirebaseAuthException catch (e) {
-      if (mounted) {
-        UIHelpers.showErrorSnackBarFromAuth(context: context, error: e);
+            context: context, message: 'Perfil actualizado correctamente');
       }
     } catch (e) {
-      if (mounted) {
+      if (mounted)
         UIHelpers.showErrorSnackBar(
-            context: context, message: ErrorStrings.unexpectedError);
-      }
+            context: context, message: 'Error al actualizar');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
   }
 
-  /// Botón: Salir
+  /// Botón: Salir / Bloquear Sesión
   Widget _buildExitButton() {
     return SizedBox(
       width: double.infinity,
-      child: ElevatedButton.icon(
-        icon: const Icon(Icons.exit_to_app, color: Colors.white),
-        label: const Text('Salir', style: TextStyle(color: Colors.white)),
-        onPressed: _onExitPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red.shade700,
+      child: OutlinedButton.icon(
+        icon: const Icon(Icons.logout, color: Colors.red),
+        label: const Text('Cerrar Sesión', style: TextStyle(color: Colors.red)),
+        onPressed: () => Navigator.pushNamedAndRemoveUntil(
+            context, AppRoutes.appBlocked, (_) => false),
+        style: OutlinedButton.styleFrom(
           padding: const EdgeInsets.symmetric(vertical: 16),
+          side: const BorderSide(color: Colors.red),
           shape:
               RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
         ),
@@ -164,51 +227,49 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
-  Future<void> _onExitPressed() async {
-    await Navigator.pushNamedAndRemoveUntil(
-        context, AppRoutes.appBlocked, (_) => false);
-  }
-
-  /// Botón: Eliminar cuenta
-  Widget _buildDeleteAccountButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: ElevatedButton.icon(
-        icon: const Icon(Icons.delete_forever, color: Colors.white),
-        label: _isDeleting
-            ? const SizedBox(
-                width: 20,
-                height: 20,
-                child: CircularProgressIndicator(color: Colors.white))
-            : const Text('Eliminar Cuenta',
-                style: TextStyle(color: Colors.white)),
-        onPressed: _isDeleting ? null : _onDeleteAccountPressed,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.red,
-          padding: const EdgeInsets.symmetric(vertical: 16),
-        ),
-      ),
+  /// Botón: Ver tutorial de nuevo
+  Widget _buildTutorialButton() {
+    return TextButton.icon(
+      icon: const Icon(Icons.help_outline, size: 20),
+      label: const Text('Ver tutorial de la app'),
+      onPressed: () => Navigator.push(
+          context, MaterialPageRoute(builder: (_) => const TutorialScreen())),
     );
   }
+
+  /// Botón: Eliminar cuenta (Acción Crítica)
+  Widget _buildDeleteAccountButton() {
+    return TextButton(
+      onPressed: _isDeleting ? null : _onDeleteAccountPressed,
+      child: const Text('Eliminar mi cuenta definitivamente',
+          style: TextStyle(
+              color: Colors.black45,
+              fontSize: 13,
+              decoration: TextDecoration.underline)),
+    );
+  }
+
+  // ============================================================================
+  // LÓGICA DE ELIMINACIÓN DE CUENTA
+  // ============================================================================
 
   Future<void> _onDeleteAccountPressed() async {
     final confirmed = await showDialog<bool>(
           context: context,
           builder: (_) => AlertDialog(
-            title: const Text('Eliminar cuenta',
+            title: const Text('¿Eliminar cuenta?',
                 style: TextStyle(color: Colors.red)),
             content: const Text(
-                '¿Estás seguro? Se eliminarán todos tus datos y no podrás recuperar la cuenta.'),
+                'Esta acción borrará todos tus datos financieros y no se puede deshacer.'),
             actions: [
               TextButton(
                   onPressed: () => Navigator.pop(context, false),
                   child: const Text('Cancelar')),
               TextButton(
-                onPressed: () => Navigator.pop(context, true),
-                child: const Text('Eliminar',
-                    style: TextStyle(
-                        color: Colors.red, fontWeight: FontWeight.bold)),
-              ),
+                  onPressed: () => Navigator.pop(context, true),
+                  child: const Text('Eliminar',
+                      style: TextStyle(
+                          color: Colors.red, fontWeight: FontWeight.bold))),
             ],
           ),
         ) ??
@@ -216,8 +277,9 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
 
     if (!confirmed) return;
 
+    // Pedir contraseña por seguridad antes de borrar de Firebase
     final password = await _showPasswordDialog();
-    if (password == null) return;
+    if (password == null || password.isEmpty) return;
 
     setState(() => _isDeleting = true);
     try {
@@ -227,15 +289,10 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
         Navigator.pushReplacement(
             context, MaterialPageRoute(builder: (_) => const WelcomeScreen()));
       }
-    } on FirebaseAuthException catch (e) {
-      if (mounted) {
-        UIHelpers.showErrorSnackBarFromAuth(context: context, error: e);
-      }
     } catch (e) {
-      if (mounted) {
+      if (mounted)
         UIHelpers.showErrorSnackBar(
-            context: context, message: ErrorStrings.unexpectedError);
-      }
+            context: context, message: 'Contraseña incorrecta o error de red');
     } finally {
       if (mounted) setState(() => _isDeleting = false);
     }
@@ -246,19 +303,12 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
     return await showDialog<String>(
       context: context,
       builder: (_) => AlertDialog(
-        title: const Text('Confirmar eliminación'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const Text('Por seguridad, ingresa tu contraseña:'),
-            const SizedBox(height: 10),
-            TextField(
-              controller: controller,
-              obscureText: true,
-              decoration: const InputDecoration(
-                  border: OutlineInputBorder(), labelText: 'Contraseña'),
-            ),
-          ],
+        title: const Text('Confirmar identidad'),
+        content: TextField(
+          controller: controller,
+          obscureText: true,
+          decoration:
+              const InputDecoration(labelText: 'Ingresa tu contraseña actual'),
         ),
         actions: [
           TextButton(
@@ -269,33 +319,6 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
               child: const Text('Confirmar')),
         ],
       ),
-    );
-  }
-
-  /// Botón: Ver tutorial de nuevo
-  Widget _buildTutorialButton() {
-    return SizedBox(
-      width: double.infinity,
-      child: OutlinedButton.icon(
-        icon: const Icon(Icons.school, color: Themes.primary),
-        label: const Text('Ver tutorial de nuevo',
-            style: TextStyle(color: Themes.primary)),
-        onPressed: _onTutorialPressed,
-        style: OutlinedButton.styleFrom(
-          padding: const EdgeInsets.symmetric(vertical: 16),
-          side: const BorderSide(color: Themes.primary),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-      ),
-    );
-  }
-
-  /// Abre el tutorial sin afectar el estado de `tutorial_seen`
-  void _onTutorialPressed() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (_) => const TutorialScreen()),
     );
   }
 }

@@ -66,6 +66,8 @@ dependencies:
   auto_size_text: ^3.0.0 
   local_auth: ^2.3.0 
   flutter_secure_storage: ^9.2.4
+  google_mobile_ads: ^7.0.0
+  in_app_purchase: ^3.2.3
   #facebook_auth: ^0.0.3
 
 dev_dependencies:

@@ -1,4 +1,3 @@
-// my_app.dart
 import 'dart:async';
 import 'package:finances/core/data/providers/tutorial_provider.dart';
 import 'package:finances/presentations/screens/Tutorial/TutorialScreen.dart';
@@ -21,19 +20,17 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   // CONFIGURACIÓN DE SEGURIDAD
   // ============================================================================
 
-  // ⏱️ Tiempo de inactividad antes de bloquear/redirigir
-  // Cambiado de 15 minutos → 5 minutos (recomendado para apps financieras)
-  // Razón: Mayor seguridad sin afectar mucho la usabilidad
-  // Alternativas comunes: 5 min (recomendado), 10 min (bancos tradicionales)
-  final Duration _timeoutDuration = const Duration(minutes: 5);
+  // ⏱️ Inactividad (App abierta): 10 min sin tocar la pantalla
+  final Duration _inactivityTimeout = const Duration(minutes: 10);
 
-  // Temporizador de inactividad
+  // 🕒 Segundo Plano (App minimizada): 2 min antes de bloquear
+  final Duration _backgroundLockThreshold = const Duration(minutes: 2);
+
+  // Variable para guardar el momento en que se minimiza
+  DateTime? _backgroundTimestamp;
+
   Timer? _inactivityTimer;
-
-  // Estado de inicialización
   bool _isAppInitialized = false;
-
-  // Navegación global
   final GlobalKey<NavigatorState> _navigatorKey = GlobalKey<NavigatorState>();
 
   // ============================================================================
@@ -56,25 +53,35 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
 
   void _initializeApp() async {
     await Future.delayed(const Duration(milliseconds: 500));
-    setState(() => _isAppInitialized = true);
-    _startInactivityTimer();
+    if (mounted) {
+      setState(() => _isAppInitialized = true);
+      _startInactivityTimer();
+    }
   }
 
   @override
   void didChangeAppLifecycleState(AppLifecycleState state) {
+    // Cuando la app se minimiza
+    if (state == AppLifecycleState.paused) {
+      _backgroundTimestamp = DateTime.now();
+      debugPrint('📱 App minimizada: $_backgroundTimestamp');
+    }
+
+    // Cuando la app se abre de nuevo
     if (state == AppLifecycleState.resumed) {
+      debugPrint('📱 App reanudada');
       _resetInactivityTimer();
-      _checkSessionSecurityOnResume(); // Bloqueo al volver a la app
+      _checkSessionSecurityOnResume(); // Validar si bloqueamos o no
     }
   }
 
   // ============================================================================
-  // GESTIÓN DE INACTIVIDAD
+  // GESTIÓN DE INACTIVIDAD (App Abierta)
   // ============================================================================
 
   void _startInactivityTimer() {
     _inactivityTimer?.cancel();
-    _inactivityTimer = Timer(_timeoutDuration, _handleInactivity);
+    _inactivityTimer = Timer(_inactivityTimeout, _handleInactivity);
   }
 
   void _resetInactivityTimer() {
@@ -83,8 +90,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
 
   void _handleInactivity() {
     if (_navigatorKey.currentState != null) {
-      debugPrint(
-          '🔒 Inactividad detectada (${_timeoutDuration.inMinutes} min): Redirigiendo a welcome');
+      debugPrint('🔒 Bloqueo por inactividad (10 min)');
       _navigatorKey.currentState!.pushNamedAndRemoveUntil(
         AppRoutes.welcome,
         (route) => false,
@@ -93,22 +99,46 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   }
 
   // ============================================================================
-  // SEGURIDAD AL REANUDAR LA APP
+  // SEGURIDAD AL REANUDAR (CORREGIDA)
   // ============================================================================
 
   Future<void> _checkSessionSecurityOnResume() async {
     final authState = ref.read(authProvider);
     if (!authState.isAuthenticated || authState.user == null) return;
 
+    // 🔥 CORRECCIÓN AQUÍ:
+    // Si el timestamp es nulo, significa que la app acaba de arrancar de cero
+    // o no pasó por un estado de 'paused' real. NO bloqueamos.
+    if (_backgroundTimestamp == null) {
+      debugPrint('ℹ️ No hay registro de pausa previa. Se mantiene en Home.');
+      return;
+    }
+
+    final now = DateTime.now();
+    final difference = now.difference(_backgroundTimestamp!);
+    debugPrint('⏱️ Tiempo fuera: ${difference.inSeconds} segundos');
+
+    // 1. Si el tiempo fuera es MENOR a 2 minutos, NO bloqueamos
+    if (difference < _backgroundLockThreshold) {
+      debugPrint('✅ Regreso rápido (Menos de 2 min): Sin bloqueo.');
+      _backgroundTimestamp = null; // Limpiar para el siguiente ciclo
+      return;
+    }
+
+    // 2. Si pasaron los 2 minutos, verificamos biometría y primer login
     final uid = authState.user!.uid;
     final biometricEnabled = await BiometricAuthService().isBiometricEnabled();
     final isFirstLogin = await _isFirstLogin(uid);
 
-    // Si no es primer login y no tiene biometría activada → bloquear
+    // Solo bloqueamos si NO tiene huella y NO es su primer inicio
     if (!isFirstLogin && !biometricEnabled) {
-      debugPrint('🔐 Bloqueando app al reanudar (sin biometría activada)');
+      debugPrint(
+          '🔐 Bloqueando: Se excedieron los 2 min y no hay huella activa.');
       _goToBlockedScreen();
     }
+
+    // Limpiar siempre al terminar
+    _backgroundTimestamp = null;
   }
 
   Future<bool> _isFirstLogin(String uid) async {
@@ -117,7 +147,6 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
           await FirebaseFirestore.instance.collection('users').doc(uid).get();
       return doc.exists && (doc.data()?['firstLogin'] == true);
     } catch (e) {
-      debugPrint('Error verificando firstLogin: $e');
       return false;
     }
   }
@@ -125,22 +154,22 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   void _goToBlockedScreen() {
     if (!mounted) return;
     final navigator = _navigatorKey.currentState;
-    if (navigator == null) return;
-
-    navigator.pushNamedAndRemoveUntil(
-      AppRoutes.appBlocked,
-      (route) => false,
-    );
+    if (navigator != null) {
+      navigator.pushNamedAndRemoveUntil(
+        AppRoutes.appBlocked,
+        (route) => false,
+      );
+    }
   }
 
   // ============================================================================
-  // CONSTRUCCIÓN DE LA APP
+  // CONSTRUCCIÓN UI
   // ============================================================================
 
   Widget _buildNormalApp(AuthState authState) {
     return Listener(
       behavior: HitTestBehavior.translucent,
-      onPointerDown: (_) => _resetInactivityTimer(), // Reset al tocar pantalla
+      onPointerDown: (_) => _resetInactivityTimer(),
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
         home: const SplashScreen(),
@@ -162,10 +191,6 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
 
     return hasSeenTutorial.when(
       data: (hasSeen) {
-        debugPrint(
-            'MyApp.build → Auth: ${authState.isAuthenticated}, Tutorial: $hasSeen');
-
-        // Mostrar tutorial solo la primera vez después de login
         if (authState.isAuthenticated && !hasSeen) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
@@ -174,19 +199,14 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
             navigatorKey: _navigatorKey,
           );
         }
-
-        // App normal
         return _buildNormalApp(authState);
       },
-      loading: () => _buildLoadingScreen('Cargando tutorial...'),
-      error: (error, _) {
-        debugPrint('Error tutorial: $error');
-        return _buildNormalApp(authState);
-      },
+      loading: () => _buildLoadingScreen('Cargando...'),
+      error: (error, _) => _buildNormalApp(authState),
     );
   }
 
-  Widget _buildLoadingScreen([String message = 'Inicializando aplicación...']) {
+  Widget _buildLoadingScreen([String message = 'Inicializando...']) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       home: Scaffold(

@@ -10,6 +10,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
+import 'package:finances/presentations/widgets/smart_ad_banner.dart'; // 🆕 Nuevo
 import '../ingresos/ingresos_screen.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:finances/presentations/theme/themes.dart';
@@ -23,7 +24,6 @@ class HomeScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final authState = ref.watch(authProvider);
 
-    // Mostrar un indicador de carga si el estado de autenticación está cargando
     if (authState.isLoading) {
       return const Scaffold(
         body: Center(
@@ -39,7 +39,6 @@ class HomeScreen extends ConsumerWidget {
       );
     }
 
-    // Obtener datos financieros del usuario
     final totalIngresosMesAsync = ref.watch(totalIngresosMesActualProvider);
     final totalGastosAsync = ref.watch(totalEgresoMesActualProvider);
 
@@ -60,9 +59,8 @@ class HomeScreen extends ConsumerWidget {
                     useLogoAsTitle: !showTitle,
                     title: showTitle ? 'BillNance' : null,
                     showProfileIcon: true,
-                    onProfilePressed: () {
-                      Navigator.pushNamed(context, '/profile');
-                    },
+                    onProfilePressed: () =>
+                        Navigator.pushNamed(context, '/profile'),
                   );
                 },
               ),
@@ -71,7 +69,7 @@ class HomeScreen extends ConsumerWidget {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Información del usuario
+                  // 1. Perfil del usuario
                   Container(
                     width: double.infinity,
                     decoration: const BoxDecoration(
@@ -93,7 +91,7 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 25),
 
-                  // Resumen financiero con manejo de estados de carga
+                  // 2. Resumen financiero
                   Padding(
                     padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: totalIngresosMesAsync.when(
@@ -109,14 +107,12 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 25),
 
-                  // Acciones rápidas
+                  // 3. Acciones rápidas
                   const Padding(
                     padding: EdgeInsets.symmetric(horizontal: 16.0),
-                    child: Text(
-                      'Acciones rápidas',
-                      style:
-                          TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-                    ),
+                    child: Text('Acciones rápidas',
+                        style: TextStyle(
+                            fontSize: 18, fontWeight: FontWeight.bold)),
                   ),
                   const SizedBox(height: 10),
                   Padding(
@@ -125,11 +121,16 @@ class HomeScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 20),
 
-                  // Tarjetas de acceso rápido
+                  // 4. Tarjetas de acceso rápido (Metas, Bancos, etc)
                   Padding(
-                    padding: const EdgeInsets.fromLTRB(16.0, 0, 16.0, 32.0),
+                    padding: const EdgeInsets.symmetric(horizontal: 16.0),
                     child: _buildMenuCardsSeccion(context),
                   ),
+
+                  // 5. 🔥 ANUNCIO (Solo si no es premium)
+                  const SmartAdBanner(),
+
+                  const SizedBox(height: 32),
                 ],
               ),
             ),
@@ -139,22 +140,19 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  // Construir perfil del usuario
+  // --- MÉTODOS DE AYUDA (ORIGINALES) ---
+
   Widget _buildUserProfile(BuildContext context, AuthState authState) {
     return authState.user == null
         ? const CircularProgressIndicator()
         : Row(
-            crossAxisAlignment: CrossAxisAlignment.center,
             children: [
               GestureDetector(
-                onTap: () {
-                  Navigator.pushNamed(context, '/profile');
-                },
-                child: CircleAvatar(
+                onTap: () => Navigator.pushNamed(context, '/profile'),
+                child: const CircleAvatar(
                   radius: 30,
                   backgroundColor: Colors.white,
-                  child: Icon(Icons.person,
-                      color: const Color(0xFF3674B5), size: 32),
+                  child: Icon(Icons.person, color: Color(0xFF3674B5), size: 32),
                 ),
               ),
               const SizedBox(width: 16),
@@ -165,16 +163,13 @@ class HomeScreen extends ConsumerWidget {
                     Text(
                       'Bienvenido, ${authState.user?.displayName ?? 'Usuario'}',
                       style: const TextStyle(
-                        color: Themes.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
+                          color: Themes.white,
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold),
                     ),
                     const SizedBox(height: 4),
-                    const Text(
-                      'Resumen del mes',
-                      style: TextStyle(color: Colors.white70, fontSize: 14),
-                    ),
+                    const Text('Resumen del mes',
+                        style: TextStyle(color: Colors.white70, fontSize: 14)),
                   ],
                 ),
               ),
@@ -182,7 +177,6 @@ class HomeScreen extends ConsumerWidget {
           );
   }
 
-  // Construir resumen financiero
   Widget _buildFinancialSummary(double ingresos, double gastos) {
     final saldo = ingresos - gastos;
     final isPositive = saldo >= 0;
@@ -192,13 +186,9 @@ class HomeScreen extends ConsumerWidget {
       decoration: BoxDecoration(
         color: Themes.infoBlue,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.blueGrey.shade100, width: 1),
+        border: Border.all(color: Colors.blueGrey.shade100),
         boxShadow: const [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 6,
-            offset: Offset(0, 4),
-          ),
+          BoxShadow(color: Colors.black12, blurRadius: 6, offset: Offset(0, 4))
         ],
       ),
       padding: const EdgeInsets.all(20),
@@ -209,24 +199,18 @@ class HomeScreen extends ConsumerWidget {
             right: -15,
             child: Opacity(
               opacity: 0.2,
-              child: Image.asset(
-                'assets/images/logobill.png',
-                width: 150,
-                color: const Color(0xFF1A2B63),
-              ),
+              child: Image.asset('assets/images/logobill.png',
+                  width: 150, color: const Color(0xFF1A2B63)),
             ),
           ),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(
-                'Resumen financiero',
-                style: TextStyle(
-                  fontSize: 20,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.grey[800],
-                ),
-              ),
+              Text('Resumen financiero',
+                  style: TextStyle(
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                      color: Colors.grey[800])),
               const SizedBox(height: 16),
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -241,28 +225,16 @@ class HomeScreen extends ConsumerWidget {
               Center(
                 child: Column(
                   children: [
-                    Icon(
-                      isPositive ? Icons.trending_up : Icons.trending_down,
-                      color: isPositive ? Colors.green : Colors.red,
-                      size: 30,
-                    ),
-                    const SizedBox(height: 8),
-                    Text(
-                      'Saldo disponible',
-                      style: TextStyle(
-                        fontSize: 14,
-                        color: Colors.grey[700],
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      formatCurrency(saldo),
-                      style: TextStyle(
-                        fontSize: 22,
-                        fontWeight: FontWeight.bold,
+                    Icon(isPositive ? Icons.trending_up : Icons.trending_down,
                         color: isPositive ? Colors.green : Colors.red,
-                      ),
-                    ),
+                        size: 30),
+                    const Text('Saldo disponible',
+                        style: TextStyle(fontSize: 14, color: Colors.black54)),
+                    Text(formatCurrency(saldo),
+                        style: TextStyle(
+                            fontSize: 22,
+                            fontWeight: FontWeight.bold,
+                            color: isPositive ? Colors.green : Colors.red)),
                   ],
                 ),
               ),
@@ -273,344 +245,172 @@ class HomeScreen extends ConsumerWidget {
     );
   }
 
-  // Widget para mostrar carga de resumen financiero
-  Widget _buildLoadingFinancialSummary() {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Themes.infoBlue,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.all(20),
-      child: const Center(
-        child: CircularProgressIndicator(),
-      ),
-    );
-  }
-
-  // Widget para mostrar error en resumen financiero
-  Widget _buildErrorFinancialSummary(Object error) {
-    return Container(
-      width: double.infinity,
-      decoration: BoxDecoration(
-        color: Themes.infoBlue,
-        borderRadius: BorderRadius.circular(16),
-      ),
-      padding: const EdgeInsets.all(20),
-      child: Column(
-        children: [
-          const Icon(Icons.error, color: Colors.red),
-          const SizedBox(height: 10),
-          Text('Error al cargar datos: $error'),
-          const SizedBox(height: 10),
-          ElevatedButton(
-            onPressed: () {
-              // Recargar los providers
-              // ref.invalidate(totalIngresosMesActualProvider);
-              // ref.invalidate(totalEgresoMesActualProvider);
-            },
-            child: const Text('Reintentar'),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // Tarjeta personalizada para estadísticas
   Widget _customStatCard(
-      String label, double amount, IconData icon, Color iconColor) {
+      String label, double amount, IconData icon, Color color) {
     return Container(
       width: 140,
       padding: const EdgeInsets.all(12),
       decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade300),
-        boxShadow: [
-          BoxShadow(
-            color: Colors.black12,
-            blurRadius: 4,
-            offset: const Offset(0, 2),
-          ),
-        ],
-      ),
+          color: Colors.white,
+          borderRadius: BorderRadius.circular(12),
+          border: Border.all(color: Colors.grey.shade300)),
       child: Column(
         children: [
-          Icon(icon, color: iconColor, size: 28),
-          const SizedBox(height: 8),
-          Text(
-            label,
-            style: TextStyle(fontSize: 16, color: Colors.grey[800]),
-          ),
-          const SizedBox(height: 4),
-          Text(
-            formatCurrency(amount),
-            style: TextStyle(
-              fontSize: 16,
-              fontWeight: FontWeight.bold,
-              color: iconColor,
-            ),
-          ),
+          Icon(icon, color: color, size: 28),
+          Text(label, style: const TextStyle(fontSize: 14)),
+          Text(formatCurrency(amount),
+              style: TextStyle(
+                  fontSize: 15, fontWeight: FontWeight.bold, color: color)),
         ],
       ),
     );
   }
 
-  // Botones de acciones rápidas
   Widget _buildQuickActions(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.spaceEvenly,
       children: [
         _actionButton(context, 'Ingresos', Icons.add_circle, Colors.green,
-            IngresosScreen()),
+            const IngresosScreen()),
         _actionButton(context, 'Gastos', Icons.remove_circle, Colors.red,
-            EgresosScreen()),
+            const EgresosScreen()),
         _actionButton(context, 'Estadísticas', Icons.bar_chart, Colors.purple,
-            StatisticScreen()),
+            const StatisticScreen()),
       ],
     );
   }
 
-  // Botón individual de acción rápida
   Widget _actionButton(BuildContext context, String label, IconData icon,
       Color color, Widget screen) {
     return Column(
       children: [
         InkWell(
-          onTap: () => Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (_) => ProviderScope(child: screen),
-              )),
+          onTap: () => Navigator.push(context,
+              MaterialPageRoute(builder: (_) => ProviderScope(child: screen))),
           child: CircleAvatar(
-            radius: 28,
-            backgroundColor: color.withAlpha(50),
-            child: Icon(icon, color: color, size: 28),
-          ),
+              radius: 28,
+              backgroundColor: color.withOpacity(0.2),
+              child: Icon(icon, color: color, size: 28)),
         ),
         const SizedBox(height: 6),
-        Text(
-          label,
-          style: const TextStyle(
-            color: Colors.black87,
-            fontSize: 14,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
+        Text(label,
+            style: const TextStyle(fontSize: 14, fontWeight: FontWeight.bold)),
       ],
     );
   }
 
-  // Tarjetas de acceso rápido
   Widget _buildMenuCardsSeccion(BuildContext context) {
     final List<Map<String, dynamic>> tips = [
       {
         'icon': const Icon(FontAwesomeIcons.piggyBank, color: Colors.orange),
         'title': 'Metas',
-        'description': 'Gestiona tus metas de ahorro',
-        'screen': AhorroScreen(),
+        'description': 'Tus metas de ahorro',
+        'screen': const AhorroScreen()
       },
       {
         'icon': const Icon(FontAwesomeIcons.buildingColumns, color: Colors.red),
         'title': 'Mis Bancos',
-        'description': 'Accede a tus cuentas.',
-        'screen': PantallaBancos(),
+        'description': 'Accede a tus cuentas',
+        'screen': const PantallaBancos()
       },
       {
         'icon': const Icon(FontAwesomeIcons.chartLine, color: Colors.green),
         'title': 'Portafolio',
-        'description': 'Visualiza tu portafolio.',
-        'screen': PortafolioScreen(),
+        'description': 'Tu portafolio',
+        'screen': const PortafolioScreen()
       },
       {
         'icon':
             const Icon(FontAwesomeIcons.calendarCheck, color: Colors.orange),
-        'title': 'Pagos Programados',
-        'description': 'Gestiona pagos y fechas.',
-        'screen': PagosScreen(),
+        'title': 'Pagos',
+        'description': 'Pagos programados',
+        'screen': const PagosScreen()
       },
     ];
-
-    final bool hayMasOpciones = tips.length > 3;
-    final ScrollController scrollController = ScrollController();
-    void scrollHorizontal(double offset) {
-      scrollController.animateTo(
-        scrollController.offset + offset,
-        duration: const Duration(milliseconds: 400),
-        curve: Curves.easeInOut,
-      );
-    }
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Row(
-          mainAxisAlignment: MainAxisAlignment.spaceBetween,
-          children: [
-            const Text(
-              'Accesos rápidos',
-              style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
-            ),
-            if (hayMasOpciones)
-              Row(
-                children: const [
-                  Text('Más opciones ',
-                      style: TextStyle(color: Colors.blue, fontSize: 14)),
-                  Icon(Icons.arrow_forward_ios, size: 14, color: Colors.blue),
-                ],
-              ),
-          ],
-        ),
+        const Text('Accesos rápidos',
+            style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
         const SizedBox(height: 10),
         SizedBox(
           height: 150,
-          child: Stack(
-            children: [
-              ListView.builder(
-                controller: scrollController,
-                scrollDirection: Axis.horizontal,
-                padding: const EdgeInsets.only(left: 8, right: 16),
-                itemCount: tips.length,
-                itemBuilder: (context, index) {
-                  final item = tips[index];
-                  final bool esUltimoElemento = index == tips.length - 1;
-
-                  return GestureDetector(
-                    onTap: () => Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (_) => ProviderScope(child: item['screen']),
-                      ),
-                    ),
-                    child: Container(
-                      width: 180,
-                      margin: EdgeInsets.only(
-                        right: esUltimoElemento ? 0 : 24,
-                        left: index == 0 ? 8 : 0,
-                      ),
-                      padding: const EdgeInsets.all(12),
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [
-                            Themes.degradientLight,
-                            Themes.degradientDark,
-                          ],
-                          begin: Alignment.topLeft,
-                          end: Alignment.bottomRight,
-                        ),
-                        borderRadius: BorderRadius.circular(20),
-                        boxShadow: const [
-                          BoxShadow(
-                              color: Colors.black26,
-                              blurRadius: 4,
-                              offset: Offset(0, 2)),
-                        ],
-                      ),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          item['icon'] as Widget,
-                          const SizedBox(height: 8),
-                          Text(
-                            item['title'],
-                            style: const TextStyle(
-                              fontSize: 16,
+          child: ListView.builder(
+            scrollDirection: Axis.horizontal,
+            itemCount: tips.length,
+            itemBuilder: (context, index) {
+              final item = tips[index];
+              return GestureDetector(
+                onTap: () => Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                        builder: (_) => ProviderScope(child: item['screen']))),
+                child: Container(
+                  width: 180,
+                  margin: const EdgeInsets.only(right: 16),
+                  padding: const EdgeInsets.all(12),
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(colors: [
+                      Themes.degradientLight,
+                      Themes.degradientDark
+                    ]),
+                    borderRadius: BorderRadius.circular(20),
+                  ),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      item['icon'],
+                      const SizedBox(height: 8),
+                      Text(item['title'],
+                          style: const TextStyle(
+                              color: Colors.white,
                               fontWeight: FontWeight.bold,
-                              color: Themes.white,
-                            ),
-                          ),
-                          const SizedBox(height: 4),
-                          Text(
-                            item['description'],
-                            style: const TextStyle(
-                              fontSize: 13,
-                              color: Colors.white70,
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                  );
-                },
-              ),
-              Positioned(
-                left: 0,
-                top: 50,
-                bottom: 50,
-                child: InkWell(
-                  onTap: () => scrollHorizontal(-200),
-                  child: Container(
-                    padding: const EdgeInsets.all(6),
-                    decoration: BoxDecoration(
-                      color: Colors.black26,
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Icon(Icons.chevron_left,
-                        color: Colors.white, size: 20),
+                              fontSize: 16)),
+                      Text(item['description'],
+                          style: const TextStyle(
+                              color: Colors.white70, fontSize: 13)),
+                    ],
                   ),
                 ),
-              ),
-              if (hayMasOpciones)
-                Positioned(
-                  right: 0,
-                  top: 50,
-                  bottom: 50,
-                  child: InkWell(
-                    onTap: () => scrollHorizontal(200),
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.black26,
-                        borderRadius: BorderRadius.circular(20),
-                      ),
-                      child: const Icon(Icons.chevron_right,
-                          color: Colors.white, size: 20),
-                    ),
-                  ),
-                ),
-            ],
+              );
+            },
           ),
         ),
       ],
     );
   }
+
+  // --- CARGA Y ERROR ---
+  Widget _buildLoadingFinancialSummary() =>
+      const Center(child: CircularProgressIndicator());
+  Widget _buildErrorFinancialSummary(Object error) =>
+      Center(child: Text('Error: $error'));
 }
 
-// Delegado para el AppBar persistente
 class _AppBarDelegate extends SliverPersistentHeaderDelegate {
-  final double minHeight;
-  final double maxHeight;
+  final double minHeight, maxHeight;
   final Widget Function(double shrinkOffset) onBuildTitle;
 
-  _AppBarDelegate({
-    required this.minHeight,
-    required this.maxHeight,
-    required this.onBuildTitle,
-  });
+  _AppBarDelegate(
+      {required this.minHeight,
+      required this.maxHeight,
+      required this.onBuildTitle});
 
   @override
   Widget build(
       BuildContext context, double shrinkOffset, bool overlapsContent) {
-    return Container(
-      color: Themes.white,
-      child: onBuildTitle(shrinkOffset),
-    );
+    return Container(color: Themes.white, child: onBuildTitle(shrinkOffset));
   }
 
   @override
   double get maxExtent => maxHeight;
-
   @override
   double get minExtent => minHeight;
-
   @override
-  bool shouldRebuild(covariant _AppBarDelegate oldDelegate) {
-    return maxHeight != oldDelegate.maxHeight ||
-        minHeight != oldDelegate.minHeight;
-  }
+  bool shouldRebuild(covariant _AppBarDelegate oldDelegate) => true;
 }
 
-/// Formatea un número a formato de moneda local (COP)
 String formatCurrency(double value) {
   final formatter = NumberFormat.decimalPattern('es_CO');
   return '\$${formatter.format(value)}';
