@@ -25,8 +25,7 @@ class _SmartAdBannerState extends ConsumerState<SmartAdBanner> {
 
   void _loadAd() {
     _bannerAd = BannerAd(
-      adUnitId:
-          'ca-app-pub-3940256099942544/6300978111', // ID de prueba de Google
+      adUnitId: 'ca-app-pub-6536574784899409/6209842510',
       request: const AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(

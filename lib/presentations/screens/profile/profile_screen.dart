@@ -1,7 +1,6 @@
 import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/core/data/providers/premium_provider.dart'; // 🆕 Para gestión de anuncios
 import 'package:finances/core/data/utils/ui_helpers.dart';
-import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/presentations/screens/auth/welcome_screen.dart';
 import 'package:finances/presentations/screens/Tutorial/TutorialScreen.dart';
 import 'package:finances/presentations/theme/themes.dart';
@@ -136,7 +135,7 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.amber.withOpacity(0.1),
+        color: Colors.amber.withValues(alpha: .1),
         borderRadius: BorderRadius.circular(12),
         border: Border.all(color: Colors.amber.shade700),
       ),
@@ -200,9 +199,10 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
             context: context, message: 'Perfil actualizado correctamente');
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         UIHelpers.showErrorSnackBar(
             context: context, message: 'Error al actualizar');
+      }
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -290,9 +290,10 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
             context, MaterialPageRoute(builder: (_) => const WelcomeScreen()));
       }
     } catch (e) {
-      if (mounted)
+      if (mounted) {
         UIHelpers.showErrorSnackBar(
             context: context, message: 'Contraseña incorrecta o error de red');
+      }
     } finally {
       if (mounted) setState(() => _isDeleting = false);
     }
