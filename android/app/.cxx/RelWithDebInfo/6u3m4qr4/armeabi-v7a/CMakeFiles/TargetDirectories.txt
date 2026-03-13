@@ -1,2 +1,0 @@
-C:/Users/ANDRES AYALA/Documents/Desarrollo/flutter/finaces/android/app/.cxx/RelWithDebInfo/6u3m4qr4/armeabi-v7a/CMakeFiles/edit_cache.dir
-C:/Users/ANDRES AYALA/Documents/Desarrollo/flutter/finaces/android/app/.cxx/RelWithDebInfo/6u3m4qr4/armeabi-v7a/CMakeFiles/rebuild_cache.dir
