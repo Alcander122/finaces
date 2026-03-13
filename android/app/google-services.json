@@ -22,6 +22,14 @@
           }
         },
         {
+          "client_id": "301032499758-unj4h5n4v214r5cubb5a5obbvlaq0lte.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.billnance.app",
+            "certificate_hash": "21622d161cde7184c35506787bbea1a88226d25c"
+          }
+        },
+        {
           "client_id": "301032499758-h6es7et84coev8457rpefmrq2m9991hv.apps.googleusercontent.com",
           "client_type": 3
         }

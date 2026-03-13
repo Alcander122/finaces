@@ -1,12 +1,11 @@
 plugins {
     id "com.android.application"
     id "kotlin-android"
-    id "dev.flutter.flutter-gradle-plugin"        // Plugin Flutter
-    id "com.google.gms.google-services"           // Plugin Google Services (Firebase)
+    id "dev.flutter.flutter-gradle-plugin"
+    id "com.google.gms.google-services"
 }
 
-// 🛡️ ESTRATEGIA DE RESOLUCIÓN (Solución al error CheckAarMetadata)
-// Forzamos versiones estables que NO requieren AGP 8.9.1+
+// 🛡️ ESTRATEGIA DE RESOLUCIÓN
 configurations.all {
     resolutionStrategy {
         force 'androidx.browser:browser:1.8.0'
@@ -20,6 +19,7 @@ android {
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
+    // Carga de credenciales desde key.properties
     def keystoreProperties = new Properties()
     def keystorePropertiesFile = rootProject.file("key.properties")
     if (keystorePropertiesFile.exists()) {
@@ -46,8 +46,11 @@ android {
     buildTypes {
         release {
             signingConfig signingConfigs.release
-            minifyEnabled false
-            shrinkResources false
+            
+            // Optimización de tamaño
+            minifyEnabled true 
+            shrinkResources true
+            
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
@@ -55,7 +58,6 @@ android {
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8
         targetCompatibility = JavaVersion.VERSION_1_8
-        // 🔹 Habilitar desugaring
         coreLibraryDesugaringEnabled true
     }
 
@@ -69,17 +71,17 @@ flutter {
 }
 
 dependencies {
-    // Importa BoM de Firebase (última versión estable)
+    // Firebase BoM (Gestiona versiones automáticamente)
     implementation platform('com.google.firebase:firebase-bom:33.5.1')
     implementation 'com.google.android.gms:play-services-auth:21.2.0'
-
-    // Firebase
+    
+    // Firebase Analytics y Auth
     implementation 'com.google.firebase:firebase-analytics'
     implementation 'com.google.firebase:firebase-auth'
 
-    // Kotlin stdlib
+    // Kotlin
     implementation "org.jetbrains.kotlin:kotlin-stdlib:2.1.0"
 
-    // 🔹 Dependencia necesaria para desugaring
+    // 🔹 Desugaring
     coreLibraryDesugaring "com.android.tools:desugar_jdk_libs:2.0.4"
 }
