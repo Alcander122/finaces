@@ -1,56 +1,47 @@
-# ==================================
-# Flutter & Dart - Archivos temporales y de build
+# =============================================================================
+# FLUTTER & DART - Archivos temporales y de compilación
+# =============================================================================
 .dart_tool/
-.dart_tool/flutter_build/
 .packages
 .flutter-plugins
 .flutter-plugins-dependencies
 .metadata
 .melody/
+.dart_tool/flutter_build/
 
-# ==================================
-# Pub & Caché
-.pub-cache/
-.pub/
-
-# ==================================
-# Build outputs
-/build/
+# =============================================================================
+# BUILD OUTPUTS (Salidas de compilación)
+# =============================================================================
+build/
+bin/
 **/build/
 **/generated/
 **/outputs/
 
-# ==================================
-# Documentación generada
-doc/api/
-
-# ==================================
-# Symbolication & Map files
-app.*.symbols
-app.*.map.json
-
-# ==================================
-# Android
-/android/.gradle/
-/android/.idea/
-/android/local.properties
-/android/*.iml
+# =============================================================================
+# ANDROID
+# =============================================================================
+android/.gradle/
+android/.idea/
+android/local.properties
+android/gradle-wrapper.jar
+android/app/debug/
+android/app/profile/
+android/app/release/
+android/app/.cxx/
+android/*.iml
 **/android/captures/
-/android/gradle-wrapper.jar
-/android/app/debug/
-/android/app/profile/
-/android/app/release/
-/android/app/.cxx/
 
-# ==================================
-# iOS
-/ios/Flutter/.last_build_id
-/ios/Flutter/App.framework
-/ios/Flutter/Flutter.framework
-/ios/.generated/
+# =============================================================================
+# IOS / MACOS
+# =============================================================================
+ios/Flutter/.last_build_id
+ios/Flutter/App.framework
+ios/Flutter/Flutter.framework
+ios/.generated/
 **/ios/Runner.xcworkspace/
 **/ios/Pods/
-Podfile.lock
+**/macos/Pods/
 
 # Xcode temporales
 *.xcuserstate
@@ -59,49 +50,42 @@ Podfile.lock
 *.moved-aside
 DerivedData/
 
-# ==================================
-# Web
-/web/.dart_tool/
+# IMPORTANTE: Se suele ignorar el Podfile.lock en Flutter 
+# porque se regenera según el pubspec.yaml
+Podfile.lock
 
-# ==================================
-# Windows
-/windows/.dart_tool/
-/windows/build/
-
-# ==================================
-# MacOS
-/macos/.dart_tool/
+# =============================================================================
+# WEB & DESKTOP
+# =============================================================================
+lib/generated_plugin_registrant.dart
+web/.dart_tool/
+windows/.dart_tool/
+windows/build/
+macos/.dart_tool/
 macos/Flutter/ephemeral/
-/macos/build/
+macos/build/
+linux/.dart_tool/
+linux/build/
 
-# ==================================
-# Linux
-/linux/.dart_tool/
-/linux/build/
-
-# ==================================
-# VS Code
+# =============================================================================
+# IDEs (VS Code, IntelliJ, Android Studio)
+# =============================================================================
 .vscode/
+.idea/
+*.iml
+*.ipr
+*.iws
+.history/
 
-# ==================================
-# Fastlane
-/fastlane/report.xml
-/fastlane/Preview.html
-/fastlane/screenshots/**/*.png
-/fastlane/test_output
-
-# ==================================
-# Archivos binarios y temporales
-*.lock
+# =============================================================================
+# ARCHIVOS BINARIOS Y TEMPORALES
+# =============================================================================
+# Nota: NO ignoramos todos los .lock para permitir pubspec.lock
 *.log
 *.tmp
 *.temp
 *.swp
 *.DS_Store
-.idea/
-*.iml
-*.ipr
-*.iws
 .svn/
 *.class
 *.pyc
@@ -116,13 +100,18 @@ macos/Flutter/ephemeral/
 *.aab
 *.jar
 
-# ==================================
-# Security / Sensitive files
+# =============================================================================
+# SEGURIDAD / ARCHIVOS SENSIBLES
+# =============================================================================
 *.keystore
+*.jks
 **/google-services.json
 **/GoogleService-Info.plist
 firebase-debug.log
+.env*
 
-# ==================================
-# CI/CD temporales
+# =============================================================================
+# DOCUMENTACIÓN Y OTROS
+# =============================================================================
+doc/api/
 *.yml~
