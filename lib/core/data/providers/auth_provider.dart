@@ -1,24 +1,21 @@
-// auth_provider.dart
-// CORREGIDO:
-// - Fix preload infinito
-// - Limpieza de biometría al cambiar de usuario
-// - Guardado de 'last_email' para login rápido
+import 'dart:async';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:finances/core/data/services/BiometricAuthService.dart';
 import 'package:finances/core/data/services/user_service.dart';
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/core/errors/handlers/auth_error_handler.dart';
+import 'package:finances/main.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:firebase_auth/firebase_auth.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:cloud_firestore/cloud_firestore.dart';
-import 'dart:async';
-import 'package:finances/core/data/services/BiometricAuthService.dart';
 
-/// 🚀 Maneja almacenamiento local (estado de logout y tutorial)
 class AuthStorage {
   static const String _loggedOutKey = 'user_logged_out';
   static const String _tutorialKey = 'tutorial_seen';
+  static const String _lockedKey = 'app_locked';
 
   Future<void> setLoggedOut(bool value) async {
     final prefs = await SharedPreferences.getInstance();
@@ -44,53 +41,76 @@ class AuthStorage {
     final prefs = await SharedPreferences.getInstance();
     return prefs.getBool(_tutorialKey) ?? false;
   }
+
+  Future<void> setLocked(bool value) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_lockedKey, value);
+  }
+
+  Future<bool> isLocked() async {
+    final prefs = await SharedPreferences.getInstance();
+    return prefs.getBool(_lockedKey) ?? false;
+  }
+
+  Future<void> clearLocked() async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setBool(_lockedKey, false); // Forzamos el valor a falso
+  }
 }
 
-/// 🌍 Provider de autenticación global
-final authProvider = StateNotifierProvider<AuthNotifier, AuthState>((ref) {
-  return AuthNotifier();
-});
-
-/// 📌 Estado general de autenticación
 class AuthState {
   final User? user;
   final bool isLoading;
+  final bool isLocked;
   final String? error;
 
   const AuthState.initial()
       : user = null,
-        isLoading = false,
+        isLoading = true,
+        isLocked = false,
         error = null;
   const AuthState.loading()
       : user = null,
         isLoading = true,
+        isLocked = false,
         error = null;
   const AuthState.authenticated(this.user)
       : isLoading = false,
+        isLocked = false,
+        error = null;
+  const AuthState.locked(this.user)
+      : isLoading = false,
+        isLocked = true,
         error = null;
   const AuthState.unauthenticated()
       : user = null,
         isLoading = false,
+        isLocked = false,
         error = null;
   const AuthState.error(this.error)
       : user = null,
-        isLoading = false;
+        isLoading = false,
+        isLocked = false;
 
   String? get uid => user?.uid;
   bool get isAuthenticated => user != null;
 }
 
-/// 🔑 Controlador principal de autenticación
+final authProvider =
+    StateNotifierProvider<AuthNotifier, AuthState>((ref) => AuthNotifier());
+
 class AuthNotifier extends StateNotifier<AuthState> {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final UserService _userService = UserService();
   final GoogleSignIn googleSignIn = GoogleSignIn();
   final AuthStorage _storage = AuthStorage();
-  final FirebaseFirestore _firestore = FirebaseFirestore.instance;
+  final FirebaseFirestore firestore = FirebaseFirestore.instance;
 
   StreamSubscription<User?>? _authSubscription;
-  bool _isProcessingDeletion = false;
-  bool _isLoggingIn = false;
+  bool isProcessingDeletion = false;
+  bool isLoggingIn = false;
+  Timer? _inactivityTimer;
+  final Duration inactivityDuration = const Duration(minutes: 5);
 
   AuthNotifier() : super(const AuthState.initial()) {
     _initAuthListener();
@@ -99,175 +119,176 @@ class AuthNotifier extends StateNotifier<AuthState> {
   @override
   void dispose() {
     _authSubscription?.cancel();
+    _inactivityTimer?.cancel();
     super.dispose();
   }
 
-  /// 👂 Escucha cambios de sesión de Firebase
   void _initAuthListener() {
     _authSubscription = _auth.authStateChanges().listen((User? user) async {
       try {
-        if (_isProcessingDeletion && user == null) {
-          _isProcessingDeletion = false;
-          debugPrint('✅ Usuario eliminado correctamente');
-        }
+        final isExplicitlyLoggedOut = await _storage.isLoggedOut();
+        final wasLockedInStorage = await _storage.isLocked();
 
-        if (user != null) {
-          // 🛡️ Si estamos en login/registro, permitimos la sesión sin verificar biometría
-          if (_isLoggingIn) {
-            await user.reload();
-            state = AuthState.authenticated(user);
-            return;
-          }
-
-          final isFirstLogin = await _checkIfFirstLogin(user.uid);
-          final isBiometricsEnabled =
-              await BiometricAuthService().isBiometricEnabled();
-
-          if (isBiometricsEnabled) {
-            await user.reload();
-            state = AuthState.authenticated(user);
-            debugPrint(
-                '🔒 Biometría activada: sesión mantenida pero bloqueada');
-          } else if (isFirstLogin) {
-            await user.reload();
-            state = AuthState.authenticated(user);
-            debugPrint('🔓 Primer login: sesión mantenida sin biometría');
-            await _markAsNotFirstLogin(user.uid);
-          } else {
-            // 🚫 Cerrar sesión si no cumple requisitos (biometría o primer login)
-            await _auth.signOut();
-            try {
-              await googleSignIn.signOut();
-            } catch (_) {}
-            state = const AuthState.unauthenticated();
-            debugPrint('🔒 Sesión cerrada por falta de biometría activada');
-          }
-        } else {
+        if (user == null || isExplicitlyLoggedOut) {
           state = const AuthState.unauthenticated();
+          return;
         }
-      } catch (error) {
-        debugPrint('⚠️ Error en authStateChanges: $error');
-        checkAuthStatus();
+
+        await user.reload();
+
+        // 1. PRIORIDAD: ¿El disco dice que la app está bloqueada? (Tenga huella o no)
+        if (wasLockedInStorage) {
+          state = AuthState.locked(user);
+          debugPrint("🔒 Persistencia: Iniciando en modo BLOQUEADO");
+        } else {
+          // 2. Si no estaba marcada como bloqueada, checar biometría para bloqueo preventivo
+          final isBiometricEnabled =
+              await BiometricAuthService().isBiometricEnabled();
+          if (isBiometricEnabled) {
+            await lockApp();
+          } else {
+            state = AuthState.authenticated(user);
+            await _storage.clearLocked();
+          }
+        }
+
+        _startInactivityTimer();
+      } catch (e) {
+        state = const AuthState.unauthenticated();
       }
-    }, onError: (error) {
-      debugPrint('⚠️ Error en stream de auth: $error');
-      state = AuthState.error(ErrorStrings.unexpectedError);
     });
   }
 
-  /// 🔍 Verificar manualmente el estado (fallback)
-  Future<void> checkAuthStatus() async {
-    try {
-      final user = _auth.currentUser;
-      if (user != null) {
-        await user.reload();
-        state = AuthState.authenticated(user);
-      } else {
-        state = const AuthState.unauthenticated();
-      }
-    } catch (_) {
-      state = const AuthState.unauthenticated();
+  void _startInactivityTimer() {
+    _inactivityTimer?.cancel();
+    _inactivityTimer = Timer(inactivityDuration, lockApp);
+  }
+
+  void resetInactivityTimer() {
+    if (state.isAuthenticated && !state.isLocked) {
+      _startInactivityTimer();
     }
   }
 
-  /// 📧 Login con email y contraseña
+  Future<void> lockApp() async {
+    final currentUser = _auth.currentUser;
+    if (currentUser != null) {
+      // Guardar en disco SIEMPRE, sin importar la configuración de huella
+      await _storage.setLocked(true);
+      state = AuthState.locked(currentUser);
+
+      // Limpiar navegación
+      navigatorKey.currentState?.popUntil((route) => route.isFirst);
+      debugPrint("🔒 APP BLOQUEADA (Guardado en SharedPreferences)");
+    }
+  }
+
+  // --- FUNCIONES DE AUTENTICACIÓN ---
+
+  Future<bool> unlockWithBiometrics() async {
+    try {
+      final status = await BiometricAuthService().authenticateWithStatus();
+      if (status == BiometricAuthStatus.success && _auth.currentUser != null) {
+        await _storage.clearLocked();
+        state = AuthState.authenticated(_auth.currentUser!);
+        _startInactivityTimer();
+        return true;
+      }
+      return false;
+    } catch (e) {
+      return false;
+    }
+  }
+
+  Future<void> unlockWithPassword(String password) async {
+    try {
+      final user = _auth.currentUser;
+      if (user == null || user.email == null) throw Exception();
+
+      final credential =
+          EmailAuthProvider.credential(email: user.email!, password: password);
+      await user.reauthenticateWithCredential(credential);
+
+      await _storage.clearLocked();
+      state = AuthState.authenticated(user);
+      _startInactivityTimer();
+    } catch (e) {
+      state = AuthState.locked(_auth.currentUser);
+      throw Exception("Contraseña incorrecta");
+    }
+  }
+
   Future<void> signIn(String email, String password) async {
     try {
-      _isLoggingIn = true;
+      isLoggingIn = true;
       state = const AuthState.loading();
       await _storage.clearLoggedOut();
-
-      // 🔥 LIMPIEZA DE SEGURIDAD: Elimina configuración biométrica del usuario anterior
-      // Esto evita que un nuevo usuario herede la biometría de otro.
-      await BiometricAuthService().clearBiometricSetting();
-
-      final userCredential = await _auth
-          .signInWithEmailAndPassword(email: email, password: password)
-          .timeout(const Duration(seconds: 15));
-
-      await userCredential.user?.reload();
-
-      // ✅ ACTUALIZACIÓN DE ESTADO: Evita el preload infinito
-      state = AuthState.authenticated(userCredential.user!);
-
-      // 💾 GUARDAR CORREO: Para pre-rellenar en futuros logins
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('last_email', email);
-    } on TimeoutException {
-      state = AuthState.error('Tiempo de espera agotado');
-      throw 'Tiempo de espera agotado';
+      await _storage.clearLocked();
+      final credential = await _auth.signInWithEmailAndPassword(
+          email: email, password: password);
+      state = AuthState.authenticated(credential.user!);
+      _startInactivityTimer();
     } on FirebaseAuthException catch (e) {
-      final message = AuthErrorHandler.handle(e);
-      state = AuthState.error(message);
-      throw message;
+      state = AuthState.error(AuthErrorHandler.handle(e));
+      rethrow;
     } finally {
-      _isLoggingIn = false;
+      isLoggingIn = false;
     }
   }
 
-  /// 📝 Registro con email
-  Future<void> signUp(
-      String name, String displayName, String email, String password) async {
+  Future<bool> signInWithGoogle() async {
     try {
-      _isLoggingIn = true;
+      isLoggingIn = true;
       state = const AuthState.loading();
       await _storage.clearLoggedOut();
-
-      // 🔥 LIMPIEZA DE SEGURIDAD: Igual que en signIn
-      await BiometricAuthService().clearBiometricSetting();
-
-      await _userService.registerUser(
-        name: name,
-        displayName: displayName,
-        email: email,
-        password: password,
-      );
-
-      final user = _auth.currentUser;
-      if (user != null) {
-        state = AuthState.authenticated(user);
-        // 💾 GUARDAR CORREO DEL NUEVO USUARIO
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('last_email', email);
-      } else {
-        state = AuthState.error('Error al obtener usuario tras registro');
-        throw Exception('Usuario no disponible tras registro');
-      }
-    } on FirebaseAuthException catch (e) {
-      final message = AuthErrorHandler.handle(e);
-      state = AuthState.error(message);
-      throw message;
-    } finally {
-      _isLoggingIn = false;
-    }
-  }
-
-  /// 🚪 Cerrar sesión
-  Future<void> signOut() async {
-    try {
-      state = const AuthState.loading();
-      await _storage.setLoggedOut(true);
-
-      // 🔒 Limpia biometría al cerrar sesión manualmente
-      await BiometricAuthService().clearBiometricSetting();
-
-      try {
-        await googleSignIn.signOut();
-      } catch (_) {}
-      await _auth.signOut();
-
-      if (_auth.currentUser == null) {
+      await _storage.clearLocked();
+      await googleSignIn.signOut();
+      final googleUser = await googleSignIn.signIn();
+      if (googleUser == null) {
         state = const AuthState.unauthenticated();
-      } else {
-        state = AuthState.error('No se pudo cerrar sesión');
+        throw Exception("Login cancelado");
       }
+      final googleAuth = await googleUser.authentication;
+      final credential = GoogleAuthProvider.credential(
+          accessToken: googleAuth.accessToken, idToken: googleAuth.idToken);
+      final userCredential = await _auth.signInWithCredential(credential);
+      state = AuthState.authenticated(userCredential.user!);
+      _startInactivityTimer();
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('last_email', userCredential.user!.email ?? '');
+      return !(await _userService.userExists(userCredential.user!.uid));
     } catch (e) {
       state = AuthState.error(ErrorStrings.unexpectedError);
       rethrow;
+    } finally {
+      isLoggingIn = false;
     }
   }
 
-  /// ✏️ Actualiza displayName en Firebase + Firestore
+  Future<void> signUp(
+      String name, String displayName, String email, String password) async {
+    try {
+      isLoggingIn = true;
+      state = const AuthState.loading();
+      await _storage.clearLoggedOut();
+      await _storage.clearLocked();
+      await _userService.registerUser(
+          name: name,
+          displayName: displayName,
+          email: email,
+          password: password);
+      if (_auth.currentUser != null) {
+        state = AuthState.authenticated(_auth.currentUser!);
+        _startInactivityTimer();
+      }
+    } on FirebaseAuthException catch (e) {
+      state = AuthState.error(AuthErrorHandler.handle(e));
+      rethrow;
+    } finally {
+      isLoggingIn = false;
+    }
+  }
+
   Future<void> updateDisplayName(String displayName) async {
     try {
       state = const AuthState.loading();
@@ -275,122 +296,45 @@ class AuthNotifier extends StateNotifier<AuthState> {
       if (user != null) {
         await user.updateDisplayName(displayName);
         await user.reload();
-        await updateUserInFirestore(user.uid, displayName);
+        await firestore
+            .collection('users')
+            .doc(user.uid)
+            .update({'displayName': displayName});
         state = AuthState.authenticated(_auth.currentUser!);
       }
-    } catch (_) {
-      state = AuthState.error(ErrorStrings.unexpectedError);
-      throw ErrorStrings.unexpectedError;
-    }
-  }
-
-  Future<void> updateUserInFirestore(String userId, String displayName) async {
-    await _firestore
-        .collection('users')
-        .doc(userId)
-        .update({'displayName': displayName});
-  }
-
-  /// 🔑 Login con Google
-  Future<bool> signInWithGoogle() async {
-    try {
-      _isLoggingIn = true;
-      state = const AuthState.loading();
-
-      // 🔥 LIMPIEZA DE SEGURIDAD: También para Google Sign-In
-      await BiometricAuthService().clearBiometricSetting();
-
-      final GoogleSignIn googleSignIn = GoogleSignIn(
-        scopes: ['email', 'profile'],
-        forceCodeForRefreshToken: true,
-      );
-
-      await googleSignIn.signOut();
-      final googleUser =
-          await googleSignIn.signIn().timeout(const Duration(seconds: 15));
-
-      if (googleUser == null) {
-        state = const AuthState.unauthenticated();
-        throw Exception("Inicio cancelado");
-      }
-
-      final googleAuth = await googleUser.authentication;
-      final credential = GoogleAuthProvider.credential(
-        accessToken: googleAuth.accessToken,
-        idToken: googleAuth.idToken,
-      );
-
-      final userCredential = await _auth
-          .signInWithCredential(credential)
-          .timeout(const Duration(seconds: 15));
-      final user = userCredential.user;
-      if (user == null) throw Exception("Usuario no encontrado");
-
-      state = AuthState.authenticated(user);
-
-      // 💾 GUARDAR CORREO DE GOOGLE
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('last_email', user.email ?? '');
-
-      final exists = await _userService.userExists(user.uid);
-      return !exists;
-    } on TimeoutException {
-      state = AuthState.error('Tiempo de espera agotado');
-      throw Exception('Tiempo de espera agotado');
     } catch (e) {
       state = AuthState.error(ErrorStrings.unexpectedError);
-      rethrow;
-    } finally {
-      _isLoggingIn = false;
     }
   }
 
-  /// ❌ Eliminar cuenta
   Future<void> deleteAccount(String password) async {
-    _isProcessingDeletion = true;
     try {
+      isProcessingDeletion = true;
       state = const AuthState.loading();
       await _userService.deleteAccount(password);
-      await _auth.signOut();
       await _storage.setLoggedOut(true);
-      try {
-        await googleSignIn.signOut();
-      } catch (_) {}
+      await _storage.clearLocked();
+      await _auth.signOut();
       state = const AuthState.unauthenticated();
     } catch (e) {
-      _isProcessingDeletion = false;
-      state = AuthState.error("Error al eliminar cuenta");
+      state = AuthState.error("Error eliminando cuenta");
       rethrow;
+    } finally {
+      isProcessingDeletion = false;
     }
   }
 
-  /// 📩 Enviar reset password
-  Future<void> sendPasswordResetEmail(String email) async {
+  Future<void> signOut() async {
     try {
-      await _auth.sendPasswordResetEmail(email: email);
-    } on FirebaseAuthException catch (e) {
-      final message = AuthErrorHandler.handle(e);
-      throw Exception(message);
+      state = const AuthState.loading();
+      await _storage.setLoggedOut(true);
+      await _storage.clearLocked();
+      await googleSignIn.signOut();
+      await _auth.signOut();
+      _inactivityTimer?.cancel();
+      state = const AuthState.unauthenticated();
+    } catch (e) {
+      state = AuthState.error("Error cerrando sesión");
     }
-  }
-
-  // 🎯 API para tutorial
-  Future<bool> checkTutorial() async => await _storage.isTutorialSeen();
-  Future<void> markTutorialSeen() async => await _storage.setTutorialSeen(true);
-
-  // ✅ Verifica si es el primer login del usuario
-  Future<bool> _checkIfFirstLogin(String userId) async {
-    final userDoc = await _firestore.collection('users').doc(userId).get();
-    if (!userDoc.exists) return false;
-    final data = userDoc.data();
-    return data?['firstLogin'] == true;
-  }
-
-  // ✅ Marca al usuario como no primer login
-  Future<void> _markAsNotFirstLogin(String userId) async {
-    await _firestore
-        .collection('users')
-        .doc(userId)
-        .update({'firstLogin': false});
   }
 }

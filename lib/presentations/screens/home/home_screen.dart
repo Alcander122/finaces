@@ -286,7 +286,7 @@ class HomeScreen extends ConsumerWidget {
       children: [
         InkWell(
           onTap: () => Navigator.push(context,
-              MaterialPageRoute(builder: (_) => ProviderScope(child: screen))),
+              MaterialPageRoute(builder: (_) => screen)),
           child: CircleAvatar(
               radius: 28,
               backgroundColor: color.withOpacity(0.2),
@@ -345,7 +345,7 @@ class HomeScreen extends ConsumerWidget {
                 onTap: () => Navigator.push(
                     context,
                     MaterialPageRoute(
-                        builder: (_) => ProviderScope(child: item['screen']))),
+                        builder: (_) => item['screen'])),
                 child: Container(
                   width: 180,
                   margin: const EdgeInsets.only(right: 16),

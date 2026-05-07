@@ -68,6 +68,7 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   google_mobile_ads: ^7.0.0
   in_app_purchase: ^3.2.3
+  admob_flutter: ^3.0.0
   #facebook_auth: ^0.0.3
 
 dev_dependencies:
