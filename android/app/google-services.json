@@ -14,11 +14,27 @@
       },
       "oauth_client": [
         {
+          "client_id": "301032499758-nlal5j9a8opooqjig1kmumuqqd08upon.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.billnance.app",
+            "certificate_hash": "2e55f004de401f5037c4bd33413c2bce45885c14"
+          }
+        },
+        {
           "client_id": "301032499758-sne4f4cfrto28bf0934da36dqe83s44q.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
             "package_name": "com.billnance.app",
             "certificate_hash": "e6aaee7a948902357dc050c69dac79b07c81ce8f"
+          }
+        },
+        {
+          "client_id": "301032499758-unj4h5n4v214r5cubb5a5obbvlaq0lte.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.billnance.app",
+            "certificate_hash": "21622d161cde7184c35506787bbea1a88226d25c"
           }
         },
         {
