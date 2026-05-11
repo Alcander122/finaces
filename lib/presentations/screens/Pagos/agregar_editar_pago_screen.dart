@@ -2,12 +2,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:finances/core/data/models/pago_model.dart';
+import 'package:timezone/timezone.dart' as tz;
 import 'package:finances/core/data/providers/auth_provider.dart';
-import 'package:finances/core/data/providers/payment_provider.dart';
-import 'package:finances/presentations/screens/Pagos/widgets/fecha_vencimiento_picker.dart';
-import 'package:finances/presentations/screens/Pagos/widgets/dias_antes_bottom_sheet.dart';
-import 'package:finances/presentations/screens/Pagos/widgets/frecuencia_bottom_sheet.dart';
+
+import 'models/payment.dart';
+import 'models/payment_enums.dart';
+import 'providers/payment_form_provider.dart';
+import 'providers/payment_providers.dart';
+import 'widgets/fecha_vencimiento_picker.dart';
+import 'widgets/payment_config_bottom_sheet.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:finances/presentations/widgets/custom_form_container.dart';
@@ -24,19 +27,9 @@ class AgregarEditarPagoScreen extends ConsumerStatefulWidget {
 class _AgregarEditarPagoScreenState
     extends ConsumerState<AgregarEditarPagoScreen> {
   final _formKey = GlobalKey<FormState>();
-  final _descripcionController = TextEditingController();
+  final _titleController = TextEditingController();
   final _montoController = TextEditingController();
-  late DateTime _fechaVencimiento;
-  bool _esProgramado = false;
-  int _diasAntes = 1;
-  String _frecuencia = 'mensual';
   bool _datosInicializados = false;
-
-  @override
-  void initState() {
-    super.initState();
-    _fechaVencimiento = DateTime.now().add(const Duration(days: 7));
-  }
 
   @override
   void didChangeDependencies() {
@@ -48,15 +41,14 @@ class _AgregarEditarPagoScreenState
   }
 
   void _inicializarDatosDesdeArgumentos() {
-    final args = ModalRoute.of(context)?.settings.arguments as Pago?;
-    if (args != null) {
-      _descripcionController.text = args.descripcion;
-      _montoController.text = args.monto.toInt().toString();
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Payment) {
+      Future.microtask(() {
+        ref.read(paymentFormProvider.notifier).loadPayment(args);
+      });
+      _titleController.text = args.title;
+      _montoController.text = args.totalAmount.toInt().toString();
       _formatearMontoInicial();
-      _fechaVencimiento = args.fechaVencimiento;
-      _esProgramado = args.estaProgramado;
-      _diasAntes = args.notificacionAntes;
-      _frecuencia = args.frecuenciaRecurrencia;
     }
   }
 
@@ -90,28 +82,6 @@ class _AgregarEditarPagoScreenState
     );
   }
 
-  Future<void> _mostrarDialogoDias() async {
-    await showModalBottomSheet<int>(
-      context: context,
-      builder: (context) => DiasAntesBottomSheet(
-        onDiasSeleccionados: (dias) {
-          setState(() => _diasAntes = dias);
-        },
-      ),
-    );
-  }
-
-  Future<void> _mostrarDialogoFrecuencia() async {
-    await showModalBottomSheet<String>(
-      context: context,
-      builder: (context) => FrecuenciaBottomSheet(
-        onFrecuenciaSeleccionada: (frec) {
-          setState(() => _frecuencia = frec);
-        },
-      ),
-    );
-  }
-
   Future<void> _guardarPago() async {
     if (!_formKey.currentState!.validate()) return;
 
@@ -123,36 +93,28 @@ class _AgregarEditarPagoScreenState
           _montoController.text.replaceAll(RegExp(r'[^0-9]'), '');
       final monto = double.parse(montoTexto);
 
-      final provider = ref.read(paymentProvider(authState.user!.uid).notifier);
-      final nuevoPago = Pago(
-        id: '',
-        descripcion: _descripcionController.text.trim(),
-        monto: monto,
-        fechaVencimiento: _fechaVencimiento,
-        estaProgramado: _esProgramado,
-        notificacionAntes: _diasAntes,
-        frecuenciaRecurrencia: _frecuencia,
+      final provider = ref.read(paymentControllerProvider.notifier);
+      final draft = ref.read(paymentFormProvider);
+
+      final isEditing = ModalRoute.of(context)?.settings.arguments is Payment;
+
+      final paymentToSave = draft.copyWith(
+        title: _titleController.text.trim(),
+        totalAmount: monto,
+        userId: authState.user!.uid,
       );
 
-      final args = ModalRoute.of(context)?.settings.arguments;
-      if (args is Pago) {
-        await provider.editarPago(args.copyWith(
-          descripcion: nuevoPago.descripcion,
-          monto: nuevoPago.monto,
-          fechaVencimiento: nuevoPago.fechaVencimiento,
-          estaProgramado: nuevoPago.estaProgramado,
-          notificacionAntes: nuevoPago.notificacionAntes,
-          frecuenciaRecurrencia: nuevoPago.frecuenciaRecurrencia,
-        ));
+      if (isEditing) {
+        await provider.updatePayment(paymentToSave);
       } else {
-        await provider.agregarPago(nuevoPago);
+        await provider.createPayment(paymentToSave);
       }
 
       if (mounted) {
         Navigator.pop(context);
         UIHelpers.showSuccessSnackBar(
           context: context,
-          message: args is Pago ? 'Pago actualizado' : 'Pago creado',
+          message: isEditing ? 'Pago actualizado' : 'Pago creado',
         );
       }
     } catch (e) {
@@ -166,14 +128,16 @@ class _AgregarEditarPagoScreenState
 
   @override
   void dispose() {
-    _descripcionController.dispose();
+    _titleController.dispose();
     _montoController.dispose();
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    final isEditing = ModalRoute.of(context)?.settings.arguments is Pago;
+    final isEditing = ModalRoute.of(context)?.settings.arguments is Payment;
+    final draft = ref.watch(paymentFormProvider);
+    final isProgramado = draft.recurrence.unit != FrequencyUnit.none;
 
     return Scaffold(
       backgroundColor: Themes.light,
@@ -192,7 +156,6 @@ class _AgregarEditarPagoScreenState
           saveButtonText: 'Guardar',
           cancelButtonText: 'Cancelar',
           children: [
-            // Título
             Text(
               isEditing ? "Editar Pago" : "Nuevo Pago",
               style: const TextStyle(
@@ -204,11 +167,10 @@ class _AgregarEditarPagoScreenState
             ),
             const SizedBox(height: 20),
 
-            // Campo: Descripción
             TextFormField(
-              controller: _descripcionController,
+              controller: _titleController,
               decoration: AppInputStyle.textField(
-                label: 'Descripción',
+                label: 'Título del Pago',
                 suffixIcon: const Icon(Icons.description),
               ),
               validator: (value) =>
@@ -216,13 +178,12 @@ class _AgregarEditarPagoScreenState
             ),
             const SizedBox(height: 12),
 
-            // Campo: Monto
             TextFormField(
               controller: _montoController,
               keyboardType: TextInputType.number,
               inputFormatters: [FilteringTextInputFormatter.digitsOnly],
               decoration: AppInputStyle.textField(
-                label: 'Monto',
+                label: 'Monto a Pagar',
                 suffixIcon: const Icon(Icons.attach_money),
               ),
               onChanged: _formatearMontoEnTiempoReal,
@@ -238,44 +199,69 @@ class _AgregarEditarPagoScreenState
 
             // Fecha
             FechaVencimientoPicker(
-              fecha: _fechaVencimiento,
-              onChanged: (date) => setState(() => _fechaVencimiento = date),
+              fecha: draft.nextDueDate,
+              onChanged: (date) {
+                final tzDate = tz.TZDateTime.from(date, tz.local);
+                ref.read(paymentFormProvider.notifier).setNextDueDate(tzDate);
+              },
             ),
             const SizedBox(height: 12),
 
-            // Switch: Pago programado
             SwitchListTile(
               title: const Text("Pago programado/recurrente"),
-              value: _esProgramado,
-              onChanged: (value) async {
-                if (value && !_esProgramado) {
-                  await _mostrarDialogoDias();
-                  await _mostrarDialogoFrecuencia();
+              value: isProgramado,
+              onChanged: (value) {
+                if (value) {
+                  ref
+                      .read(paymentFormProvider.notifier)
+                      .updateFrequency(FrequencyUnit.months);
+                  PaymentConfigBottomSheet.show(context);
+                } else {
+                  ref
+                      .read(paymentFormProvider.notifier)
+                      .updateFrequency(FrequencyUnit.none);
                 }
-                setState(() => _esProgramado = value);
               },
-              activeColor: Themes.primary,
+              activeThumbColor: Themes.primary,
             ),
 
-            // Campos condicionales
-            if (_esProgramado) ...[
+            if (isProgramado) ...[
               const SizedBox(height: 8),
-              ListTile(
-                leading:
-                    const Icon(Icons.notifications, color: Themes.iconColor),
-                title: Text("Notificar $_diasAntes días antes"),
-                trailing: IconButton(
-                  icon: const Icon(Icons.edit, color: Themes.iconColor),
-                  onPressed: _mostrarDialogoDias,
+              Container(
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade200,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(
+                      color: Themes.greyDisabled.withValues(alpha: 0.3)),
+                ),
+                child: ListTile(
+                  leading: const Icon(Icons.repeat, color: Themes.primary),
+                  title: Text(
+                    "Frecuencia: ${draft.recurrence.unit.name.toUpperCase()}",
+                    style: const TextStyle(fontWeight: FontWeight.bold),
+                  ),
+                  subtitle: Text(
+                      "Avisar: ${draft.notifyDaysBefore.join(', ')} días antes a las ${draft.notificationTimeOfDay?.hour.toString().padLeft(2, '0')}:${draft.notificationTimeOfDay?.minute.toString().padLeft(2, '0')}"),
+                  trailing: IconButton(
+                    icon: const Icon(Icons.edit, color: Themes.primary),
+                    onPressed: () => PaymentConfigBottomSheet.show(context),
+                  ),
                 ),
               ),
-              ListTile(
-                leading: const Icon(Icons.repeat, color: Themes.iconColor),
-                title: Text("Frecuencia: $_frecuencia"),
-                trailing: IconButton(
-                  icon: const Icon(Icons.edit, color: Themes.iconColor),
-                  onPressed: _mostrarDialogoFrecuencia,
+              const SizedBox(height: 12),
+              SwitchListTile(
+                title: const Text('Notificaciones activas'),
+                subtitle: Text(
+                  draft.status == PaymentStatus.pending
+                      ? 'Recibirás recordatorios según esta configuración.'
+                      : 'Las notificaciones de este pago están pausadas.',
                 ),
+                value: draft.status == PaymentStatus.pending,
+                onChanged: (value) {
+                  ref.read(paymentFormProvider.notifier).setStatus(
+                      value ? PaymentStatus.pending : PaymentStatus.paused);
+                },
+                activeColor: Themes.primary,
               ),
             ],
           ],

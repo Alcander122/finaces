@@ -1,5 +1,6 @@
 import 'package:finances/core/controller/my_app.dart';
-import 'package:finances/core/data/services/notification_service.dart';
+import 'package:finances/presentations/screens/Pagos/services/notification_service.dart';
+import 'package:finances/presentations/screens/Pagos/services/timezone_service.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
 import 'package:flutter/material.dart';
@@ -19,10 +20,6 @@ void main() async {
     // 1. Inicializar Firebase
     await Firebase.initializeApp();
 
-    // 🔑 SEGURIDAD: Configurar Firebase Auth para NO persistir la sesión localmente
-    // Esto asegura que al cerrar la app o desinstalarla, la sesión se borre completamente
-    FirebaseAuth.instance.setPersistence(Persistence.NONE);
-
     // Configurar idioma para Firebase Auth
     FirebaseAuth.instance.setLanguageCode("es");
 
@@ -31,8 +28,13 @@ void main() async {
     await MobileAds.instance.initialize();
     debugPrint('SDK de Google Mobile Ads inicializado');
 
-    // 3. Inicializar notificaciones locales
-    await NotificationService().init();
+    // 3. Inicializar Timezone
+    await TimezoneService().init();
+
+    // 4. Inicializar notificaciones locales
+    final notificationService = NotificationService();
+    await notificationService.init();
+    await notificationService.requestPermissions();
   } catch (e) {
     debugPrint('Error durante la inicialización de servicios: $e');
     // No lanzamos excepción para evitar que la aplicación se cierre inesperadamente

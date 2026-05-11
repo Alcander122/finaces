@@ -58,7 +58,7 @@ dependencies:
   http: ^1.4.0 
   tuple: ^2.0.0 
   qr_flutter: ^4.1.0 
-  freezed_annotation: ^3.0.0 
+  freezed_annotation: ^3.1.0 
   freezed: ^3.0.6 
   flutter_local_notifications: ^18.0.1 
   flutter_launcher_icons: ^0.14.4 
@@ -68,6 +68,10 @@ dependencies:
   flutter_secure_storage: ^9.2.4
   google_mobile_ads: ^7.0.0
   in_app_purchase: ^3.2.3
+  timezone: ^0.10.1
+  crypto: ^3.0.7
+  json_annotation: ^4.11.0
+  json_serializable: ^6.13.2
   #facebook_auth: ^0.0.3
 
 dev_dependencies:

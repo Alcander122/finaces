@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 
 class FechaVencimientoPicker extends StatelessWidget {
-  final DateTime fecha;
+  final DateTime? fecha;
   final ValueChanged<DateTime> onChanged;
 
   const FechaVencimientoPicker({
@@ -13,16 +13,18 @@ class FechaVencimientoPicker extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final fechaMostrada = fecha ?? DateTime.now();
+
     return ListTile(
       title: Text(
-        "Fecha de vencimiento: ${fecha.toLocal().toString().split(' ')[0]}",
+        "Fecha de vencimiento: ${fechaMostrada.toLocal().toString().split(' ')[0]}",
       ),
       trailing: IconButton(
         icon: const Icon(Icons.calendar_today),
         onPressed: () async {
           final date = await showDatePicker(
             context: context,
-            initialDate: fecha,
+            initialDate: fechaMostrada,
             firstDate: DateTime.now(),
             lastDate: DateTime(2100),
           );

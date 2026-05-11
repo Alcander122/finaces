@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
-import 'package:finances/core/data/providers/payment_provider.dart';
+import 'package:finances/presentations/screens/Pagos/providers/payment_providers.dart';
 import 'package:finances/presentations/screens/Pagos/widgets/pago_item_widget.dart';
 import 'package:finances/presentations/screens/Pagos/widgets/empty_state_widget.dart';
 import 'package:finances/presentations/screens/Pagos/widgets/confirm_delete_dialog.dart';
+import 'package:finances/presentations/screens/Pagos/models/payment_enums.dart';
 
 import 'package:finances/core/data/utils/ui_helpers.dart';
 
@@ -20,11 +21,13 @@ class ProgramadosTab extends ConsumerWidget {
       return const Center(child: Text("Usuario no autenticado"));
     }
 
-    final pagosAsync = ref.watch(paymentProvider(userId));
+    final pagosAsync = ref.watch(paymentsStreamProvider(userId));
 
     return pagosAsync.when(
       data: (pagos) {
-        final programados = pagos.where((p) => p.estaProgramado).toList();
+        final programados = pagos
+            .where((p) => p.recurrence.unit != FrequencyUnit.none)
+            .toList();
 
         if (programados.isEmpty) {
           return const EmptyStateWidget(
@@ -63,7 +66,9 @@ class ProgramadosTab extends ConsumerWidget {
     final confirm = await showConfirmDeleteDialog(context);
     if (confirm == true) {
       try {
-        await ref.read(paymentProvider(userId).notifier).eliminarPago(pagoId);
+        await ref
+            .read(paymentControllerProvider.notifier)
+            .deletePayment(userId, pagoId);
       } catch (e) {
         if (!context.mounted) return;
         UIHelpers.showErrorSnackBar(

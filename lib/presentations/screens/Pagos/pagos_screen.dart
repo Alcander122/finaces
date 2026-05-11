@@ -2,7 +2,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
-import 'package:finances/core/data/providers/payment_provider.dart';
+import 'package:finances/presentations/screens/Pagos/providers/payment_providers.dart';
 import 'package:finances/presentations/screens/Pagos/pendientes_tab.dart';
 import 'package:finances/presentations/screens/Pagos/programados_tab.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
@@ -48,7 +48,7 @@ class _PagosScreenState extends ConsumerState<PagosScreen>
       );
     }
 
-    ref.watch(paymentProvider(userId));
+    ref.watch(paymentsStreamProvider(userId));
 
     return Scaffold(
       backgroundColor: Themes.light,
