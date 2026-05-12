@@ -10,11 +10,13 @@ import 'package:finances/routes/app_routes.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:finances/core/data/services/user_service.dart';
 
 // Widgets internos del perfil
 import 'widgets/profile_header.dart';
 import 'widgets/profile_name_field.dart';
 import 'widgets/profile_biometric_settings.dart';
+import 'widgets/delete_account_dialog.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -239,13 +241,22 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
 
   /// Botón: Eliminar cuenta (Acción Crítica)
   Widget _buildDeleteAccountButton() {
-    return TextButton(
-      onPressed: _isDeleting ? null : _onDeleteAccountPressed,
-      child: const Text('Eliminar mi cuenta definitivamente',
-          style: TextStyle(
-              color: Colors.black45,
-              fontSize: 13,
-              decoration: TextDecoration.underline)),
+    return Container(
+      width: double.infinity,
+      margin: const EdgeInsets.symmetric(vertical: 16),
+      child: ElevatedButton.icon(
+        onPressed: _isDeleting ? null : _onDeleteAccountPressed,
+        icon: const Icon(Icons.delete_forever),
+        label: const Text('Eliminar mi cuenta definitivamente'),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.red.shade700,
+          foregroundColor: Colors.white,
+          padding: const EdgeInsets.symmetric(vertical: 14),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
     );
   }
 
@@ -254,71 +265,35 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
   // ============================================================================
 
   Future<void> _onDeleteAccountPressed() async {
+    setState(() => _isDeleting = true);
+
+    final authProviderType = UserService().getAuthProviderType();
+
     final confirmed = await showDialog<bool>(
           context: context,
-          builder: (_) => AlertDialog(
-            title: const Text('¿Eliminar cuenta?',
-                style: TextStyle(color: Colors.red)),
-            content: const Text(
-                'Esta acción borrará todos tus datos financieros y no se puede deshacer.'),
-            actions: [
-              TextButton(
-                  onPressed: () => Navigator.pop(context, false),
-                  child: const Text('Cancelar')),
-              TextButton(
-                  onPressed: () => Navigator.pop(context, true),
-                  child: const Text('Eliminar',
-                      style: TextStyle(
-                          color: Colors.red, fontWeight: FontWeight.bold))),
-            ],
+          barrierDismissible: false,
+          builder: (_) => DeleteAccountDialog(
+            authProvider: authProviderType,
+            onDelete: (password) async {
+              await ref
+                  .read(authProvider.notifier)
+                  .deleteAccount(password: password);
+            },
           ),
         ) ??
         false;
 
-    if (!confirmed) return;
-
-    // Pedir contraseña por seguridad antes de borrar de Firebase
-    final password = await _showPasswordDialog();
-    if (password == null || password.isEmpty) return;
-
-    setState(() => _isDeleting = true);
-    try {
-      await ref.read(authProvider.notifier).deleteAccount(password);
-      if (mounted) {
-        Navigator.of(context).popUntil((route) => route.isFirst);
-        Navigator.pushReplacement(
-            context, MaterialPageRoute(builder: (_) => const WelcomeScreen()));
-      }
-    } catch (e) {
-      if (mounted)
-        UIHelpers.showErrorSnackBar(
-            context: context, message: 'Contraseña incorrecta o error de red');
-    } finally {
+    if (!confirmed) {
       if (mounted) setState(() => _isDeleting = false);
+      return;
     }
-  }
 
-  Future<String?> _showPasswordDialog() async {
-    final controller = TextEditingController();
-    return await showDialog<String>(
-      context: context,
-      builder: (_) => AlertDialog(
-        title: const Text('Confirmar identidad'),
-        content: TextField(
-          controller: controller,
-          obscureText: true,
-          decoration:
-              const InputDecoration(labelText: 'Ingresa tu contraseña actual'),
-        ),
-        actions: [
-          TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('Cancelar')),
-          TextButton(
-              onPressed: () => Navigator.pop(context, controller.text),
-              child: const Text('Confirmar')),
-        ],
-      ),
-    );
+    if (mounted) {
+      Navigator.of(context).popUntil((route) => route.isFirst);
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const WelcomeScreen()),
+      );
+    }
   }
 }

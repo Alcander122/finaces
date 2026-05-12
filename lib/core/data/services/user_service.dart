@@ -2,6 +2,13 @@ import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:finances/core/data/models/user_model.dart';
 
+enum AuthProviderType {
+  email,
+  google,
+  facebook,
+  unknown,
+}
+
 class UserService {
   final FirebaseAuth _auth = FirebaseAuth.instance;
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
@@ -85,27 +92,48 @@ class UserService {
     }
   }
 
+  /// Detecta el tipo de proveedor de autenticación del usuario actual
+  AuthProviderType getAuthProviderType() {
+    final user = _auth.currentUser;
+    if (user == null) return AuthProviderType.unknown;
+
+    for (final provider in user.providerData) {
+      if (provider.providerId == 'password') return AuthProviderType.email;
+      if (provider.providerId == 'google.com') return AuthProviderType.google;
+      if (provider.providerId == 'facebook.com')
+        return AuthProviderType.facebook;
+    }
+
+    return AuthProviderType.unknown;
+  }
+
   /// Elimina el documento de usuario en Firestore y la cuenta de FirebaseAuth
-  Future<void> deleteAccount(String password) async {
+  /// [password] solo es requerido para usuarios con email/contraseña.
+  Future<void> deleteAccount({String? password}) async {
     try {
       final user = _auth.currentUser;
       if (user == null) throw Exception("No hay usuario autenticado.");
 
-      // Reautenticar al usuario (requerido para operaciones sensibles)
-      if (user.providerData
-          .any((provider) => provider.providerId == 'password')) {
+      final authProvider = getAuthProviderType();
+
+      if (authProvider == AuthProviderType.email) {
+        if (password == null || password.isEmpty) {
+          throw Exception(
+              "La contraseña es requerida para eliminar la cuenta.");
+        }
+
         final credential = EmailAuthProvider.credential(
           email: user.email!,
           password: password,
         );
         await user.reauthenticateWithCredential(credential);
+      } else if (authProvider == AuthProviderType.google ||
+          authProvider == AuthProviderType.facebook) {
+        await user.getIdToken(true);
       }
 
-      // Eliminar datos primero en Firestore
       await _firestore.collection('users').doc(user.uid).delete();
-
-      // Luego eliminar cuenta de Firebase Auth
-      await user.delete(); // Requiere autenticación reciente [[4]]
+      await user.delete();
     } catch (e) {
       rethrow;
     }

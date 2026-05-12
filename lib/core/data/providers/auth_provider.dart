@@ -346,11 +346,11 @@ class AuthNotifier extends StateNotifier<AuthState> {
   }
 
   /// ❌ Eliminar cuenta
-  Future<void> deleteAccount(String password) async {
+  Future<void> deleteAccount({String? password}) async {
     _isProcessingDeletion = true;
     try {
       state = const AuthState.loading();
-      await _userService.deleteAccount(password);
+      await _userService.deleteAccount(password: password);
       await _auth.signOut();
       await _storage.setLoggedOut(true);
       try {
