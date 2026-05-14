@@ -357,10 +357,16 @@ class AuthNotifier extends StateNotifier<AuthState> {
         await googleSignIn.signOut();
       } catch (_) {}
       state = const AuthState.unauthenticated();
+    } on FirebaseAuthException catch (e) {
+      final message = AuthErrorHandler.handle(e);
+      _isProcessingDeletion = false;
+      state = AuthState.error(message);
+      throw message;
     } catch (e) {
       _isProcessingDeletion = false;
-      state = AuthState.error("Error al eliminar cuenta");
-      rethrow;
+      final message = e is String ? e : ErrorStrings.unexpectedError;
+      state = AuthState.error(message);
+      throw message;
     }
   }
 

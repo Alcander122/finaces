@@ -1,15 +1,18 @@
-import 'package:flutter/material.dart';
+import 'package:finances/core/errors/error_strings.dart';
+import 'package:finances/core/errors/handlers/auth_error_handler.dart';
 import 'package:finances/core/data/services/user_service.dart';
+import 'package:firebase_auth/firebase_auth.dart';
+import 'package:flutter/material.dart';
 
 class DeleteAccountDialog extends StatefulWidget {
   final AuthProviderType authProvider;
   final Future<void> Function(String? password) onDelete;
 
   const DeleteAccountDialog({
-    Key? key,
+    super.key,
     required this.authProvider,
     required this.onDelete,
-  }) : super(key: key);
+  });
 
   @override
   State<DeleteAccountDialog> createState() => _DeleteAccountDialogState();
@@ -55,13 +58,21 @@ class _DeleteAccountDialogState extends State<DeleteAccountDialog> {
     } catch (e) {
       if (mounted) {
         setState(() => _isLoading = false);
+
+        final errorMessage = e is FirebaseAuthException
+            ? AuthErrorHandler.handle(e)
+            : e is String
+                ? e
+                : ErrorStrings.unexpectedError;
+
         if (widget.authProvider == AuthProviderType.email) {
-          setState(
-              () => _passwordError = 'Contraseña incorrecta o error de red');
+          setState(() => _passwordError = errorMessage);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
-                content: Text('Error al eliminar cuenta: ${e.toString()}')),
+              content: Text(errorMessage),
+              backgroundColor: Colors.red,
+            ),
           );
         }
       }

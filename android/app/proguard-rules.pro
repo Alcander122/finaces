@@ -53,3 +53,8 @@
 
 -keepattributes Signature
 -keepattributes *Annotation*
+
+# ============================================================
+# PLAY CORE (Ignorar clases faltantes del motor Flutter)
+# ============================================================
+-dontwarn com.google.android.play.core.**

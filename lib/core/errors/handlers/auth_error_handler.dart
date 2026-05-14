@@ -11,7 +11,7 @@ class AuthErrorHandler {
       case 'invalid-email':
         return ErrorStrings.invalidEmail;
       case 'user-disabled':
-        return "Cuenta deshabilitada";
+        return ErrorStrings.accountDisabled;
       case 'user-not-found':
         return ErrorStrings.userNotFound;
       case 'wrong-password':
@@ -19,7 +19,7 @@ class AuthErrorHandler {
       case 'email-already-in-use':
         return ErrorStrings.emailInUse;
       case 'operation-not-allowed':
-        return "Método no habilitado";
+        return ErrorStrings.operationNotAllowed;
       case 'weak-password':
         return ErrorStrings.weakPassword;
       case 'too-many-requests':
@@ -27,7 +27,18 @@ class AuthErrorHandler {
       case 'network-request-failed':
         return ErrorStrings.networkError;
       case 'aborted-by-user':
-        return "Proceso cancelado por el usuario";
+      case 'cancelled-popup-request':
+      case 'popup-closed-by-user':
+      case 'user-cancelled':
+        return ErrorStrings.processCanceledByUser;
+      case 'requires-recent-login':
+        return ErrorStrings.requiresRecentLogin;
+      case 'invalid-credential':
+      case 'invalid-verification-code':
+      case 'invalid-verification-id':
+        return ErrorStrings.invalidCredential;
+      case 'account-exists-with-different-credential':
+        return ErrorStrings.accountExistsWithDifferentCredential;
       default:
         return "${ErrorStrings.unexpectedError} (${error.code})";
     }

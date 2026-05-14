@@ -7,6 +7,14 @@ abstract class ErrorStrings {
   static const invalidEmail = "Correo inválido";
   static const emailInUse = "El correo ya está registrado";
   static const weakPassword = "Contraseña muy débil";
+  static const accountDisabled = "La cuenta está deshabilitada";
+  static const operationNotAllowed = "Método de autenticación no habilitado";
+  static const processCanceledByUser = "Proceso cancelado por el usuario";
+  static const requiresRecentLogin =
+      "Por seguridad, vuelve a iniciar sesión e intenta de nuevo";
+  static const invalidCredential = "Credenciales inválidas";
+  static const accountExistsWithDifferentCredential =
+      "El correo ya está registrado con otro método de inicio de sesión";
 
   // Errores de red
   static const networkError = "Error de conexión";
