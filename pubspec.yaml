@@ -72,6 +72,7 @@ dependencies:
   crypto: ^3.0.7
   json_annotation: ^4.11.0
   json_serializable: ^6.13.2
+  shimmer: ^3.0.0
   #facebook_auth: ^0.0.3
 
 dev_dependencies:

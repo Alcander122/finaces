@@ -2,6 +2,8 @@ import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:finances/core/data/models/egreso_model.dart';
+import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/utils/category_color_generator.dart';
 
 class EgresoChart extends StatelessWidget {
   final List<Egreso> egresos;
@@ -10,63 +12,92 @@ class EgresoChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (egresos.isEmpty) return const SizedBox.shrink();
+
     // Calcular los totales por categoría
-    Map<String, int> categoriaTotales = {};
+    Map<String, double> categoriaTotales = {};
+    double totalEgresos = 0;
+
     for (var egreso in egresos) {
+      final double valor = egreso.valor.toDouble();
       if (categoriaTotales.containsKey(egreso.categoria)) {
-        categoriaTotales[egreso.categoria] =
-            categoriaTotales[egreso.categoria]! + egreso.valor;
+        categoriaTotales[egreso.categoria] = categoriaTotales[egreso.categoria]! + valor;
       } else {
-        categoriaTotales[egreso.categoria] = egreso.valor;
+        categoriaTotales[egreso.categoria] = valor;
       }
+      totalEgresos += valor;
     }
 
     // Preparar los datos para el gráfico
     List<ChartData> datosGrafico = [];
-    final colores = [
-      const Color.fromRGBO(255, 99, 132, 1),
-      const Color.fromRGBO(54, 162, 235, 1),
-      const Color.fromRGBO(255, 206, 86, 1),
-      const Color.fromRGBO(75, 192, 192, 1),
-      const Color.fromRGBO(153, 102, 255, 1),
-    ];
 
     for (var entry in categoriaTotales.entries) {
       datosGrafico.add(
         ChartData(
           categoria: entry.key,
-          valor: entry.value.toDouble(),
-          color: colores[datosGrafico.length % colores.length],
+          valor: entry.value,
+          color: CategoryColorGenerator.getColor(entry.key),
         ),
       );
     }
 
-    // ✅ Formato de miles para los valores
-    //final formatoMoneda = NumberFormat('#,##0', 'es_CO');
+    // Ordenar de mayor a menor para mejor visualización
+    datosGrafico.sort((a, b) => b.valor.compareTo(a.valor));
 
-    return SizedBox(
-      height: 300,
-      child: SfCircularChart(
-        title: ChartTitle(
-          text: 'Egresos Categorizados',
-          textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      color: Themes.primary,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SizedBox(
+          height: 320,
+          child: SfCircularChart(
+            annotations: <CircularChartAnnotation>[
+              CircularChartAnnotation(
+                widget: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Total Gastos', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    const SizedBox(height: 4),
+                    Text(
+                      UIHelpers.formatCurrency(totalEgresos),
+                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              )
+            ],
+            legend: Legend(
+              isVisible: true,
+              position: LegendPosition.bottom,
+              overflowMode: LegendItemOverflowMode.wrap,
+              textStyle: const TextStyle(color: Colors.white, fontSize: 13),
+            ),
+            tooltipBehavior: TooltipBehavior(
+              enable: true,
+              format: 'point.x : point.y',
+              textStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            series: <CircularSeries>[
+              DoughnutSeries<ChartData, String>(
+                dataSource: datosGrafico,
+                xValueMapper: (ChartData data, _) => data.categoria,
+                yValueMapper: (ChartData data, _) => data.valor,
+                pointColorMapper: (ChartData data, _) => data.color,
+                innerRadius: '65%',
+                radius: '100%',
+                explode: true,
+                explodeGesture: ActivationMode.singleTap,
+                explodeOffset: '5%',
+                enableTooltip: true,
+                dataLabelSettings: const DataLabelSettings(
+                  isVisible: false, // Hide labels inside the donut for a cleaner look, rely on tooltip & legend
+                ),
+              )
+            ],
+          ),
         ),
-        legend: Legend(
-          isVisible: true,
-          position: LegendPosition.bottom,
-        ),
-        series: <CircularSeries>[
-          PieSeries<ChartData, String>(
-            dataSource: datosGrafico,
-            xValueMapper: (ChartData data, _) => data.categoria,
-            yValueMapper: (ChartData data, _) => data.valor,
-            pointColorMapper: (ChartData data, _) => data.color,
-            // ✅ Aquí se aplica el formato al label
-            dataLabelMapper: (ChartData data, _) =>
-                ' ${UIHelpers.formatCurrency(data.valor)}',
-            dataLabelSettings: const DataLabelSettings(isVisible: true),
-          )
-        ],
       ),
     );
   }

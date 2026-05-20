@@ -1,6 +1,7 @@
 import 'package:finances/core/data/providers/egreso_provider.dart';
 import 'package:finances/presentations/screens/egreso/egreso_form.dart';
 import 'package:finances/presentations/screens/egreso/widgets/egreso_table.dart';
+import 'package:finances/presentations/screens/egreso/widgets/egresos_skeleton_loader.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/models/egreso_model.dart';
@@ -93,6 +94,12 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
     }
   }
 
+  Future<void> _refreshData() async {
+    // ignore: unused_result
+    ref.refresh(egresosProvider);
+    await Future.delayed(const Duration(milliseconds: 500)); // Simula tiempo de red
+  }
+
   @override
   Widget build(BuildContext context) {
     final egresosAsync = ref.watch(egresosProvider);
@@ -100,124 +107,158 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
     return Scaffold(
       backgroundColor: Themes.light,
       appBar: AppBarFinances(
-        title: 'Egresos',
+        title: 'Gastos',
         showProfileIcon: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.edit),
+            icon: const Icon(Icons.filter_list),
             color: Colors.white,
             onPressed: _showColumnSelectionDialog,
-            tooltip: 'Editar columnas visibles',
+            tooltip: 'Filtros y columnas',
           ),
         ],
       ),
+      floatingActionButton: FloatingActionButton.extended(
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => const EgresoForm(egreso: null),
+          ),
+        ),
+        backgroundColor: Themes.primary,
+        icon: const Icon(Icons.add, color: Colors.white),
+        label: const Text('Gasto', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
+        elevation: 4,
+      ),
       body: egresosAsync.when(
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Error: $error')),
+        loading: () => const EgresosSkeletonLoader(),
+        error: (error, stack) => Center(
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Themes.red, size: 64),
+              const SizedBox(height: 16),
+              Text('Error: $error', style: const TextStyle(color: Colors.white70)),
+              const SizedBox(height: 16),
+              ElevatedButton(
+                onPressed: _refreshData,
+                child: const Text('Reintentar'),
+              )
+            ],
+          )
+        ),
         data: (egresos) {
-          debugPrint(
-              '✅ egresos_screen: Se recibieron ${egresos.length} egresos');
+          debugPrint('✅ egresos_screen: Se recibieron ${egresos.length} egresos');
 
-          // Convertimos los egresos a formato Map para usar con EgresoTable
+          // Convertimos los egresos a formato Map
           final egresosMap = _convertEgresosToMap(egresos);
 
-          return SingleChildScrollView(
-            child: Padding(
-              padding: const EdgeInsets.all(16.0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // Gráfico
-                  EgresoChart(egresos: egresos),
-                  const SizedBox(height: 16),
-
-                  // Mensaje si no hay datos
-                  if (egresos.isEmpty)
-                    const Center(
-                      child: Padding(
-                        padding: EdgeInsets.all(32),
-                        child: Text(
-                          'No hay egresos registrados aún.',
-                          style: TextStyle(
-                            fontSize: 16,
-                            color: Colors.white70,
-                            fontStyle: FontStyle.italic,
-                          ),
+          return RefreshIndicator(
+            onRefresh: _refreshData,
+            color: Themes.primary,
+            backgroundColor: Themes.light,
+            child: SingleChildScrollView(
+              physics: const AlwaysScrollableScrollPhysics(),
+              child: Padding(
+                padding: const EdgeInsets.only(left: 16.0, right: 16.0, top: 16.0, bottom: 80.0),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    // Dashboard Title
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                      child: Text(
+                        'Resumen Financiero',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Themes.primary,
                         ),
                       ),
-                    )
-                  else
-                    // ✅ Usamos el componente EgresoTable corregido
-                    EgresoTable(
-                      egresos: egresosMap,
-                      onEdit: (egresoMap) {
-                        final fechaPago = egresoMap['fechaPago'] is DateTime
-                            ? egresoMap['fechaPago'] as DateTime
-                            : DateTime.now();
-
-                        final fecha = egresoMap['fecha'] is DateTime
-                            ? egresoMap['fecha'] as DateTime
-                            : DateTime.now();
-
-                        final egreso = Egreso(
-                          id: egresoMap['id']?.toString() ?? '',
-                          quincena: egresoMap['quincena']?.toString() ?? '',
-                          fechaPago: fechaPago,
-                          fecha: fecha,
-                          categoria: egresoMap['categoria']?.toString() ?? '',
-                          concepto: egresoMap['concepto']?.toString() ?? '',
-                          valor: egresoMap['valor'] is int
-                              ? egresoMap['valor'] as int
-                              : int.tryParse(
-                                      egresoMap['valor']?.toString() ?? '0') ??
-                                  0,
-                          descripcion:
-                              egresoMap['descripcion']?.toString() ?? '',
-                          estado: egresoMap['estado']?.toString() ?? '',
-                        );
-
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EgresoForm(egreso: egreso),
-                          ),
-                        );
-                      },
-                      onDelete: _deleteEgreso,
-                      // 🔑 Pasamos las claves reales usando el mapping
-                      camposVisibles: _visibleColumns
-                          .map((col) => _columnMapping[col]!)
-                          .toList(),
-                      userID: FirebaseAuth.instance.currentUser?.uid ?? '',
                     ),
+                    // Gráfico
+                    EgresoChart(egresos: egresos),
+                    const SizedBox(height: 24),
 
-                  const SizedBox(height: 24),
-
-                  // Botón nuevo egreso
-                  Center(
-                    child: ElevatedButton.icon(
-                      icon: const Icon(Icons.add, color: Colors.white),
-                      label: const Text(
-                        'Nuevo Egreso',
-                        style: TextStyle(color: Colors.white),
-                      ),
-                      onPressed: () => Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => EgresoForm(egreso: null),
+                    // Título de sección de tabla
+                    const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                      child: Text(
+                        'Movimientos',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: Themes.primary,
                         ),
                       ),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: Themes.primary,
-                        padding: const EdgeInsets.symmetric(
-                            vertical: 16, horizontal: 20),
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12)),
-                        elevation: 4,
-                      ),
                     ),
-                  ),
-                ],
+
+                    // Mensaje si no hay datos
+                    if (egresos.isEmpty)
+                      Center(
+                        child: Padding(
+                          padding: const EdgeInsets.all(32),
+                          child: Column(
+                            children: [
+                              Icon(Icons.receipt_long, size: 64, color: Colors.grey[600]),
+                              const SizedBox(height: 16),
+                              Text(
+                                'No hay gastos registrados aún.',
+                                style: TextStyle(
+                                  fontSize: 16,
+                                  color: Colors.grey[800],
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
+                      )
+                    else
+                      // ✅ Usamos el componente EgresoTable
+                      EgresoTable(
+                        egresos: egresosMap,
+                        onEdit: (egresoMap) {
+                          final fechaPago = egresoMap['fechaPago'] is DateTime
+                              ? egresoMap['fechaPago'] as DateTime
+                              : DateTime.now();
+
+                          final fecha = egresoMap['fecha'] is DateTime
+                              ? egresoMap['fecha'] as DateTime
+                              : DateTime.now();
+
+                          final egreso = Egreso(
+                            id: egresoMap['id']?.toString() ?? '',
+                            quincena: egresoMap['quincena']?.toString() ?? '',
+                            fechaPago: fechaPago,
+                            fecha: fecha,
+                            categoria: egresoMap['categoria']?.toString() ?? '',
+                            concepto: egresoMap['concepto']?.toString() ?? '',
+                            valor: egresoMap['valor'] is int
+                                ? egresoMap['valor'] as int
+                                : int.tryParse(
+                                        egresoMap['valor']?.toString() ?? '0') ??
+                                    0,
+                            descripcion:
+                                egresoMap['descripcion']?.toString() ?? '',
+                            estado: egresoMap['estado']?.toString() ?? '',
+                          );
+
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => EgresoForm(egreso: egreso),
+                            ),
+                          );
+                        },
+                        onDelete: _deleteEgreso,
+                        // 🔑 Pasamos las claves reales usando el mapping
+                        camposVisibles: _visibleColumns
+                            .map((col) => _columnMapping[col]!)
+                            .toList(),
+                        userID: FirebaseAuth.instance.currentUser?.uid ?? '',
+                      ),
+                  ],
+                ),
               ),
             ),
           );

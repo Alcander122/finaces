@@ -8,8 +8,8 @@ import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import 'dart:math';
-
 import '../../../core/data/utils/ui_helpers.dart';
+// import 'package:finances/core/errors/handlers/db_error_handler.dart'; // Ideal para la fase 1
 
 class CurrencyFormatterFromHelper extends TextInputFormatter {
   @override
@@ -47,29 +47,15 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
   final _valorController = TextEditingController();
   final _descripcionController = TextEditingController();
 
-  String? _quincena;
-  // ✅ Inicialización segura con valores por defecto
+  String? _quincena = 'Primera Quincena';
   DateTime fechaPago = DateTime.now();
-  String? _categoria;
-  String? _estado;
+  String? _categoria = 'Otros';
+  String? _estado = 'Pendiente';
   DateTime _fechaActual = DateTime.now();
+  bool _isLoading = false;
 
-  final List<String> _quincenas = [
-    'Primera Quincena',
-    'Segunda Quincena',
-    'Diario',
-    'Mensual'
-  ];
-  final List<String> _categorias = [
-    'Alimentación',
-    'Transporte',
-    'Vivienda',
-    'Entretenimiento',
-    'Ahorro',
-    'Vacaciones',
-    'Transferencia',
-    'Otros'
-  ];
+  final List<String> _quincenas = ['Primera Quincena', 'Segunda Quincena', 'Diario', 'Mensual'];
+  final List<String> _categorias = ['Alimentación', 'Transporte', 'Vivienda', 'Entretenimiento', 'Ahorro', 'Vacaciones', 'Transferencia', 'Otros'];
   final List<String> _estados = ['Pendiente', 'Cancelado'];
 
   final Map<String, String> _quincenaToDisplay = {
@@ -89,41 +75,22 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
   @override
   void initState() {
     super.initState();
-
-    // ✅ Inicialización segura con valores por defecto
-    fechaPago = DateTime.now();
-    _fechaActual = DateTime.now();
-
-    // Si estamos editando un egreso existente, cargamos sus datos
     if (widget.egreso != null) {
       _conceptoController.text = widget.egreso!.concepto;
-      _valorController.text =
-          UIHelpers.formatCurrency(widget.egreso!.valor.toDouble());
+      _valorController.text = UIHelpers.formatCurrency(widget.egreso!.valor.toDouble());
       _descripcionController.text = widget.egreso!.descripcion;
 
-      // Convertimos el valor interno al valor mostrado
-      _quincena = _quincenaToDisplay[widget.egreso!.quincena] ??
-          widget.egreso!.quincena;
+      _quincena = _quincenaToDisplay[widget.egreso!.quincena] ?? widget.egreso!.quincena;
+      if (_quincena != null && !_quincenas.contains(_quincena)) _quincena = _quincenas.first;
 
-      // ✅ Verificamos que el valor cargado exista en la lista de opciones
-      if (_quincena != null && !_quincenas.contains(_quincena)) {
-        _quincena = null;
-      }
-
-      // ✅ Asignamos valores solo si no son nulos
       fechaPago = widget.egreso!.fechaPago;
-
       _fechaActual = widget.egreso!.fecha;
 
       _categoria = widget.egreso!.categoria;
-      if (_categoria != null && !_categorias.contains(_categoria)) {
-        _categoria = null;
-      }
+      if (_categoria != null && !_categorias.contains(_categoria)) _categoria = _categorias.last;
 
       _estado = widget.egreso!.estado;
-      if (_estado != null && !_estados.contains(_estado)) {
-        _estado = null;
-      }
+      if (_estado != null && !_estados.contains(_estado)) _estado = _estados.first;
     }
   }
 
@@ -135,231 +102,297 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
     super.dispose();
   }
 
-  void _limpiarFormulario() {
-    _conceptoController.clear();
-    _valorController.clear();
-    _descripcionController.clear();
-    setState(() {
-      _quincena = null;
-      _categoria = null;
-      _estado = null;
-      fechaPago = DateTime.now();
-    });
-  }
-
   Future<void> _guardarEgreso() async {
-    if (_formKey.currentState!.validate()) {
-      if (_quincena == null || _categoria == null || _estado == null) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Por favor, complete todos los campos')),
-        );
-        return;
-      }
+    if (!_formKey.currentState!.validate()) return;
+    
+    String valorLimpo = _valorController.text.replaceAll(RegExp(r'[^\d]'), '');
+    if (valorLimpo.isEmpty) {
+      UIHelpers.showErrorSnackBar(context: context, message: 'El valor no puede estar vacío');
+      return;
+    }
 
+    setState(() => _isLoading = true);
+
+    try {
       final user = FirebaseAuth.instance.currentUser;
-      if (user != null) {
-        final String quincenaInterna =
-            _displayToQuincena[_quincena!] ?? _quincena!;
-        String valorLimpo =
-            _valorController.text.replaceAll(RegExp(r'[^\d]'), '');
-        if (valorLimpo.isEmpty) {
-          UIHelpers.showErrorSnackBar(
-            context: context,
-            message: 'El valor no puede estar vacío',
-          );
-          return;
-        }
+      if (user == null) {
+        throw Exception('Usuario no autenticado');
+      }
 
-        int valorNumerico = int.parse(valorLimpo);
-        final egreso = Egreso(
-          id: widget.egreso?.id ?? _generarIdAleatorio(),
-          quincena: quincenaInterna,
-          fecha: _fechaActual,
-          fechaPago: fechaPago,
-          categoria: _categoria!,
-          concepto: _conceptoController.text,
-          valor: valorNumerico,
-          descripcion: _descripcionController.text,
-          estado: _estado!,
-        );
+      final String quincenaInterna = _displayToQuincena[_quincena!] ?? _quincena!;
+      int valorNumerico = int.parse(valorLimpo);
+      
+      final egreso = Egreso(
+        id: widget.egreso?.id ?? _generarIdAleatorio(),
+        quincena: quincenaInterna,
+        fecha: _fechaActual,
+        fechaPago: fechaPago,
+        categoria: _categoria!,
+        concepto: _conceptoController.text,
+        valor: valorNumerico,
+        descripcion: _descripcionController.text,
+        estado: _estado!,
+      );
 
-        final service = ref.read(egresoServiceProvider);
-        if (widget.egreso == null) {
-          await service.addEgreso(user.uid, egreso);
-        } else {
-          await service.actualizarEgreso(user.uid, egreso);
-        }
-
-        _limpiarFormulario();
-        Navigator.pop(context);
+      final service = ref.read(egresoServiceProvider);
+      if (widget.egreso == null) {
+        await service.addEgreso(user.uid, egreso);
       } else {
+        await service.actualizarEgreso(user.uid, egreso);
+      }
+
+      if (mounted) {
+        Navigator.pop(context);
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('Usuario no autenticado')),
+          SnackBar(
+            content: Text(widget.egreso == null ? 'Gasto registrado con éxito' : 'Gasto actualizado con éxito'),
+            backgroundColor: Themes.green,
+            behavior: SnackBarBehavior.floating,
+          ),
         );
       }
+    } catch (e) {
+      if (mounted) {
+        UIHelpers.showErrorSnackBar(context: context, message: 'Ocurrió un error al guardar: $e');
+        // Aquí se usaría db_error_handler.dart -> DbErrorHandler.handleError(e)
+      }
+    } finally {
+      if (mounted) setState(() => _isLoading = false);
     }
   }
 
   String _generarIdAleatorio() {
-    const caracteres =
-        'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+    const caracteres = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
     final random = Random();
-    return List.generate(
-        20, (index) => caracteres[random.nextInt(caracteres.length)]).join();
+    return List.generate(20, (index) => caracteres[random.nextInt(caracteres.length)]).join();
   }
 
   @override
   Widget build(BuildContext context) {
+    final isEditing = widget.egreso != null;
+    
     return Scaffold(
-      backgroundColor: Themes.degradientLight,
-      appBar: const AppBarFinances(
-        title: 'Nuevo Egreso',
+      backgroundColor: Themes.light,
+      appBar: AppBarFinances(
+        title: isEditing ? 'Editar Gasto' : 'Nuevo Gasto',
         showProfileIcon: false,
       ),
-      body: Center(
-        child: Card(
-          elevation: 8,
-          margin: const EdgeInsets.all(16),
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-          child: Padding(
-            padding: const EdgeInsets.all(20.0),
-            child: Form(
-              key: _formKey,
+      body: SafeArea(
+        child: Column(
+          children: [
+            Expanded(
               child: SingleChildScrollView(
-                child: Column(
-                  children: [
-                    buildDropdown(_quincenas, _quincena, 'Periodo',
-                        (val) => setState(() => _quincena = val)),
-                    buildTextField(_conceptoController, 'Concepto'),
-                    buildTextField(
-                      _valorController,
-                      'Valor',
-                      isNumber: true,
-                      inputFormatters: [CurrencyFormatterFromHelper()],
-                    ),
-                    buildTextField(
-                      _descripcionController,
-                      'Descripción',
-                      isMultiline: true,
-                    ),
-                    buildDropdown(_categorias, _categoria, 'Categoría',
-                        (val) => setState(() => _categoria = val)),
-                    buildDropdown(_estados, _estado, 'Estado',
-                        (val) => setState(() => _estado = val)),
-                    Padding(
-                      padding: const EdgeInsets.symmetric(vertical: 8),
-                      child: InkWell(
-                        onTap: () async {
-                          final picked = await showDatePicker(
-                            context: context,
-                            initialDate: fechaPago,
-                            firstDate: DateTime(2000),
-                            lastDate: DateTime(2100),
+                padding: const EdgeInsets.symmetric(horizontal: 16.0, vertical: 24.0),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // SECCIÓN VALOR
+                      Center(
+                        child: Column(
+                          children: [
+                            const Text('Monto del gasto', style: TextStyle(color: Colors.black54, fontSize: 14)),
+                            const SizedBox(height: 8),
+                            SizedBox(
+                              width: 250,
+                              child: TextFormField(
+                                controller: _valorController,
+                                textAlign: TextAlign.center,
+                                style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Themes.red),
+                                decoration: const InputDecoration(
+                                  border: InputBorder.none,
+                                  hintText: '\$0',
+                                  hintStyle: TextStyle(color: Colors.grey),
+                                ),
+                                keyboardType: TextInputType.number,
+                                inputFormatters: [CurrencyFormatterFromHelper()],
+                                validator: (value) => value == null || value.isEmpty ? 'Requerido' : null,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 32),
+
+                      // SECCIÓN DETALLES
+                      const Text('Detalles', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 16),
+                      buildTextField(_conceptoController, 'Concepto (Ej. Mercado, Cine)', Icons.edit_note),
+                      const SizedBox(height: 16),
+                      
+                      // SECCIÓN CATEGORÍA (CHIPS)
+                      const Text('Categoría', style: TextStyle(fontSize: 14, color: Colors.black87)),
+                      const SizedBox(height: 8),
+                      Wrap(
+                        spacing: 8,
+                        runSpacing: 8,
+                        children: _categorias.map((cat) {
+                          final isSelected = _categoria == cat;
+                          return ChoiceChip(
+                            label: Text(cat),
+                            selected: isSelected,
+                            selectedColor: Themes.primary.withValues(alpha: 0.2),
+                            labelStyle: TextStyle(
+                              color: isSelected ? Themes.primary : Colors.black87,
+                              fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
+                            ),
+                            onSelected: (selected) {
+                              if (selected) setState(() => _categoria = cat);
+                            },
                           );
-                          if (picked != null) {
-                            setState(() {
-                              fechaPago = picked;
-                            });
-                          }
-                        },
-                        child: InputDecorator(
-                          decoration: InputDecoration(
-                            labelText: 'Fecha Pago',
-                            border: OutlineInputBorder(
-                                borderRadius: BorderRadius.circular(12)),
+                        }).toList(),
+                      ),
+                      const SizedBox(height: 24),
+
+                      // FECHA Y QUINCENA
+                      Row(
+                        children: [
+                          Expanded(
+                            child: InkWell(
+                              onTap: () async {
+                                final picked = await showDatePicker(
+                                  context: context,
+                                  initialDate: fechaPago,
+                                  firstDate: DateTime(2000),
+                                  lastDate: DateTime(2100),
+                                  builder: (context, child) {
+                                    return Theme(
+                                      data: Theme.of(context).copyWith(
+                                        colorScheme: const ColorScheme.light(
+                                          primary: Themes.primary,
+                                        ),
+                                      ),
+                                      child: child!,
+                                    );
+                                  },
+                                );
+                                if (picked != null) setState(() => fechaPago = picked);
+                              },
+                              child: Container(
+                                padding: const EdgeInsets.all(16),
+                                decoration: BoxDecoration(
+                                  color: Colors.white,
+                                  borderRadius: BorderRadius.circular(16),
+                                  border: Border.all(color: Colors.grey[300]!),
+                                ),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    const Text('Fecha de pago', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                                    const SizedBox(height: 4),
+                                    Row(
+                                      children: [
+                                        const Icon(Icons.calendar_today, size: 16, color: Themes.primary),
+                                        const SizedBox(width: 8),
+                                        Expanded(
+                                          child: Text(
+                                            DateFormat('dd MMM yyyy').format(fechaPago), 
+                                            style: const TextStyle(fontWeight: FontWeight.bold),
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            ),
                           ),
-                          child:
-                              Text(DateFormat('dd/MM/yyyy').format(fechaPago)),
+                          const SizedBox(width: 12),
+                          Expanded(
+                            child: DropdownButtonFormField<String>(
+                              isExpanded: true,
+                              value: _quincena,
+                              items: _quincenas.map((item) => DropdownMenuItem(value: item, child: Text(item, style: const TextStyle(fontSize: 14)))).toList(),
+                              onChanged: (val) => setState(() => _quincena = val),
+                              decoration: InputDecoration(
+                                labelText: 'Periodo',
+                                filled: true,
+                                fillColor: Colors.white,
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey[300]!)),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey[300]!)),
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                      const SizedBox(height: 16),
+
+                      // ESTADO
+                      DropdownButtonFormField<String>(
+                        value: _estado,
+                        items: _estados.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
+                        onChanged: (val) => setState(() => _estado = val),
+                        decoration: InputDecoration(
+                          labelText: 'Estado del pago',
+                          filled: true,
+                          fillColor: Colors.white,
+                          prefixIcon: Icon(_estado == 'Cancelado' ? Icons.check_circle : Icons.pending_actions, color: _estado == 'Cancelado' ? Themes.green : Colors.orange),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey[300]!)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey[300]!)),
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 20),
-                    SizedBox(
-                      width: double.infinity,
-                      child: ElevatedButton(
-                        onPressed: _guardarEgreso,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Themes.primary,
-                          padding: const EdgeInsets.symmetric(
-                              vertical: 16, horizontal: 20),
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12)),
-                          elevation: 4,
-                        ),
-                        child: const Text(
-                          'Guardar',
-                          style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              color: Colors.white),
-                        ),
-                      ),
-                    )
-                  ],
+                      const SizedBox(height: 16),
+
+                      // DESCRIPCIÓN
+                      buildTextField(_descripcionController, 'Nota adicional (Opcional)', Icons.description, isMultiline: true),
+                      const SizedBox(height: 40),
+                    ],
+                  ),
                 ),
               ),
             ),
-          ),
+            
+            // BOTÓN GUARDAR (Sticky al fondo)
+            Container(
+              padding: const EdgeInsets.all(16.0),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -5))],
+              ),
+              child: SafeArea(
+                child: SizedBox(
+                  width: double.infinity,
+                  height: 56,
+                  child: ElevatedButton(
+                    onPressed: _isLoading ? null : _guardarEgreso,
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Themes.primary,
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+                      elevation: 0,
+                    ),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(color: Colors.white)
+                        : Text(
+                            isEditing ? 'Actualizar Gasto' : 'Registrar Gasto',
+                            style: const TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: Colors.white),
+                          ),
+                  ),
+                ),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget buildDropdown<T>(
-      List<T> items, T? value, String label, Function(T?) onChanged) {
-    T? validValue = value;
-    if (value != null && !items.contains(value)) {
-      validValue = null;
-    }
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: DropdownButtonFormField<T>(
-        initialValue: validValue,
-        items: items
-            .map((item) => DropdownMenuItem<T>(
-                  value: item,
-                  child: Text(item.toString()),
-                ))
-            .toList(),
-        onChanged: onChanged,
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-        ),
-        validator: (val) => val == null ? 'Seleccione $label' : null,
+  Widget buildTextField(TextEditingController controller, String hint, IconData icon, {bool isMultiline = false}) {
+    return TextFormField(
+      controller: controller,
+      maxLines: isMultiline ? 3 : 1,
+      minLines: isMultiline ? 3 : 1,
+      decoration: InputDecoration(
+        hintText: hint,
+        filled: true,
+        fillColor: Colors.white,
+        prefixIcon: isMultiline ? null : Icon(icon, color: Colors.grey),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey[300]!)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey[300]!)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Themes.primary, width: 2)),
       ),
-    );
-  }
-
-  Widget buildTextField(
-    TextEditingController controller,
-    String label, {
-    bool isNumber = false,
-    bool isMultiline = false,
-    List<TextInputFormatter>? inputFormatters,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 8),
-      child: TextFormField(
-        controller: controller,
-        decoration: InputDecoration(
-          labelText: label,
-          border: OutlineInputBorder(borderRadius: BorderRadius.circular(12)),
-          alignLabelWithHint: isMultiline,
-        ),
-        keyboardType: isNumber
-            ? TextInputType.number
-            : (isMultiline ? TextInputType.multiline : TextInputType.text),
-        inputFormatters: inputFormatters,
-        minLines: isMultiline ? 3 : 1,
-        maxLines: isMultiline ? null : 1,
-        validator: (value) {
-          if (value == null || value.isEmpty) return 'Ingrese $label';
-          return null;
-        },
-      ),
+      validator: isMultiline ? null : (value) => value == null || value.isEmpty ? 'Requerido' : null,
     );
   }
 }

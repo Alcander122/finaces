@@ -1,24 +1,48 @@
-/// Mensajes de error y contenido estático
+/// Mensajes de error y contenido estático (Única fuente de verdad para la UI)
 abstract class ErrorStrings {
-  // Errores de autenticación
-  static const invalidCredentials = "Credenciales incorrectas";
-  static const userNotFound = "Usuario no encontrado";
-  static const wrongPassword = "Contraseña incorrecta";
-  static const invalidEmail = "Correo inválido";
-  static const emailInUse = "El correo ya está registrado";
-  static const weakPassword = "Contraseña muy débil";
+  // --- 1. ERRORES DE AUTENTICACIÓN ---
+  static const invalidCredentials = "Las credenciales son incorrectas.";
+  static const userNotFound = "No encontramos un usuario con este correo.";
+  static const wrongPassword = "La contraseña es incorrecta.";
+  static const invalidEmail = "El formato del correo es inválido.";
+  static const emailInUse = "Este correo ya está registrado.";
+  static const weakPassword = "La contraseña es muy débil.";
+  static const authCancelled = "Proceso de autenticación cancelado.";
+  static const authMethodDisabled = "Este método de ingreso no está habilitado.";
+  static const passwordResetTooManyRequests =
+      "Demasiados intentos. Intenta más tarde.";
 
-  // Errores de red
-  static const networkError = "Error de conexión";
+  // --- 2. ERRORES DE RED Y SISTEMA ---
+  static const networkError = "Revisa tu conexión a internet e intenta de nuevo.";
+  static const unexpectedError = "Ocurrió un error inesperado. Estamos trabajando en ello.";
 
-  // Generales
-  static const unexpectedError = "Error inesperado";
-  static const requiredField = "Campo obligatorio";
-  static const invalidFormat = "Formato inválido";
-  static const passwordMismatch = "Contraseñas no coinciden";
+  // --- 3. VALIDACIONES DE FORMULARIOS (NUEVO) ---
+  static const requiredField = "Este campo es obligatorio.";
+  static const invalidFormat = "Formato inválido.";
+  static const invalidAmount = "El monto debe ser mayor a cero.";
+  static const maxCharacters = "Has superado el límite de caracteres.";
+  static const passwordMismatch = "Las contraseñas no coinciden.";
 
-  // Términos y privacidad
-  static const termsNotAccepted = "Debe aceptar los términos";
+  // --- 4. BASE DE DATOS Y EGRESOS (NUEVO) ---
+  static const saveFailed = "No pudimos guardar tu gasto. Inténtalo de nuevo.";
+  static const deleteFailed = "No se pudo eliminar. Revisa tu conexión.";
+  static const loadFailed = "Problemas al cargar tus datos. Desliza para actualizar.";
+  static const dataNotFound = "Este registro ya no existe o fue eliminado.";
+  static const permissionDenied = "No tienes permisos para realizar esta acción.";
+
+  // --- 5. ESTADOS VACÍOS Y UX FEEDBACK (NUEVO) ---
+  static const noEgresosFound = "No tienes gastos registrados en este periodo.";
+  static const offlineSaved = "Sin conexión. Guardado localmente.";
+
+  // --- 6. ÉXITO ---
+  static const registrationSuccess = "Registro completado con éxito.";
+  static const profileUpdateSuccess = "Perfil actualizado correctamente.";
+  static const passwordResetSuccess =
+      "Hemos enviado un enlace a tu correo (revisa la carpeta de spam).";
+  static const passwordResetFailed = "Error al enviar el enlace de recuperación.";
+
+  // --- 7. LEGALES Y TÉRMINOS ---
+  static const termsNotAccepted = "Debes aceptar los términos y condiciones.";
   static const termsAndConditionsTitle = "Términos y Condiciones";
   static const privacyPolicyTitle = "Política de Privacidad";
 
@@ -39,17 +63,4 @@ abstract class ErrorStrings {
       "• Implementamos medidas técnicas y organizativas apropiadas para garantizar un nivel de seguridad adecuado al riesgo, incluyendo cifrado AES-256 para datos en tránsito y reposo, según lo establecido en el Artículo 10 de la Ley 1581 de 2012.\n"
       "• Sus datos solo serán utilizados para los fines establecidos en esta política y nunca para fines comerciales no autorizados.\n"
       "• Usted tiene derecho a presentar quejas o reclamos ante la Superintendencia de Industria y Comercio si considera que se ha vulnerado su derecho a la protección de datos, conforme al Artículo 14 de la Ley 1581 de 2012.";
-
-  // Mensajes de éxito
-  static const registrationSuccess = "Registro exitoso";
-  static const profileUpdateSuccess =
-      "Perfil actualizado exitosamente"; // ← NUEVO
-
-  // 🔑 NUEVO: Mensajes específicos para restablecimiento de contraseña
-  static const passwordResetSuccess =
-      "Hemos enviado un enlace para restablecer tu contraseña a tu correo electrónico. Si no lo encuentras en tu bandeja de entrada, revisa la carpeta de spam o correo no deseado.";
-  static const passwordResetFailed =
-      "Error al enviar el enlace de restablecimiento";
-  static const passwordResetTooManyRequests =
-      "Demasiados intentos. Intenta más tarde";
 }

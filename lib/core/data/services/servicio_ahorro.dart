@@ -6,7 +6,7 @@ import '../models/objetivo_ahorro.dart';
 /// las metas de ahorro en Firestore.
 class AhorroService {
   final FirebaseFirestore _firestore = FirebaseFirestore.instance;
-  final User? _usuario = FirebaseAuth.instance.currentUser;
+  User? get _usuario => FirebaseAuth.instance.currentUser;
 
   /// 🔹 Obtiene todas las metas de ahorro en tiempo real (Stream).
   /// Se escucha la colección y se transforma en una lista de ObjetivoAhorro.
