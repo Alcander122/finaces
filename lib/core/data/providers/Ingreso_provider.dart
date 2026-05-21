@@ -15,6 +15,16 @@ final ingresosServiceProvider = Provider<IngresosService>((ref) {
   return IngresosService();
 });
 
+/// STREAMS DE LECTURA (UI)
+final ingresosProvider = StreamProvider.autoDispose<List<Ingreso>>((ref) {
+  final authState = ref.watch(authProvider);
+
+  if (authState.user == null) return Stream.value([]);
+
+  final service = ref.watch(ingresosServiceProvider);
+  return service.streamIngresos(authState.user!.uid);
+});
+
 /// Proveedor de ingresos filtrados (total)
 ///
 /// ✅ Ajustado para que el filtro "Trimestral" use el TRIMESTRE MÓVIL.

@@ -59,8 +59,10 @@ class HomeScreen extends ConsumerWidget {
                     useLogoAsTitle: !showTitle,
                     title: showTitle ? 'BillNance' : null,
                     showProfileIcon: true,
-                    onProfilePressed: () =>
-                        Navigator.pushNamed(context, '/profile'),
+                    onProfilePressed: () {
+                      ScaffoldMessenger.of(context).clearSnackBars();
+                      Navigator.pushNamed(context, '/profile');
+                    },
                   );
                 },
               ),
@@ -148,7 +150,10 @@ class HomeScreen extends ConsumerWidget {
         : Row(
             children: [
               GestureDetector(
-                onTap: () => Navigator.pushNamed(context, '/profile'),
+                onTap: () {
+                  ScaffoldMessenger.of(context).clearSnackBars();
+                  Navigator.pushNamed(context, '/profile');
+                },
                 child: const CircleAvatar(
                   radius: 30,
                   backgroundColor: Colors.white,
@@ -285,8 +290,11 @@ class HomeScreen extends ConsumerWidget {
     return Column(
       children: [
         InkWell(
-          onTap: () => Navigator.push(context,
-              MaterialPageRoute(builder: (_) => ProviderScope(child: screen))),
+          onTap: () {
+            ScaffoldMessenger.of(context).clearSnackBars();
+            Navigator.push(context,
+                MaterialPageRoute(builder: (_) => ProviderScope(child: screen)));
+          },
           child: CircleAvatar(
               radius: 28,
               backgroundColor: color.withOpacity(0.2),
@@ -342,10 +350,13 @@ class HomeScreen extends ConsumerWidget {
             itemBuilder: (context, index) {
               final item = tips[index];
               return GestureDetector(
-                onTap: () => Navigator.push(
-                    context,
-                    MaterialPageRoute(
-                        builder: (_) => ProviderScope(child: item['screen']))),
+                onTap: () {
+                  ScaffoldMessenger.of(context).clearSnackBars();
+                  Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                          builder: (_) => ProviderScope(child: item['screen'])));
+                },
                 child: Container(
                   width: 180,
                   margin: const EdgeInsets.only(right: 16),

@@ -53,6 +53,10 @@ class EgresoChart extends StatelessWidget {
         child: SizedBox(
           height: 320,
           child: SfCircularChart(
+            onTooltipRender: (TooltipArgs args) {
+              final data = datosGrafico[args.pointIndex!.toInt()];
+              args.text = '${data.categoria} : ${UIHelpers.formatCurrency(data.valor)}';
+            },
             annotations: <CircularChartAnnotation>[
               CircularChartAnnotation(
                 widget: Column(
@@ -76,7 +80,6 @@ class EgresoChart extends StatelessWidget {
             ),
             tooltipBehavior: TooltipBehavior(
               enable: true,
-              format: 'point.x : point.y',
               textStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
             ),
             series: <CircularSeries>[
@@ -84,6 +87,7 @@ class EgresoChart extends StatelessWidget {
                 dataSource: datosGrafico,
                 xValueMapper: (ChartData data, _) => data.categoria,
                 yValueMapper: (ChartData data, _) => data.valor,
+                dataLabelMapper: (ChartData data, _) => UIHelpers.formatCurrency(data.valor),
                 pointColorMapper: (ChartData data, _) => data.color,
                 innerRadius: '65%',
                 radius: '100%',

@@ -8,13 +8,16 @@ abstract class ErrorStrings {
   static const emailInUse = "Este correo ya está registrado.";
   static const weakPassword = "La contraseña es muy débil.";
   static const authCancelled = "Proceso de autenticación cancelado.";
-  static const authMethodDisabled = "Este método de ingreso no está habilitado.";
+  static const authMethodDisabled =
+      "Este método de ingreso no está habilitado.";
   static const passwordResetTooManyRequests =
       "Demasiados intentos. Intenta más tarde.";
 
   // --- 2. ERRORES DE RED Y SISTEMA ---
-  static const networkError = "Revisa tu conexión a internet e intenta de nuevo.";
-  static const unexpectedError = "Ocurrió un error inesperado. Estamos trabajando en ello.";
+  static const networkError =
+      "Revisa tu conexión a internet e intenta de nuevo.";
+  static const unexpectedError =
+      "Ocurrió un error inesperado. Estamos trabajando en ello.";
 
   // --- 3. VALIDACIONES DE FORMULARIOS (NUEVO) ---
   static const requiredField = "Este campo es obligatorio.";
@@ -25,13 +28,19 @@ abstract class ErrorStrings {
 
   // --- 4. BASE DE DATOS Y EGRESOS (NUEVO) ---
   static const saveFailed = "No pudimos guardar tu gasto. Inténtalo de nuevo.";
+  static const saveIngresoFailed =
+      "No pudimos guardar tu ingreso. Inténtalo de nuevo.";
   static const deleteFailed = "No se pudo eliminar. Revisa tu conexión.";
-  static const loadFailed = "Problemas al cargar tus datos. Desliza para actualizar.";
+  static const loadFailed =
+      "Problemas al cargar tus datos. Desliza para actualizar.";
   static const dataNotFound = "Este registro ya no existe o fue eliminado.";
-  static const permissionDenied = "No tienes permisos para realizar esta acción.";
+  static const permissionDenied =
+      "No tienes permisos para realizar esta acción.";
 
   // --- 5. ESTADOS VACÍOS Y UX FEEDBACK (NUEVO) ---
   static const noEgresosFound = "No tienes gastos registrados en este periodo.";
+  static const noIngresosFound =
+      "No tienes ingresos registrados en este periodo.";
   static const offlineSaved = "Sin conexión. Guardado localmente.";
 
   // --- 6. ÉXITO ---
@@ -39,7 +48,8 @@ abstract class ErrorStrings {
   static const profileUpdateSuccess = "Perfil actualizado correctamente.";
   static const passwordResetSuccess =
       "Hemos enviado un enlace a tu correo (revisa la carpeta de spam).";
-  static const passwordResetFailed = "Error al enviar el enlace de recuperación.";
+  static const passwordResetFailed =
+      "Error al enviar el enlace de recuperación.";
 
   // --- 7. LEGALES Y TÉRMINOS ---
   static const termsNotAccepted = "Debes aceptar los términos y condiciones.";

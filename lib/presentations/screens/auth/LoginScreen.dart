@@ -92,9 +92,11 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
         );
 
         if (tutorialSeen) {
-          Navigator.pushReplacementNamed(context, AppRoutes.home);
+          Navigator.pushNamedAndRemoveUntil(
+              context, AppRoutes.home, (route) => false);
         } else {
-          Navigator.pushReplacementNamed(context, AppRoutes.tutorial);
+          Navigator.pushNamedAndRemoveUntil(
+              context, AppRoutes.tutorial, (route) => false);
         }
       }
     } catch (e) {
@@ -112,9 +114,11 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
       if (success && mounted) {
         final tutorialSeen = await ref.read(tutorialProvider.future);
         if (tutorialSeen) {
-          Navigator.pushReplacementNamed(context, AppRoutes.home);
+          Navigator.pushNamedAndRemoveUntil(
+              context, AppRoutes.home, (route) => false);
         } else {
-          Navigator.pushReplacementNamed(context, AppRoutes.tutorial);
+          Navigator.pushNamedAndRemoveUntil(
+              context, AppRoutes.tutorial, (route) => false);
         }
       }
     } catch (e) {
@@ -137,9 +141,11 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
       final tutorialSeen = await ref.read(tutorialProvider.future);
       if (mounted) {
         if (tutorialSeen) {
-          Navigator.pushReplacementNamed(context, AppRoutes.home);
+          Navigator.pushNamedAndRemoveUntil(
+              context, AppRoutes.home, (route) => false);
         } else {
-          Navigator.pushReplacementNamed(context, AppRoutes.tutorial);
+          Navigator.pushNamedAndRemoveUntil(
+              context, AppRoutes.tutorial, (route) => false);
         }
       }
     } catch (e) {

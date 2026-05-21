@@ -1,7 +1,9 @@
+import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:finances/core/data/models/ingreso.model.dart';
-import 'package:intl/intl.dart';
+import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/utils/category_color_generator.dart';
 
 class IncomeChart extends StatelessWidget {
   final List<Ingreso> ingresos;
@@ -10,62 +12,96 @@ class IncomeChart extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    if (ingresos.isEmpty) return const SizedBox.shrink();
+
     // Calcular los totales por categoría
-    final Map<String, int> categoriaTotales = {};
+    Map<String, double> categoriaTotales = {};
+    double totalingresos = 0;
+
     for (var ingreso in ingresos) {
-      categoriaTotales.update(
-        ingreso.categoria,
-        (value) => value + ingreso.valor,
-        ifAbsent: () => ingreso.valor,
-      );
+      final double valor = ingreso.valor.toDouble();
+      if (categoriaTotales.containsKey(ingreso.categoria)) {
+        categoriaTotales[ingreso.categoria] = categoriaTotales[ingreso.categoria]! + valor;
+      } else {
+        categoriaTotales[ingreso.categoria] = valor;
+      }
+      totalingresos += valor;
     }
 
-    // Colores para las categorías
-    final colores = [
-      const Color.fromRGBO(255, 99, 132, 1), // Rojo
-      const Color.fromRGBO(54, 162, 235, 1), // Azul
-      const Color.fromRGBO(255, 206, 86, 1), // Amarillo
-      const Color.fromRGBO(75, 192, 192, 1), // Verde
-      const Color.fromRGBO(153, 102, 255, 1), // Morado
-    ];
+    // Preparar los datos para el gráfico
+    List<ChartData> datosGrafico = [];
 
-    // Construir los datos para el gráfico
-    final List<ChartData> datosGrafico = [];
     for (var entry in categoriaTotales.entries) {
       datosGrafico.add(
         ChartData(
           categoria: entry.key,
-          valor: entry.value.toDouble(),
-          color: colores[datosGrafico.length % colores.length],
+          valor: entry.value,
+          color: CategoryColorGenerator.getColor(entry.key),
         ),
       );
     }
 
-    // Formato de moneda
-    final formatoMoneda = NumberFormat('#,##0', 'es_CO');
+    // Ordenar de mayor a menor para mejor visualización
+    datosGrafico.sort((a, b) => b.valor.compareTo(a.valor));
 
-    return SizedBox(
-      height: 300,
-      child: SfCircularChart(
-        title: ChartTitle(
-          text: 'Ingresos Categorizados',
-          textStyle: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+    return Card(
+      elevation: 2,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
+      color: Themes.primary,
+      child: Padding(
+        padding: const EdgeInsets.all(16.0),
+        child: SizedBox(
+          height: 320,
+          child: SfCircularChart(
+            onTooltipRender: (TooltipArgs args) {
+              final data = datosGrafico[args.pointIndex!.toInt()];
+              args.text = '${data.categoria} : ${UIHelpers.formatCurrency(data.valor)}';
+            },
+            annotations: <CircularChartAnnotation>[
+              CircularChartAnnotation(
+                widget: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    const Text('Total Ingresos', style: TextStyle(color: Colors.white70, fontSize: 12)),
+                    const SizedBox(height: 4),
+                    Text(
+                      UIHelpers.formatCurrency(totalingresos),
+                      style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+                    ),
+                  ],
+                ),
+              )
+            ],
+            legend: Legend(
+              isVisible: true,
+              position: LegendPosition.bottom,
+              overflowMode: LegendItemOverflowMode.wrap,
+              textStyle: const TextStyle(color: Colors.white, fontSize: 13),
+            ),
+            tooltipBehavior: TooltipBehavior(
+              enable: true,
+              textStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
+            ),
+            series: <CircularSeries>[
+              DoughnutSeries<ChartData, String>(
+                dataSource: datosGrafico,
+                xValueMapper: (ChartData data, _) => data.categoria,
+                yValueMapper: (ChartData data, _) => data.valor,
+                dataLabelMapper: (ChartData data, _) => UIHelpers.formatCurrency(data.valor),
+                pointColorMapper: (ChartData data, _) => data.color,
+                innerRadius: '65%',
+                radius: '100%',
+                explode: true,
+                explodeGesture: ActivationMode.singleTap,
+                explodeOffset: '5%',
+                enableTooltip: true,
+                dataLabelSettings: const DataLabelSettings(
+                  isVisible: false, // Hide labels inside the donut for a cleaner look, rely on tooltip & legend
+                ),
+              )
+            ],
+          ),
         ),
-        legend: Legend(
-          isVisible: true,
-          position: LegendPosition.bottom,
-        ),
-        series: <CircularSeries>[
-          PieSeries<ChartData, String>(
-            dataSource: datosGrafico,
-            xValueMapper: (ChartData data, _) => data.categoria,
-            yValueMapper: (ChartData data, _) => data.valor,
-            pointColorMapper: (ChartData data, _) => data.color,
-            dataLabelMapper: (ChartData data, _) =>
-                '\$ ${formatoMoneda.format(data.valor)}',
-            dataLabelSettings: const DataLabelSettings(isVisible: true),
-          )
-        ],
       ),
     );
   }
@@ -82,3 +118,4 @@ class ChartData {
     required this.color,
   });
 }
+

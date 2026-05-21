@@ -104,7 +104,8 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
     }
 
     if (!mounted) return;
-    Navigator.pushReplacementNamed(context, AppRoutes.home);
+    Navigator.pushNamedAndRemoveUntil(
+        context, AppRoutes.home, (route) => false);
   }
 
   /// Finaliza el tutorial → marca como visto **solo si era primera vez**
@@ -116,7 +117,8 @@ class _TutorialScreenState extends ConsumerState<TutorialScreen> {
     }
 
     if (!mounted) return;
-    Navigator.pushReplacementNamed(context, AppRoutes.home);
+    Navigator.pushNamedAndRemoveUntil(
+        context, AppRoutes.home, (route) => false);
   }
 
   @override
