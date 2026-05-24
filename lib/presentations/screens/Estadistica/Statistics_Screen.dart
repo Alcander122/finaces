@@ -10,7 +10,8 @@ import 'package:finances/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/presentations/theme/themes.dart';
-import 'package:intl/intl.dart';
+import 'package:finances/utils/ui_helpers.dart';
+import 'package:finances/core/errors/error_strings.dart';
 // SOLUCIÓN: Usamos un prefijo para evitar el conflicto de nombres con DateUtils
 import 'package:finances/core/data/utils/date_utils.dart' as MyDateUtils;
 
@@ -96,33 +97,30 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     // Obtenemos el tipo de filtro actual para mostrar el estado seleccionado
     final currentFilter = ref.watch(filterProvider).type;
 
-    return SizedBox(
-      height: 50,
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [
-            _buildFilterChip(
-              label: 'Mensual',
-              isSelected: currentFilter == FilterType.monthly,
-              onTap: () => _changeFilter(FilterType.monthly),
-              color: Colors.purple,
-            ),
-            _buildFilterChip(
-              label: 'Anual',
-              isSelected: currentFilter == FilterType.annual,
-              onTap: () => _changeFilter(FilterType.annual),
-              color: Colors.blue,
-            ),
-            _buildFilterChip(
-              label: 'Trimestral',
-              isSelected: currentFilter == FilterType.quarterly,
-              onTap: () => _changeFilter(FilterType.quarterly),
-              color: Colors.green,
-            ),
-            _buildCustomFilterChip(currentFilter),
-          ],
-        ),
+    return SingleChildScrollView(
+      scrollDirection: Axis.horizontal,
+      child: Row(
+        children: [
+          _buildFilterChip(
+            label: 'Mensual',
+            isSelected: currentFilter == FilterType.monthly,
+            onTap: () => _changeFilter(FilterType.monthly),
+            color: Colors.purple,
+          ),
+          _buildFilterChip(
+            label: 'Anual',
+            isSelected: currentFilter == FilterType.annual,
+            onTap: () => _changeFilter(FilterType.annual),
+            color: Colors.blue,
+          ),
+          _buildFilterChip(
+            label: 'Trimestral',
+            isSelected: currentFilter == FilterType.quarterly,
+            onTap: () => _changeFilter(FilterType.quarterly),
+            color: Colors.green,
+          ),
+          _buildCustomFilterChip(currentFilter),
+        ],
       ),
     );
   }
@@ -183,37 +181,78 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     );
   }
 
-  /// Construye las tarjetas con datos de Ingresos, Gastos y Balance
+  /// Construye las tarjetas con datos de Ingresos, Gastos y Balance de forma Responsive
   Widget _buildFinancialCards(
       AsyncValue<double> ingresos, AsyncValue<double> gastos) {
-    return SizedBox(
-      height: 120,
-      child: Row(
-        children: [
-          Expanded(
-            child: _buildFinanceCard(
-              title: 'Ingresos',
-              value: ingresos,
-              color: Colors.green,
-              icon: Icons.trending_up,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // En pantallas muy pequeñas, apilamos las tarjetas verticalmente o en wrap
+        if (constraints.maxWidth < 400) {
+          return Column(
+            children: [
+              IntrinsicHeight(
+                child: Row(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    Expanded(
+                      child: _buildFinanceCard(
+                        title: 'Ingresos',
+                        value: ingresos,
+                        color: Colors.green,
+                        icon: Icons.trending_up,
+                      ),
+                    ),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: _buildFinanceCard(
+                        title: 'Gastos',
+                        value: gastos,
+                        color: Colors.red,
+                        icon: Icons.trending_down,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 8),
+              SizedBox(
+                width: double.infinity,
+                child: _buildBalanceCard(),
+              ),
+            ],
+          );
+        } else {
+          // Diseño original en Row para tablets y desktop
+          return IntrinsicHeight(
+            child: Row(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                Expanded(
+                  child: _buildFinanceCard(
+                    title: 'Ingresos',
+                    value: ingresos,
+                    color: Colors.green,
+                    icon: Icons.trending_up,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildFinanceCard(
+                    title: 'Gastos',
+                    value: gastos,
+                    color: Colors.red,
+                    icon: Icons.trending_down,
+                  ),
+                ),
+                const SizedBox(width: 8),
+                Expanded(
+                  child: _buildBalanceCard(),
+                ),
+              ],
             ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child: _buildFinanceCard(
-              title: 'Gastos',
-              value: gastos,
-              color: Colors.red,
-              icon: Icons.trending_down,
-            ),
-          ),
-          const SizedBox(width: 8),
-          Expanded(
-            child:
-                _buildBalanceCard(), // Asegúrate de que este método no use width.
-          ),
-        ],
-      ),
+          );
+        }
+      },
     );
   }
 
@@ -228,12 +267,18 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
       elevation: 4,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
       child: Padding(
-        padding: const EdgeInsets.all(12),
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
         child: value.when(
           // CORRECCIÓN: Especificamos explícitamente los parámetros nombrados
           data: (data) => _buildCardContent(title, icon, color, data),
           loading: () => const Center(child: CircularProgressIndicator()),
-          error: (error, stackTrace) => const Text("Error al cargar datos"),
+          error: (error, stackTrace) => const Center(
+            child: Text(
+              ErrorStrings.loadFailed,
+              textAlign: TextAlign.center,
+              style: TextStyle(fontSize: 10, color: Colors.red),
+            ),
+          ),
         ),
       ),
     );
@@ -245,6 +290,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.center, // Centrado horizontal
       mainAxisAlignment: MainAxisAlignment.center, // Centrado vertical
+      mainAxisSize: MainAxisSize.min, // Se ajusta al contenido
       children: [
         Icon(icon, color: color),
         const SizedBox(height: 8),
@@ -257,18 +303,20 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
           ),
           overflow: TextOverflow.ellipsis,
           softWrap: false,
-          textAlign:
-              TextAlign.center, // Asegura que el texto también esté centrado
+          textAlign: TextAlign.center,
         ),
         const SizedBox(height: 8),
-        Text(
-          '\$${NumberFormat('#,##0', 'es_CO').format(amount)}',
-          style: TextStyle(
-            fontSize: 12,
-            fontWeight: FontWeight.w600,
-            color: color,
+        FittedBox(
+          fit: BoxFit.scaleDown,
+          child: Text(
+            UIHelpers.formatCurrency(amount),
+            style: TextStyle(
+              fontSize: 12,
+              fontWeight: FontWeight.w600,
+              color: color,
+            ),
+            textAlign: TextAlign.center,
           ),
-          textAlign: TextAlign.center,
         ),
       ],
     );
@@ -276,25 +324,34 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
 
   /// Construye la tarjeta del balance general
   Widget _buildBalanceCard() {
-    return SizedBox(
-      child: Card(
-        elevation: 4,
-        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        child: Padding(
-          padding: const EdgeInsets.all(12),
-          child: ref.watch(filteredIngresosProvider).when(
-                // CORRECCIÓN: Especificamos explícitamente los parámetros nombrados
-                data: (ing) => ref.watch(filteredEgresosProvider).when(
-                      data: (gas) => _buildBalanceContent(ing - gas),
-                      loading: () =>
-                          const Center(child: CircularProgressIndicator()),
-                      error: (error, stackTrace) =>
-                          const Text("Error en gastos"),
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+      child: Padding(
+        padding: const EdgeInsets.symmetric(vertical: 16, horizontal: 8),
+        child: ref.watch(filteredIngresosProvider).when(
+              // CORRECCIÓN: Especificamos explícitamente los parámetros nombrados
+              data: (ing) => ref.watch(filteredEgresosProvider).when(
+                    data: (gas) => _buildBalanceContent(ing - gas),
+                    loading: () =>
+                        const Center(child: CircularProgressIndicator()),
+                    error: (error, stackTrace) => const Center(
+                      child: Text(
+                        ErrorStrings.loadFailed,
+                        textAlign: TextAlign.center,
+                        style: TextStyle(fontSize: 10, color: Colors.red),
+                      ),
                     ),
-                loading: () => const Center(child: CircularProgressIndicator()),
-                error: (error, stackTrace) => const Text("Error en ingresos"),
+                  ),
+              loading: () => const Center(child: CircularProgressIndicator()),
+              error: (error, stackTrace) => const Center(
+                child: Text(
+                  ErrorStrings.loadFailed,
+                  textAlign: TextAlign.center,
+                  style: TextStyle(fontSize: 10, color: Colors.red),
+                ),
               ),
-        ),
+            ),
       ),
     );
   }
@@ -303,32 +360,35 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
   Widget _buildBalanceContent(double balance) {
     final color = balance >= 0 ? Colors.blue : Colors.red;
     return Column(
-      mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+      mainAxisAlignment: MainAxisAlignment.center,
+      mainAxisSize: MainAxisSize.min, // Se ajusta al contenido
       children: [
-        Flexible(
-          child: Container(
-            padding: const EdgeInsets.all(8),
-            decoration: BoxDecoration(
-              color: color.withAlpha(30),
-              shape: BoxShape.circle,
-            ),
-            child: Icon(
-              balance >= 0 ? Icons.account_balance_wallet : Icons.warning,
-              color: color,
-              size: 20,
-            ),
+        Container(
+          padding: const EdgeInsets.all(8),
+          decoration: BoxDecoration(
+            color: color.withAlpha(30),
+            shape: BoxShape.circle,
+          ),
+          child: Icon(
+            balance >= 0 ? Icons.account_balance_wallet : Icons.warning,
+            color: color,
+            size: 20,
           ),
         ),
-        Flexible(
-          child: const Text(
-            'Balance',
-            style: TextStyle(fontSize: 12),
-            textAlign: TextAlign.center,
+        const SizedBox(height: 8),
+        const Text(
+          'Balance',
+          style: TextStyle(
+            fontSize: 14,
+            fontWeight: FontWeight.bold,
           ),
+          textAlign: TextAlign.center,
         ),
-        Flexible(
+        const SizedBox(height: 8),
+        FittedBox(
+          fit: BoxFit.scaleDown,
           child: Text(
-            formatCurrency(balance),
+            UIHelpers.formatCurrency(balance),
             style: TextStyle(
               fontSize: 14,
               fontWeight: FontWeight.bold,
@@ -397,6 +457,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
       initialDateRange: DateTimeRange(start: initialDate, end: DateTime.now()),
       firstDate: firstDate,
       lastDate: lastDate,
+      locale: const Locale('es', 'CO'),
     );
 
     if (picked != null) {
@@ -476,12 +537,6 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
           startDate: startDate,
           endDate: endDate,
         ));
-  }
-
-  /// Formatea un número a formato de moneda local (COP)
-  String formatCurrency(double value) {
-    final formatter = NumberFormat.decimalPattern('es_CO');
-    return '\$${formatter.format(value)}';
   }
 
   /// Título principal de la sección

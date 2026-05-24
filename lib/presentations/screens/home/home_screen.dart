@@ -293,7 +293,7 @@ class HomeScreen extends ConsumerWidget {
           onTap: () {
             ScaffoldMessenger.of(context).clearSnackBars();
             Navigator.push(context,
-                MaterialPageRoute(builder: (_) => ProviderScope(child: screen)));
+                MaterialPageRoute(builder: (_) => screen));
           },
           child: CircleAvatar(
               radius: 28,
@@ -355,7 +355,7 @@ class HomeScreen extends ConsumerWidget {
                   Navigator.push(
                       context,
                       MaterialPageRoute(
-                          builder: (_) => ProviderScope(child: item['screen'])));
+                          builder: (_) => item['screen']));
                 },
                 child: Container(
                   width: 180,

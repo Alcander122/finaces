@@ -103,24 +103,17 @@ final totalEgresoMesActualProvider = StreamProvider.autoDispose<double>((ref) {
 });
 
 final filteredEgresosProvider = StreamProvider.autoDispose<double>((ref) {
-  final authState = ref.watch(authProvider);
-  final filter = ref.watch(filterProvider);
-
-  if (authState.user == null) return Stream.value(0.0);
-
-  switch (filter.type) {
-    case FilterType.monthly:
-      return EgresoService().streamTotalGastosMesActual(authState.user!.uid);
-    case FilterType.quarterly:
-    case FilterType.annual:
-      return EgresoService().streamTotalGastos(authState.user!.uid);
-    case FilterType.custom:
-      return EgresoService().streamTotalGastosInRange(
-        authState.user!.uid,
-        filter.startDate!,
-        filter.endDate!,
-      );
-  }
+  // Observa el provider que ya trae la lista filtrada de Firebase
+  final listAsync = ref.watch(egresosFiltradosProvider);
+  
+  return listAsync.when(
+    data: (egresos) {
+      final total = egresos.fold(0.0, (sum, item) => sum + item.valor.toDouble());
+      return Stream.value(total);
+    },
+    loading: () => const Stream.empty(),
+    error: (e, s) => Stream.error(e, s),
+  );
 });
 
 final egresosFiltradosProvider =
@@ -130,6 +123,7 @@ final egresosFiltradosProvider =
 
   if (authState.user == null) return Stream.value([]);
 
+  // Usamos un try/catch o el manejador de errores de nuestro Stream
   return ref.watch(egresoServiceProvider).obtenerEgresosFiltrados(
         authState.user!.uid,
         filter.startDate,

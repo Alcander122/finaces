@@ -35,55 +35,15 @@ final ingresosProvider = StreamProvider.autoDispose<List<Ingreso>>((ref) {
 /// - Más intuitivo para el usuario final.
 /// - Evita mostrar meses incompletos que distorsionen los datos.
 final filteredIngresosProvider = StreamProvider.autoDispose<double>((ref) {
-  final authState = ref.watch(authProvider);
-  final filter = ref.watch(filterProvider);
-  if (authState.user == null) return Stream.value(0.0);
-
-  final service = ref.watch(ingresosServiceProvider);
-  final now = DateTime.now();
-
-  switch (filter.type) {
-    case FilterType.monthly:
-      // Mes actual
-      final inicioMes = DateUtils.getStartOfMonth(now);
-      final finMes = DateUtils.getEndOfMonth(now);
-      return service.streamTotalIngresosInRange(
-        authState.user!.uid,
-        inicioMes,
-        finMes,
-      );
-
-    case FilterType.quarterly:
-      // 🔹 Trimestre móvil: últimos 3 meses completos antes del mes actual
-      final inicioTrimestre = DateUtils.getStartOfRollingQuarter(now);
-      final finTrimestre = DateUtils.getEndOfRollingQuarter(now);
-      return service.streamTotalIngresosInRange(
-        authState.user!.uid,
-        inicioTrimestre,
-        finTrimestre,
-      );
-
-    case FilterType.annual:
-      // Año actual
-      final inicioAnio = DateUtils.getStartOfYear(now);
-      final finAnio = DateUtils.getEndOfYear(now);
-      return service.streamTotalIngresosInRange(
-        authState.user!.uid,
-        inicioAnio,
-        finAnio,
-      );
-
-    case FilterType.custom:
-      // Rango personalizado
-      if (filter.startDate != null && filter.endDate != null) {
-        return service.streamTotalIngresosInRange(
-          authState.user!.uid,
-          filter.startDate!,
-          filter.endDate!,
-        );
-      }
-      return Stream.value(0.0);
-  }
+  final listAsync = ref.watch(ingresosFiltradosProvider);
+  return listAsync.when(
+    data: (ingresos) {
+      final total = ingresos.fold(0.0, (sum, item) => sum + item.valor.toDouble());
+      return Stream.value(total);
+    },
+    loading: () => const Stream.empty(),
+    error: (e, s) => Stream.error(e, s),
+  );
 });
 
 /// Proveedor de ingresos filtrados por rango de fechas (usado por la gráfica)

@@ -1,7 +1,7 @@
 import 'package:finances/core/data/providers/category_summary_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:intl/intl.dart';
+import 'package:finances/utils/ui_helpers.dart';
 
 final selectedTabProvider = StateProvider<bool>((ref) => false);
 
@@ -72,7 +72,7 @@ class CategorySummary extends ConsumerWidget {
               return ListTile(
                 title: Text(category),
                 trailing: Text(
-                  formatCurrency(amount),
+                  UIHelpers.formatCurrency(amount),
                   style: TextStyle(
                     color: isExpenseTab ? Colors.red[700] : Colors.green[700],
                     fontWeight: FontWeight.bold,
@@ -128,10 +128,5 @@ class CategorySummary extends ConsumerWidget {
         ),
       ),
     );
-  }
-
-  String formatCurrency(double value) {
-    final formatter = NumberFormat.decimalPattern('es_CO');
-    return '\$${formatter.format(value)}';
   }
 }

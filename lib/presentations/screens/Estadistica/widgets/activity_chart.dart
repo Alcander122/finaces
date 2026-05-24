@@ -9,6 +9,7 @@ import 'package:finances/core/data/models/ingreso.model.dart';
 import 'package:finances/core/data/models/egreso_model.dart';
 import 'package:finances/core/data/providers/ingreso_provider.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
+import 'package:finances/utils/ui_helpers.dart';
 import 'dart:math';
 import 'package:finances/core/data/utils/date_utils.dart'
     as AppDateUtils; // Usamos prefijo para evitar conflictos
@@ -262,11 +263,7 @@ class ActivityChart extends ConsumerWidget {
   }
 
   String formatCurrency(double value) {
-    return NumberFormat.currency(
-      locale: 'es_CO',
-      symbol: '\$',
-      decimalDigits: 0,
-    ).format(value);
+    return UIHelpers.formatCurrency(value);
   }
 
   Widget _buildTitulo(Filter filtro) {

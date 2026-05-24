@@ -2,6 +2,7 @@ import 'dart:async';
 import 'package:finances/core/data/providers/tutorial_provider.dart';
 import 'package:finances/presentations/screens/Tutorial/TutorialScreen.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/routes/app_routes.dart';
@@ -172,6 +173,16 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
       onPointerDown: (_) => _resetInactivityTimer(),
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
+        localizationsDelegates: const [
+          GlobalMaterialLocalizations.delegate,
+          GlobalWidgetsLocalizations.delegate,
+          GlobalCupertinoLocalizations.delegate,
+        ],
+        supportedLocales: const [
+          Locale('es', 'CO'), // Español de Colombia
+          Locale('es', ''),   // Español genérico
+          Locale('en', ''),   // Inglés
+        ],
         home: const SplashScreen(),
         routes: AppRoutes.getRoutes(authState),
         navigatorKey: _navigatorKey,
@@ -194,6 +205,16 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         if (authState.isAuthenticated && !hasSeen) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
+            localizationsDelegates: const [
+              GlobalMaterialLocalizations.delegate,
+              GlobalWidgetsLocalizations.delegate,
+              GlobalCupertinoLocalizations.delegate,
+            ],
+            supportedLocales: const [
+              Locale('es', 'CO'), // Español de Colombia
+              Locale('es', ''),   // Español genérico
+              Locale('en', ''),   // Inglés
+            ],
             home: const TutorialScreen(),
             routes: AppRoutes.getRoutes(authState),
             navigatorKey: _navigatorKey,
@@ -209,6 +230,16 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   Widget _buildLoadingScreen([String message = 'Inicializando...']) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      localizationsDelegates: const [
+        GlobalMaterialLocalizations.delegate,
+        GlobalWidgetsLocalizations.delegate,
+        GlobalCupertinoLocalizations.delegate,
+      ],
+      supportedLocales: const [
+        Locale('es', 'CO'), // Español de Colombia
+        Locale('es', ''),   // Español genérico
+        Locale('en', ''),   // Inglés
+      ],
       home: Scaffold(
         body: Center(
           child: Column(

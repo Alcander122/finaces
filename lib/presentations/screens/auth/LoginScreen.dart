@@ -86,11 +86,6 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
       final tutorialSeen = await ref.read(tutorialProvider.future);
 
       if (mounted) {
-        UIHelpers.showSuccessSnackBar(
-          context: context,
-          message: 'Inicio de sesión exitoso',
-        );
-
         if (tutorialSeen) {
           Navigator.pushNamedAndRemoveUntil(
               context, AppRoutes.home, (route) => false);
