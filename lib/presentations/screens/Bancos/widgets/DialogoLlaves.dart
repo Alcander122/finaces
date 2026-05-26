@@ -1,27 +1,24 @@
+// 🎨 presentations/screens/Bancos/widgets/DialogoLlaves.dart
+// ============================================================================
+// DIÁLOGO: Formulario para vincular llaves bancarias con prevención de doble submit
+// ============================================================================
+
 import 'package:flutter/material.dart';
 import 'package:finances/core/data/models/bank_model.dart';
+import 'package:finances/presentations/theme/themes.dart';
 
-/// Diálogo para ingresar llaves bancarias con soporte flexible (1-3 llaves)
-///
-/// CARACTERÍSTICAS PRINCIPALES:
-/// 1. Diseño completamente adaptativo que evita desbordamientos en cualquier dispositivo
-/// 2. Soporte flexible para 1, 2 o 3 llaves según necesidad del usuario
-/// 3. Interfaz intuitiva con botones para agregar/eliminar llaves
-/// 4. Validación mejorada con mensajes específicos para cada llave
-///
-/// SOLUCIONA LOS PROBLEMAS REPORTADOS:
-/// - "Desbordamiento cuando selecciona el filtro de la llave 2 y 3"
-/// - "El usuario quiere poder agregar una sola llave o las 3 llaves"
 class DialogoLlaves extends StatefulWidget {
   final BancoModelo banco;
   final List<TextEditingController> controladores;
-  final VoidCallback onGuardar;
+  final Future<void> Function() onGuardar; // Callback asíncrono seguro
+
   const DialogoLlaves({
     super.key,
     required this.banco,
     required this.controladores,
     required this.onGuardar,
   });
+
   @override
   State<DialogoLlaves> createState() => _DialogoLlavesState();
 }
@@ -29,7 +26,9 @@ class DialogoLlaves extends StatefulWidget {
 class _DialogoLlavesState extends State<DialogoLlaves> {
   final _formKey = GlobalKey<FormState>();
   List<String> _errores = List.filled(3, '');
-  int _numeroLlaves = 1; // Por defecto, empezamos con 1 llave
+  int _numeroLlaves = 1;
+  bool _isSaving = false;
+
   static const int MAX_LLAVES = 3;
   static const int MIN_LLAVES = 1;
   static const int LONGITUD_MINIMA_LLAVE = 5;
@@ -42,7 +41,6 @@ class _DialogoLlavesState extends State<DialogoLlaves> {
     _determinarNumeroInicialLlaves();
   }
 
-  /// Inicializa los controladores con valores existentes si están disponibles
   void _inicializarControladores() {
     for (int i = 0; i < 3; i++) {
       if (widget.controladores[i].text.isEmpty &&
@@ -53,207 +51,298 @@ class _DialogoLlavesState extends State<DialogoLlaves> {
     }
   }
 
-  /// Determina cuántas llaves mostrar inicialmente basado en los datos existentes
   void _determinarNumeroInicialLlaves() {
     if (widget.banco.llaves != null && widget.banco.llaves!.isNotEmpty) {
-      // Si hay datos existentes, mostramos el número de llaves que ya tiene
       setState(() {
-        _numeroLlaves =
-            widget.banco.llaves!.length.clamp(MIN_LLAVES, MAX_LLAVES);
+        _numeroLlaves = widget.banco.llaves!.length.clamp(MIN_LLAVES, MAX_LLAVES);
       });
+    }
+  }
+
+  Future<void> _submit() async {
+    if (_isSaving) return;
+
+    if (_validarLlaves()) {
+      setState(() => _isSaving = true);
+      try {
+        await widget.onGuardar();
+      } catch (_) {
+        if (mounted) {
+          setState(() => _isSaving = false);
+        }
+      }
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    // Calcular la altura máxima basada en el tamaño de pantalla
-    final maxHeight = MediaQuery.of(context).size.height * 0.7;
-    final minHeight = 200.0; // Altura mínima para mantener legibilidad
+    final maxHeight = MediaQuery.of(context).size.height * 0.65;
+    final minHeight = 220.0;
 
-    return AlertDialog(
-      title: Text(widget.banco.nombre.isNotEmpty
-          ? '${widget.banco.nombre} - Llaves'
-          : 'Llaves'),
-      // Solución 1: Usar SizedBox con altura proporcional para evitar desbordamiento
-      content: SizedBox(
-        width: double.maxFinite,
-        height: maxHeight.clamp(minHeight, double.infinity),
-        child: _buildDialogContent(),
-      ),
-      actions: _buildActions(),
-      // Solución 2: Ajustar padding según tamaño de pantalla
-      insetPadding: _calculateInsetPadding(),
-      shape: RoundedRectangleBorder(
-        borderRadius: BorderRadius.circular(15.0),
-      ),
-    );
-  }
-
-  /// Construye el contenido principal del diálogo con soporte flexible de llaves
-  Widget _buildDialogContent() {
-    return Form(
-      key: _formKey,
-      child: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          _buildInfoHeader(),
-          const SizedBox(height: 10),
-          // Solución 3: Usar Expanded + SingleChildScrollView para contenido desbordado
-          Expanded(
-            child: SingleChildScrollView(
-              child: Column(
-                children: [
-                  _buildLlavesFields(),
-                  _buildAddRemoveButtons(),
-                ],
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      elevation: 10,
+      backgroundColor: Colors.white,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 420),
+        child: AbsorbPointer(
+          absorbing: _isSaving,
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Encabezado Premium
+              Container(
+                padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+                decoration: const BoxDecoration(
+                  color: Themes.primary,
+                  borderRadius: BorderRadius.only(
+                    topLeft: Radius.circular(24),
+                    topRight: Radius.circular(24),
+                  ),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.key, color: Colors.white, size: 24),
+                    const SizedBox(width: 12),
+                    Expanded(
+                      child: Text(
+                        widget.banco.nombre.isNotEmpty
+                            ? '${widget.banco.nombre} - Llaves'
+                            : 'Llaves Bancarias',
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              color: Colors.white,
+                              fontWeight: FontWeight.bold,
+                              fontSize: 18,
+                            ),
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ),
+                    if (_isSaving)
+                      const SizedBox(
+                        width: 18,
+                        height: 18,
+                        child: CircularProgressIndicator(
+                          strokeWidth: 2,
+                          color: Colors.white,
+                        ),
+                      )
+                  ],
+                ),
               ),
-            ),
+
+              // Info Requisitos
+              Padding(
+                padding: const EdgeInsets.fromLTRB(24, 16, 24, 4),
+                child: _buildInfoHeader(),
+              ),
+
+              // Cuerpo con Scroll
+              Flexible(
+                child: Container(
+                  constraints: BoxConstraints(
+                    maxHeight: maxHeight.clamp(minHeight, double.infinity),
+                  ),
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 8),
+                  child: Form(
+                    key: _formKey,
+                    child: SingleChildScrollView(
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          _buildLlavesFields(),
+                          _buildAddRemoveButtons(),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+
+              // Botones de acción
+              Container(
+                padding: const EdgeInsets.all(20),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: const BorderRadius.only(
+                    bottomLeft: Radius.circular(24),
+                    bottomRight: Radius.circular(24),
+                  ),
+                  border: Border(
+                    top: BorderSide(color: Colors.grey.shade200),
+                  ),
+                ),
+                child: Row(
+                  mainAxisAlignment: MainAxisAlignment.end,
+                  children: [
+                    TextButton(
+                      onPressed: _isSaving ? null : () => Navigator.pop(context),
+                      child: Text(
+                        'Cancelar',
+                        style: TextStyle(
+                          color: Colors.grey.shade600,
+                          fontWeight: FontWeight.bold,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(width: 12),
+                    ElevatedButton(
+                      onPressed: _isSaving ? null : _submit,
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: Themes.primary,
+                        foregroundColor: Colors.white,
+                        shadowColor: Themes.primary.withOpacity(0.3),
+                        elevation: 4,
+                        padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                        shape: RoundedRectangleBorder(
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                      ),
+                      child: _isSaving
+                          ? const SizedBox(
+                              width: 18,
+                              height: 18,
+                              child: CircularProgressIndicator(
+                                strokeWidth: 2,
+                                color: Colors.white,
+                              ),
+                            )
+                          : const Text(
+                              'Guardar',
+                              style: TextStyle(fontWeight: FontWeight.bold),
+                            ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
           ),
-        ],
+        ),
       ),
     );
   }
 
-  /// Encabezado con información y estado de las llaves
   Widget _buildInfoHeader() {
-    String mensajeRequisitos;
-    if (LONGITUD_MAXIMA_LLAVE != null) {
-      mensajeRequisitos =
-          'Cada llave debe tener entre $LONGITUD_MINIMA_LLAVE y $LONGITUD_MAXIMA_LLAVE caracteres.';
-    } else {
-      mensajeRequisitos =
-          'Cada llave debe tener al menos $LONGITUD_MINIMA_LLAVE caracteres.';
-    }
+    final String msg = LONGITUD_MAXIMA_LLAVE != null
+        ? 'Cada llave debe tener entre $LONGITUD_MINIMA_LLAVE y $LONGITUD_MAXIMA_LLAVE caracteres.'
+        : 'Cada llave debe tener al menos $LONGITUD_MINIMA_LLAVE caracteres.';
 
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(
-          mensajeRequisitos,
-          style: const TextStyle(
-            fontSize: 12,
-            color: Colors.grey,
+          msg,
+          style: TextStyle(
+            fontSize: 11,
+            color: Colors.grey.shade600,
             fontStyle: FontStyle.italic,
           ),
         ),
-        const SizedBox(height: 5),
-        Text(
-          'Llaves actuales: $_numeroLlaves de $MAX_LLAVES',
-          style: TextStyle(
-            fontWeight: FontWeight.bold,
-            color: _numeroLlaves == MAX_LLAVES
-                ? Colors.green
+        const SizedBox(height: 6),
+        Container(
+          padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+          decoration: BoxDecoration(
+            color: (_numeroLlaves == MAX_LLAVES
+                ? Colors.green.shade50
                 : _numeroLlaves >= 2
-                    ? Colors.orange
-                    : Colors.red,
+                    ? Colors.orange.shade50
+                    : Colors.red.shade50),
+            borderRadius: BorderRadius.circular(8),
+            border: Border.all(
+              color: (_numeroLlaves == MAX_LLAVES
+                  ? Colors.green.shade200
+                  : _numeroLlaves >= 2
+                      ? Colors.orange.shade200
+                      : Colors.red.shade200),
+            ),
+          ),
+          child: Text(
+            'Llaves habilitadas: $_numeroLlaves de $MAX_LLAVES',
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.bold,
+              color: _numeroLlaves == MAX_LLAVES
+                  ? Colors.green.shade800
+                  : _numeroLlaves >= 2
+                      ? Colors.orange.shade800
+                      : Colors.red.shade800,
+            ),
           ),
         ),
       ],
     );
   }
 
-  /// Construye los campos de texto para las llaves según el número seleccionado
   Widget _buildLlavesFields() {
     return Column(
       children: List.generate(_numeroLlaves, (index) {
         return Padding(
-          padding: const EdgeInsets.only(bottom: 15.0),
+          padding: const EdgeInsets.only(bottom: 12.0),
           child: _buildLlaveField(index),
         );
       }),
     );
   }
 
-  /// Campo de texto para una llave específica
   Widget _buildLlaveField(int index) {
     return TextFormField(
       controller: widget.controladores[index],
+      enabled: !_isSaving,
       decoration: InputDecoration(
         labelText: 'Llave ${index + 1}',
         hintText: 'Ingrese llave ${index + 1}',
         errorText: _errores[index].isNotEmpty ? _errores[index] : null,
-        suffixIcon: _numeroLlaves > MIN_LLAVES
+        prefixIcon: const Icon(Icons.vpn_key_outlined, size: 18, color: Themes.primary),
+        filled: true,
+        fillColor: Colors.grey.shade50,
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.grey.shade300),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: const BorderSide(color: Themes.primary, width: 2),
+        ),
+        suffixIcon: _numeroLlaves > MIN_LLAVES && !_isSaving
             ? IconButton(
-                icon: const Icon(Icons.close, size: 18),
+                icon: const Icon(Icons.close, size: 16, color: Colors.grey),
                 onPressed: () => _eliminarLlave(index),
                 tooltip: 'Eliminar esta llave',
               )
             : null,
       ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'La llave es obligatoria';
-        }
-        if (value.length < LONGITUD_MINIMA_LLAVE) {
-          return 'La llave debe tener al menos $LONGITUD_MINIMA_LLAVE caracteres';
-        }
-        if (LONGITUD_MAXIMA_LLAVE != null &&
-            value.length > LONGITUD_MAXIMA_LLAVE!) {
-          return 'La llave no puede exceder $LONGITUD_MAXIMA_LLAVE caracteres';
-        }
-        return null;
-      },
     );
   }
 
-  /// Botones para agregar/eliminar llaves
   Widget _buildAddRemoveButtons() {
     return Column(
       children: [
-        const SizedBox(height: 10),
         if (_numeroLlaves < MAX_LLAVES)
-          ElevatedButton.icon(
-            onPressed: _agregarLlave,
-            icon: const Icon(Icons.add, size: 16),
-            label: Text('Agregar llave ${_numeroLlaves + 1}'),
-            style: ElevatedButton.styleFrom(
-              backgroundColor: Colors.grey[200],
-              foregroundColor: Colors.black87,
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: TextButton.icon(
+              onPressed: _isSaving ? null : _agregarLlave,
+              icon: const Icon(Icons.add, size: 16),
+              label: Text('Agregar Llave ${_numeroLlaves + 1}'),
+              style: TextButton.styleFrom(
+                foregroundColor: Themes.primary,
+                textStyle: const TextStyle(fontWeight: FontWeight.bold),
+              ),
             ),
           ),
-        const SizedBox(height: 5),
         if (_numeroLlaves > MIN_LLAVES)
-          TextButton.icon(
-            onPressed: () => _eliminarLlave(_numeroLlaves - 1),
-            icon: const Icon(Icons.remove, size: 16),
-            label: Text('Eliminar llave ${_numeroLlaves}'),
+          Padding(
+            padding: const EdgeInsets.symmetric(vertical: 4),
+            child: TextButton.icon(
+              onPressed: _isSaving ? null : () => _eliminarLlave(_numeroLlaves - 1),
+              icon: const Icon(Icons.remove, size: 16, color: Colors.red),
+              label: Text('Quitar última llave', style: TextStyle(color: Colors.red.shade700)),
+            ),
           ),
       ],
     );
   }
 
-  /// Acciones del diálogo (cancelar y guardar)
-  List<Widget> _buildActions() {
-    return [
-      TextButton(
-        onPressed: () => Navigator.of(context).pop(),
-        child: const Text('Cancelar'),
-      ),
-      ElevatedButton(
-        onPressed: () {
-          if (_validarLlaves()) {
-            widget.onGuardar();
-          }
-        },
-        child: const Text('Guardar'),
-      ),
-    ];
-  }
-
-  /// Calcula el padding adecuado según el tamaño de pantalla
-  EdgeInsets _calculateInsetPadding() {
-    final mediaQuery = MediaQuery.of(context);
-    if (mediaQuery.size.width > 600) {
-      return const EdgeInsets.symmetric(horizontal: 20.0, vertical: 24.0);
-    } else if (mediaQuery.size.height < 600) {
-      // Pantallas pequeñas: menos padding vertical
-      return const EdgeInsets.symmetric(horizontal: 12.0, vertical: 8.0);
-    } else {
-      return const EdgeInsets.all(12.0);
-    }
-  }
-
-  /// Agrega una nueva llave si no se ha alcanzado el máximo
   void _agregarLlave() {
     if (_numeroLlaves < MAX_LLAVES) {
       setState(() {
@@ -262,13 +351,10 @@ class _DialogoLlavesState extends State<DialogoLlaves> {
     }
   }
 
-  /// Elimina una llave específica
   void _eliminarLlave(int index) {
     if (_numeroLlaves > MIN_LLAVES) {
-      // Limpiar el controlador
       widget.controladores[index].clear();
 
-      // Mover los valores de las llaves superiores
       for (int i = index; i < _numeroLlaves - 1; i++) {
         widget.controladores[i].text = widget.controladores[i + 1].text;
         widget.controladores[i + 1].clear();
@@ -280,24 +366,20 @@ class _DialogoLlavesState extends State<DialogoLlaves> {
     }
   }
 
-  /// Valida todas las llaves antes de guardar
   bool _validarLlaves() {
     bool isValid = true;
     final newErrors = List.filled(MAX_LLAVES, '');
 
     for (int i = 0; i < _numeroLlaves; i++) {
-      final value = widget.controladores[i].text;
+      final value = widget.controladores[i].text.trim();
       if (value.isEmpty) {
         newErrors[i] = 'La llave es obligatoria';
         isValid = false;
       } else if (value.length < LONGITUD_MINIMA_LLAVE) {
-        newErrors[i] =
-            'La llave debe tener al menos $LONGITUD_MINIMA_LLAVE caracteres';
+        newErrors[i] = 'Debe tener al menos $LONGITUD_MINIMA_LLAVE caracteres';
         isValid = false;
-      } else if (LONGITUD_MAXIMA_LLAVE != null &&
-          value.length > LONGITUD_MAXIMA_LLAVE!) {
-        newErrors[i] =
-            'La llave no puede exceder $LONGITUD_MAXIMA_LLAVE caracteres';
+      } else if (LONGITUD_MAXIMA_LLAVE != null && value.length > LONGITUD_MAXIMA_LLAVE!) {
+        newErrors[i] = 'No puede exceder $LONGITUD_MAXIMA_LLAVE caracteres';
         isValid = false;
       }
     }

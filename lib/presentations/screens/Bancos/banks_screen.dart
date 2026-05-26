@@ -1,3 +1,8 @@
+// 📱 lib/presentations/screens/Bancos/banks_screen.dart
+// ============================================================================
+// PANTALLA PRINCIPAL DE BANCOS - REFACTORIZADA CON CONTROLLER Y METADATOS PREMIUM
+// ============================================================================
+
 import 'package:finances/presentations/screens/Bancos/widgets/DialogoLlaves.dart';
 import 'package:finances/presentations/screens/Bancos/widgets/DialogoNumeroCuenta.dart';
 import 'package:finances/presentations/screens/Bancos/widgets/DialogoSeleccionarBanco.dart';
@@ -9,17 +14,10 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/models/bank_model.dart';
 import 'package:finances/core/data/providers/bank_provider.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
+import 'package:finances/core/errors/error_strings.dart';
+import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:finances/presentations/theme/themes.dart';
 
-/// Pantalla principal de gestión de cuentas bancarias
-///
-/// FLUJO CORRECTO DE TRABAJO:
-/// 1. Usuario hace clic en el botón "+" para agregar un banco
-/// 2. Se muestra DialogoSeleccionarBanco (SOLO CON NOMBRES DE BANCOS)
-/// 3. Al seleccionar un banco, se crea un BancoModelo TEMPORAL CON USERID REAL
-/// 4. Se muestra DialogoTipoIdentificador
-/// 5. Según la selección, se muestra DialogoNumeroCuenta o DialogoLlaves
-/// 6. Finalmente, se guarda la información en Firestore
 class PantallaBancos extends ConsumerStatefulWidget {
   const PantallaBancos({super.key});
   @override
@@ -46,7 +44,13 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
   Widget build(BuildContext context) {
     final authState = ref.watch(authProvider);
     final userId = authState.user?.uid ?? '';
-    final bancosAsync = ref.watch(bancoNotifierProvider(userId));
+    
+    // Escuchamos el nuevo stream de bancos enriquecidos con su branding
+    final bancosAsync = ref.watch(userBanksProvider(userId));
+    
+    // 🔥 CACHÉ DE MEMORIA RESILIENTE: Si ya se cargaron bancos anteriormente con éxito,
+    // conservamos la lista en pantalla incluso si hay un error o estado de carga temporal al reanudar la app.
+    final bancosCached = bancosAsync.valueOrNull;
 
     return Scaffold(
       backgroundColor: Themes.light,
@@ -55,80 +59,198 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
         showProfileIcon: false,
         actions: [
           IconButton(
-            icon: const Icon(Icons.add),
-            color: Themes.white,
+            icon: const Icon(Icons.add, color: Colors.white),
+            tooltip: 'Vincular banco',
             onPressed: () => _mostrarDialogoAgregarBanco(context, userId),
           ),
         ],
       ),
-      body: bancosAsync.when(
-        data: (bancos) => Column(
-          children: [
-            Container(
-              decoration: BoxDecoration(
-                gradient: const LinearGradient(
-                  colors: [Themes.degradientDark, Themes.degradientLight],
-                ),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withValues(alpha: 0.1),
-                    blurRadius: 6,
-                    offset: const Offset(0, 3),
-                  )
-                ],
+      body: Column(
+        children: [
+          Container(
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                colors: [Themes.degradientDark, Themes.degradientLight],
               ),
-              child: TabBar(
-                controller: _controladorTabs,
-                labelColor: Themes.white,
-                unselectedLabelColor: Colors.grey[300],
-                indicatorColor: Themes.white,
-                tabs: const [
-                  Tab(text: 'Bancos'),
-                ],
-              ),
+              boxShadow: [
+                BoxShadow(
+                  color: Colors.black.withOpacity(0.1),
+                  blurRadius: 6,
+                  offset: const Offset(0, 3),
+                )
+              ],
             ),
-            Expanded(
-              child: TabBarView(
-                controller: _controladorTabs,
-                children: [
-                  _buildBancosTab(bancos, userId),
-                ],
-              ),
+            child: TabBar(
+              controller: _controladorTabs,
+              labelColor: Themes.white,
+              unselectedLabelColor: Colors.grey[300],
+              indicatorColor: Themes.white,
+              labelStyle: const TextStyle(fontWeight: FontWeight.bold),
+              tabs: const [
+                Tab(text: 'Cuentas Vinculadas'),
+              ],
             ),
-          ],
-        ),
-        loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, stack) => Center(child: Text('Error: $error')),
+          ),
+          Expanded(
+            child: TabBarView(
+              controller: _controladorTabs,
+              children: [
+                if (bancosCached != null)
+                  _buildBancosTab(bancosCached, userId)
+                else
+                  bancosAsync.when(
+                    data: (bancos) => _buildBancosTab(bancos, userId),
+                    loading: () => const Center(
+                      child: CircularProgressIndicator(color: Themes.primary),
+                    ),
+                    error: (error, _) => Center(
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            const Icon(Icons.error_outline, size: 48, color: Colors.red),
+                            const SizedBox(height: 16),
+                            Text(
+                              '${ErrorStrings.loadFailed}\n$error',
+                              textAlign: TextAlign.center,
+                              style: const TextStyle(
+                                color: Colors.red,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+              ],
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  /// Muestra el diálogo para agregar un nuevo banco
-  ///
-  /// FLUJO CORREGIDO:
-  /// 1. Muestra DialogoSeleccionarBanco (SOLO DEVUELVE NOMBRE DE BANCO)
-  /// 2. Con el nombre y el userId REAL, crea un BancoModelo temporal
-  /// 3. Muestra DialogoTipoIdentificador
+  /// Pestaña que lista las cuentas del usuario
+  Widget _buildBancosTab(List<BancoModelo> bancos, String userId) {
+    if (bancos.isEmpty) {
+      return RefreshIndicator(
+        onRefresh: () async {
+          ref.invalidate(userBanksProvider(userId));
+          await ref.read(userBanksProvider(userId).future).catchError((_) => <BancoModelo>[]);
+        },
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(), // Obliga a que siempre sea deslizable para permitir pull-to-refresh
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const SizedBox(height: 40),
+              Container(
+                padding: const EdgeInsets.all(24),
+                decoration: BoxDecoration(
+                  color: Colors.white,
+                  shape: BoxShape.circle,
+                  boxShadow: [
+                    BoxShadow(
+                      color: Themes.primary.withOpacity(0.1),
+                      blurRadius: 20,
+                      offset: const Offset(0, 10),
+                    )
+                  ],
+                ),
+                child: const Icon(
+                  Icons.account_balance,
+                  size: 64,
+                  color: Themes.primary,
+                ),
+              ),
+              const SizedBox(height: 24),
+              const Text(
+                'No hay cuentas vinculadas',
+                style: TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                  color: Themes.primary,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                'Vincula tus cuentas bancarias para gestionarlas\ny organizar tus saldos de manera inteligente.',
+                textAlign: TextAlign.center,
+                style: TextStyle(
+                  fontSize: 13,
+                  color: Colors.grey.shade600,
+                ),
+              ),
+              const SizedBox(height: 32),
+              ElevatedButton.icon(
+                onPressed: () => _mostrarDialogoAgregarBanco(context, userId),
+                icon: const Icon(Icons.add),
+                label: const Text('Vincular primera cuenta'),
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Themes.primary,
+                  foregroundColor: Colors.white,
+                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
+                  shape: RoundedRectangleBorder(
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: () async {
+        ref.invalidate(userBanksProvider(userId));
+        // Await silencioso del future para refrescar la carga en background
+        await ref.read(userBanksProvider(userId).future).catchError((_) => <BancoModelo>[]);
+      },
+      child: ListView.builder(
+        physics: const AlwaysScrollableScrollPhysics(),
+        padding: const EdgeInsets.symmetric(vertical: 12),
+        itemCount: bancos.length,
+        itemBuilder: (context, index) {
+          final banco = bancos[index];
+          if (banco.nombre.isEmpty) {
+            return const SizedBox.shrink();
+          }
+          return TarjetaBanco(
+            banco: banco,
+            onEliminar: () => _eliminarBanco(banco.id, userId, banco.nombre),
+            onEditar: () => _mostrarDialogoEditar(context, banco),
+          );
+        },
+      ),
+    );
+  }
+
+  // ============================================================================
+  // FLUJOS DE ACCIÓN ASÍNCRONOS Y SEGUROS (PREVENCIÓN DOBLE SUBMIT)
+  // ============================================================================
+
   void _mostrarDialogoAgregarBanco(BuildContext context, String userId) {
     if (userId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Usuario no autenticado')),
-      );
+      UIHelpers.showErrorSnackBar(context: context, message: 'Usuario no autenticado.');
       return;
     }
 
     showDialog(
       context: context,
-      builder: (context) => DialogoSeleccionarBanco(
+      barrierDismissible: false,
+      builder: (dialogContext) => DialogoSeleccionarBanco(
         onSeleccionar: (nombreBanco) {
-          // CREACIÓN CORRECTA: Solo aquí obtenemos el userId REAL
           final bancoTemporal = BancoModelo(
-            id: '', // Firestore generará el ID
+            id: '',
             nombre: nombreBanco,
-            tipoIdentificador: 'cuenta', // Valor por defecto
+            tipoIdentificador: 'cuenta',
             numeroCuenta: null,
             llaves: null,
-            userId: userId, // ¡AQUÍ TIENE EL USERID REAL!
+            userId: userId,
           );
           _mostrarDialogoTipoIdentificador(context, bancoTemporal, userId);
         },
@@ -136,37 +258,12 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
     );
   }
 
-  /// Muestra el diálogo para editar un banco existente
-  ///
-  /// FLUJO DE EDICIÓN:
-  /// 1. Recibe el banco existente que se quiere editar
-  /// 2. Dependiendo del tipo de identificador (cuenta o llave), muestra el diálogo correspondiente
-  /// 3. Los valores actuales del banco se cargan en los campos
-  /// 4. Al guardar, se llama a actualizarBanco() en lugar de crearBanco()
-  void _mostrarDialogoEditar(BuildContext context, BancoModelo banco) {
-    final authState = ref.watch(authProvider);
-    final userId = authState.user?.uid ?? '';
-
-    if (userId.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Usuario no autenticado')),
-      );
-      return;
-    }
-
-    if (banco.tipoIdentificador == 'cuenta') {
-      _mostrarDialogoNumeroCuentaEdicion(context, banco, userId);
-    } else {
-      _mostrarDialogoLlavesEdicion(context, banco, userId);
-    }
-  }
-
-  /// Muestra el diálogo para seleccionar el tipo de identificador
   void _mostrarDialogoTipoIdentificador(
       BuildContext context, BancoModelo banco, String userId) {
     showDialog(
       context: context,
-      builder: (context) => DialogoTipoIdentificador(
+      barrierDismissible: false,
+      builder: (dialogContext) => DialogoTipoIdentificador(
         banco: banco,
         onTipoSeleccionado: (tipo) {
           if (tipo == 'cuenta') {
@@ -179,105 +276,132 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
     );
   }
 
-  /// Muestra el diálogo para ingresar el número de cuenta (para CREAR)
+  /// Mostrar diálogo para ingresar número de cuenta (CREACIÓN)
   void _mostrarDialogoNumeroCuenta(
       BuildContext context, BancoModelo banco, String userId) {
     final controladorCuenta = TextEditingController();
     showDialog(
       context: context,
-      builder: (context) => DialogoNumeroCuenta(
+      barrierDismissible: false,
+      builder: (dialogContext) => DialogoNumeroCuenta(
         banco: banco,
         controladorCuenta: controladorCuenta,
-        onGuardar: () {
-          // Actualizamos el banco con los datos completos
+        onGuardar: () async {
           final bancoCompleto = banco.copyWith(
             tipoIdentificador: 'cuenta',
-            numeroCuenta: controladorCuenta.text,
+            numeroCuenta: controladorCuenta.text.trim(),
           );
 
-          ref
-              .read(bancoNotifierProvider(userId).notifier)
-              .crearBanco(bancoCompleto)
-              .then((_) {
-            Navigator.of(context).pop(); // Cierra el diálogo de cuenta
-            Navigator.of(context).pop(); // Cierra el diálogo de tipo
-            Navigator.of(context).pop(); // Cierra el diálogo de banco
-          });
+          // Ejecutamos la mutación en el controlador de Riverpod
+          await ref.read(bancoControllerProvider.notifier).crearBanco(bancoCompleto);
+
+          if (mounted) {
+            Navigator.pop(dialogContext); // Cierra diálogo cuenta
+            UIHelpers.showSuccessSnackBar(
+              context: context,
+              message: 'Banco "${banco.nombre}" vinculado exitosamente.',
+            );
+          }
         },
       ),
     );
   }
 
-  /// Muestra el diálogo para ingresar el número de cuenta (para EDITAR)
+  /// Mostrar diálogo para ingresar llaves (CREACIÓN)
+  void _mostrarDialogoLlaves(
+      BuildContext context, BancoModelo banco, String userId) {
+    final controladores = List.generate(3, (_) => TextEditingController());
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => DialogoLlaves(
+        banco: banco,
+        controladores: controladores,
+        onGuardar: () async {
+          final llaves = controladores
+              .where((c) => c.text.trim().isNotEmpty)
+              .map((c) => c.text.trim())
+              .toList();
+
+          final bancoCompleto = banco.copyWith(
+            tipoIdentificador: 'llave',
+            llaves: llaves,
+          );
+
+          await ref.read(bancoControllerProvider.notifier).crearBanco(bancoCompleto);
+
+          if (mounted) {
+            Navigator.pop(dialogContext); // Cierra diálogo llaves
+            UIHelpers.showSuccessSnackBar(
+              context: context,
+              message: 'Banco "${banco.nombre}" vinculado exitosamente.',
+            );
+          }
+        },
+      ),
+    );
+  }
+
+  // ============================================================================
+  // EDICIÓN DE BANCOS
+  // ============================================================================
+
+  void _mostrarDialogoEditar(BuildContext context, BancoModelo banco) {
+    final authState = ref.watch(authProvider);
+    final userId = authState.user?.uid ?? '';
+
+    if (userId.isEmpty) {
+      UIHelpers.showErrorSnackBar(context: context, message: 'Usuario no autenticado.');
+      return;
+    }
+
+    if (banco.tipoIdentificador == 'cuenta') {
+      _mostrarDialogoNumeroCuentaEdicion(context, banco, userId);
+    } else {
+      _mostrarDialogoLlavesEdicion(context, banco, userId);
+    }
+  }
+
+  /// Editar número de cuenta
   void _mostrarDialogoNumeroCuentaEdicion(
       BuildContext context, BancoModelo banco, String userId) {
     final controladorCuenta = TextEditingController();
 
-    // Cargar el valor existente en el controlador
     if (banco.numeroCuenta != null) {
       controladorCuenta.text = banco.numeroCuenta!;
     }
 
     showDialog(
       context: context,
-      builder: (context) => DialogoNumeroCuenta(
+      barrierDismissible: false,
+      builder: (dialogContext) => DialogoNumeroCuenta(
         banco: banco,
         controladorCuenta: controladorCuenta,
-        onGuardar: () {
-          // Actualizamos el banco con los datos completos
+        onGuardar: () async {
           final bancoCompleto = banco.copyWith(
             tipoIdentificador: 'cuenta',
-            numeroCuenta: controladorCuenta.text,
+            numeroCuenta: controladorCuenta.text.trim(),
           );
 
-          ref
-              .read(bancoNotifierProvider(userId).notifier)
-              .actualizarBanco(bancoCompleto)
-              .then((_) {
-            Navigator.of(context).pop(); // Cierra el diálogo de cuenta
-            Navigator.of(context)
-                .pop(); // Cierra el diálogo de tipo (si está abierto)
-          });
+          await ref.read(bancoControllerProvider.notifier).actualizarBanco(bancoCompleto);
+
+          if (mounted) {
+            Navigator.pop(dialogContext); // Cierra diálogo de cuenta
+            UIHelpers.showSuccessSnackBar(
+              context: context,
+              message: 'Cuenta bancaria actualizada correctamente.',
+            );
+          }
         },
       ),
     );
   }
 
-  /// Muestra el diálogo para ingresar las 3 llaves (para CREAR)
-  void _mostrarDialogoLlaves(
-      BuildContext context, BancoModelo banco, String userId) {
-    final controladores = List.generate(3, (_) => TextEditingController());
-    showDialog(
-      context: context,
-      builder: (context) => DialogoLlaves(
-        banco: banco,
-        controladores: controladores,
-        onGuardar: () {
-          final llaves = controladores.map((c) => c.text).toList();
-          final bancoCompleto = banco.copyWith(
-            tipoIdentificador: 'llave',
-            llaves: llaves,
-          );
-
-          ref
-              .read(bancoNotifierProvider(userId).notifier)
-              .crearBanco(bancoCompleto)
-              .then((_) {
-            Navigator.of(context).pop(); // Cierra diálogo llaves
-            Navigator.of(context).pop(); // Cierra diálogo tipo
-            Navigator.of(context).pop(); // Cierra diálogo banco
-          });
-        },
-      ),
-    );
-  }
-
-  /// Muestra el diálogo para ingresar las 3 llaves (para EDITAR)
+  /// Editar llaves
   void _mostrarDialogoLlavesEdicion(
       BuildContext context, BancoModelo banco, String userId) {
     final controladores = List.generate(3, (_) => TextEditingController());
 
-    // Cargar los valores existentes en los controladores
     if (banco.llaves != null) {
       for (int i = 0; i < banco.llaves!.length && i < 3; i++) {
         controladores[i].text = banco.llaves![i];
@@ -286,54 +410,61 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
 
     showDialog(
       context: context,
-      builder: (context) => DialogoLlaves(
+      barrierDismissible: false,
+      builder: (dialogContext) => DialogoLlaves(
         banco: banco,
         controladores: controladores,
-        onGuardar: () {
-          final llaves = controladores.map((c) => c.text).toList();
+        onGuardar: () async {
+          final llaves = controladores
+              .where((c) => c.text.trim().isNotEmpty)
+              .map((c) => c.text.trim())
+              .toList();
+
           final bancoCompleto = banco.copyWith(
             tipoIdentificador: 'llave',
             llaves: llaves,
           );
 
-          ref
-              .read(bancoNotifierProvider(userId).notifier)
-              .actualizarBanco(bancoCompleto)
-              .then((_) {
-            Navigator.of(context).pop(); // Cierra diálogo llaves
-            Navigator.of(context)
-                .pop(); // Cierra diálogo tipo (si está abierto)
-          });
+          await ref.read(bancoControllerProvider.notifier).actualizarBanco(bancoCompleto);
+
+          if (mounted) {
+            Navigator.pop(dialogContext); // Cierra diálogo llaves
+            UIHelpers.showSuccessSnackBar(
+              context: context,
+              message: 'Llaves actualizadas correctamente.',
+            );
+          }
         },
       ),
     );
   }
 
-  /// Construye la pestaña de bancos
-  Widget _buildBancosTab(List<BancoModelo> bancos, String userId) {
-    if (bancos.isEmpty) {
-      return const Center(child: Text("No hay bancos registrados."));
-    }
-    return ListView.separated(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-      itemCount: bancos.length,
-      separatorBuilder: (_, __) => const SizedBox(height: 12),
-      itemBuilder: (context, index) {
-        final banco = bancos[index];
-        if (banco.nombre.isEmpty) {
-          return const SizedBox.shrink();
-        }
-        return TarjetaBanco(
-          banco: banco,
-          onEliminar: () {
-            ref
-                .read(bancoNotifierProvider(userId).notifier)
-                .eliminarBanco(banco.id, userId);
-          },
-          onEditar: () => _mostrarDialogoEditar(
-              context, banco), // ¡Parámetro requerido agregado!
+  // ============================================================================
+  // ELIMINACIÓN DE CUENTA VINCULADA
+  // ============================================================================
+
+  Future<void> _eliminarBanco(String bancoId, String userId, String nombreBanco) async {
+    if (!mounted) return;
+    UIHelpers.showLoadingDialog(context, message: 'Desvinculado cuenta...');
+
+    try {
+      await ref.read(bancoControllerProvider.notifier).eliminarBanco(bancoId, userId);
+      
+      if (mounted) {
+        UIHelpers.hideLoadingDialog(context);
+        UIHelpers.showSuccessSnackBar(
+          context: context,
+          message: 'Banco "$nombreBanco" desvinculado correctamente.',
         );
-      },
-    );
+      }
+    } catch (e) {
+      if (mounted) {
+        UIHelpers.hideLoadingDialog(context);
+        UIHelpers.showErrorSnackBar(
+          context: context,
+          message: e.toString(),
+        );
+      }
+    }
   }
 }

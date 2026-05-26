@@ -1,10 +1,12 @@
+// 🎨 presentations/screens/Bancos/widgets/DialogoTipoIdentificador.dart
+// ============================================================================
+// DIÁLOGO: Selección del tipo de cuenta bancaria (Número de cuenta o Llaves)
+// ============================================================================
+
 import 'package:flutter/material.dart';
 import 'package:finances/core/data/models/bank_model.dart';
+import 'package:finances/presentations/theme/themes.dart';
 
-/// Diálogo que permite al usuario seleccionar el tipo de identificador bancario
-///
-/// IMPORTANTE: Este diálogo recibe un BancoModelo completo con userId válido
-/// porque ya pasó por el proceso de selección de banco con userId real
 class DialogoTipoIdentificador extends StatelessWidget {
   final BancoModelo banco;
   final Function(String) onTipoSeleccionado;
@@ -17,33 +19,165 @@ class DialogoTipoIdentificador extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return AlertDialog(
-      title: Text('Seleccionar tipo de identificador para ${banco.nombre}'),
-      content: Column(
-        mainAxisSize: MainAxisSize.min,
-        children: [
-          ListTile(
-            leading: const Icon(Icons.numbers),
-            title: const Text('Número de cuenta'),
-            subtitle: const Text('10-20 dígitos numéricos (ej: 1234567890)'),
-            onTap: () => onTipoSeleccionado('cuenta'),
-          ),
-          const Divider(),
-          ListTile(
-            leading: const Icon(Icons.key),
-            title: const Text('Llave bancaria'),
-            subtitle: const Text(
-                '3 partes alfanuméricas (mínimo 5 caracteres cada una)'),
-            onTap: () => onTipoSeleccionado('llave'),
-          ),
-        ],
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text('Cancelar'),
+    return Dialog(
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
+      elevation: 10,
+      backgroundColor: Colors.white,
+      child: ConstrainedBox(
+        constraints: const BoxConstraints(maxWidth: 400),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.stretch,
+          children: [
+            // Encabezado Premium
+            Container(
+              padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
+              decoration: const BoxDecoration(
+                color: Themes.primary,
+                borderRadius: BorderRadius.only(
+                  topLeft: Radius.circular(24),
+                  topRight: Radius.circular(24),
+                  ),
+                ),
+              child: Row(
+                children: [
+                  const Icon(Icons.security, color: Colors.white, size: 24),
+                  const SizedBox(width: 12),
+                  Expanded(
+                    child: Text(
+                      'Tipo de Identificador',
+                      style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                            color: Colors.white,
+                            fontWeight: FontWeight.bold,
+                            fontSize: 18,
+                          ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+
+            // Contenido descriptivo
+            Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 8),
+              child: Text(
+                'Selecciona el formato de vinculación para tu cuenta de "${banco.nombre}":',
+                style: TextStyle(
+                  color: Colors.grey.shade600,
+                  fontSize: 13,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+
+            // Opciones táctiles premium
+            Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 16),
+              child: Column(
+                children: [
+                  // Opción 1: Número de Cuenta
+                  Card(
+                    elevation: 0,
+                    color: Colors.grey.shade50,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Themes.primary.withOpacity(0.08),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.tag, color: Themes.primary, size: 20),
+                      ),
+                      title: const Text(
+                        'Número de Cuenta',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      subtitle: const Text(
+                        'Ej: 10-20 dígitos numéricos tradicionales.',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        onTipoSeleccionado('cuenta');
+                      },
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+
+                  // Opción 2: Llave Bancaria
+                  Card(
+                    elevation: 0,
+                    color: Colors.grey.shade50,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(16),
+                      side: BorderSide(color: Colors.grey.shade200),
+                    ),
+                    child: ListTile(
+                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      leading: Container(
+                        padding: const EdgeInsets.all(8),
+                        decoration: BoxDecoration(
+                          color: Themes.primary.withOpacity(0.08),
+                          shape: BoxShape.circle,
+                        ),
+                        child: const Icon(Icons.vpn_key_outlined, color: Themes.primary, size: 20),
+                      ),
+                      title: const Text(
+                        'Llave Bancaria',
+                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                      ),
+                      subtitle: const Text(
+                        'Entre 1 y 3 llaves seguras de caracteres alfanuméricos.',
+                        style: TextStyle(fontSize: 11),
+                      ),
+                      onTap: () {
+                        Navigator.pop(context);
+                        onTipoSeleccionado('llave');
+                      },
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // Botón Cancelar
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.grey.shade50,
+                borderRadius: const BorderRadius.only(
+                  bottomLeft: Radius.circular(24),
+                  bottomRight: Radius.circular(24),
+                ),
+                border: Border(
+                  top: BorderSide(color: Colors.grey.shade200),
+                ),
+              ),
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.end,
+                children: [
+                  TextButton(
+                    onPressed: () => Navigator.pop(context),
+                    child: Text(
+                      'Cancelar',
+                      style: TextStyle(
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
         ),
-      ],
+      ),
     );
   }
 }

@@ -73,4 +73,10 @@ abstract class ErrorStrings {
       "• Implementamos medidas técnicas y organizativas apropiadas para garantizar un nivel de seguridad adecuado al riesgo, incluyendo cifrado AES-256 para datos en tránsito y reposo, según lo establecido en el Artículo 10 de la Ley 1581 de 2012.\n"
       "• Sus datos solo serán utilizados para los fines establecidos en esta política y nunca para fines comerciales no autorizados.\n"
       "• Usted tiene derecho a presentar quejas o reclamos ante la Superintendencia de Industria y Comercio si considera que se ha vulnerado su derecho a la protección de datos, conforme al Artículo 14 de la Ley 1581 de 2012.";
+
+  // --- 8. BANCOS ---
+  static const bankSyncFailed = "No pudimos actualizar el catálogo de bancos, utilizando copia local.";
+  static const bankInvalidCatalog = "El archivo de bancos remoto no cumple con el formato correcto.";
+  static const bankEmptySelection = "Por favor, selecciona un banco de la lista.";
+  static const bankInvalidAccountNumber = "El número de cuenta ingresado debe contener entre 5 y 20 caracteres numéricos.";
 }
