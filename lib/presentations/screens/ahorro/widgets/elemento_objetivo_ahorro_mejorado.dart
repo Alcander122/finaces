@@ -1,12 +1,14 @@
 // 🎨 presentations/screens/ahorro/elemento_objetivo_ahorro_mejorado.dart
 // ============================================================================
-// WIDGET: Muestra cada meta de ahorro con desglose REALISTA (solo lo pendiente)
+// WIDGET: Tarjeta de meta de ahorro premium estilo Fintech (M3, animada y responsiva)
 // ============================================================================
 
 import 'package:finances/core/data/models/objetivo_ahorro.dart';
 import 'package:finances/core/data/utils/ahorro_calculator.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
+import 'package:finances/presentations/theme/themes.dart';
 import 'package:flutter/material.dart';
+import 'package:intl/intl.dart';
 
 class ElementoObjetivoAhorroMejorado extends StatelessWidget {
   final ObjetivoAhorro meta;
@@ -31,16 +33,16 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
     final bool montoValido = meta.montoObjetivo > 0;
 
     if (!montoValido) {
-      return _tarjetaMetaInvalida(context, 'Monto inválido');
+      return _tarjetaMetaInvalida(context, 'Monto objetivo inválido');
     }
 
-    // 🔥 Cálculo considerando lo ya ahorrado
+    // Cálculo considerando lo ya ahorrado
     late final AhorroDesglose desglose;
     try {
       desglose = AhorroCalculator.calcularDesglose(
         montoObjetivo: meta.montoObjetivo,
         fechaObjetivo: meta.fechaObjetivo,
-        montoActual: meta.montoActual, // ← CLAVE: solo lo pendiente
+        montoActual: meta.montoActual, // solo lo pendiente
       );
     } catch (e) {
       desglose = AhorroDesglose.invalido(
@@ -50,122 +52,299 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
       );
     }
 
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      elevation: 6,
-      margin: const EdgeInsets.symmetric(vertical: 10),
+    // Colores temáticos dinámicos según el estado del progreso y vencimiento
+    Color getProgressColor() {
+      if (estaVencida && meta.progreso < 100) return Themes.red;
+      if (meta.progreso >= 100) return Colors.green.shade600;
+      if (meta.progreso > 50) return Colors.green.shade500;
+      return Colors.amber.shade600;
+    }
+
+    final double progresoVal = (meta.progreso / 100).clamp(0.0, 1.0);
+
+    return Container(
+      margin: const EdgeInsets.symmetric(vertical: 12),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        border: Border.all(color: Colors.grey.shade100),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.03),
+            blurRadius: 10,
+            offset: const Offset(0, 4),
+          ),
+        ],
+      ),
       child: Padding(
-        padding: const EdgeInsets.all(16),
+        padding: const EdgeInsets.all(20),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.stretch,
           children: [
-            // Nombre
-            Center(
-              child: Text(
-                meta.nombre,
-                textAlign: TextAlign.center,
-                style: Theme.of(context)
-                    .textTheme
-                    .titleLarge!
-                    .copyWith(fontWeight: FontWeight.bold),
-              ),
-            ),
-            const SizedBox(height: 8),
-
-            // Vencida
-            if (estaVencida)
-              const Center(
-                child: Text('⏰ Fecha objetivo vencida',
-                    style: TextStyle(
-                        color: Colors.red, fontWeight: FontWeight.w600)),
-              ),
-            const SizedBox(height: 12),
-
-            // Progreso
-            LinearProgressIndicator(
-              value: (meta.progreso / 100).clamp(0.0, 1.0),
-              minHeight: 12,
-              color: estaVencida
-                  ? Colors.red.shade400
-                  : (meta.progreso >= 100 ? Colors.green : Colors.green),
-              backgroundColor: Colors.grey.shade300,
-              borderRadius: BorderRadius.circular(8),
-            ),
-            const SizedBox(height: 12),
-
-            // Montos
+            // Fila Superior: Nombre de la Meta y Fecha Objetivo
             Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+              crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text(UIHelpers.formatCurrency(meta.montoActual),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        meta.nombre,
+                        style: Theme.of(context).textTheme.titleLarge?.copyWith(
+                              fontWeight: FontWeight.bold,
+                              color: Themes.primary,
+                              fontSize: 18,
+                            ),
+                      ),
+                      const SizedBox(height: 4),
+                      Row(
+                        children: [
+                          Icon(
+                            Icons.calendar_month_outlined,
+                            size: 14,
+                            color: Colors.grey.shade500,
+                          ),
+                          const SizedBox(width: 4),
+                          Text(
+                            'Finaliza: ${DateFormat('dd/MM/yyyy').format(meta.fechaObjetivo)}',
+                            style: TextStyle(
+                              color: Colors.grey.shade600,
+                              fontSize: 12,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ],
+                  ),
+                ),
+                const SizedBox(width: 12),
+                
+                // Porcentaje como insignia destacada
+                Container(
+                  padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                  decoration: BoxDecoration(
+                    color: getProgressColor().withOpacity(0.1),
+                    borderRadius: BorderRadius.circular(12),
+                  ),
+                  child: Text(
+                    '${meta.progreso.toStringAsFixed(1)}%',
                     style: TextStyle(
-                        color: Colors.green[800], fontWeight: FontWeight.w600)),
-                Text('de ${UIHelpers.formatCurrency(meta.montoObjetivo)}'),
+                      color: getProgressColor(),
+                      fontWeight: FontWeight.bold,
+                      fontSize: 13,
+                    ),
+                  ),
+                ),
               ],
-            ),
-            const SizedBox(height: 8),
-
-            // Estado
-            Center(
-              child: Text(
-                meta.progreso >= 100
-                    ? '🎉 ¡Meta cumplida!'
-                    : estaVencida
-                        ? 'Meta vencida'
-                        : 'Progreso: ${meta.progreso.toStringAsFixed(1)}%',
-                style: TextStyle(
-                    color: meta.progreso >= 100
-                        ? Colors.green
-                        : estaVencida
-                            ? Colors.red
-                            : Colors.blueGrey),
-              ),
             ),
             const SizedBox(height: 16),
 
-            // Desglose (solo si es válido)
-            if (mostrarDesglose && desglose.esValido)
+            // Notificación de meta vencida si aplica
+            if (estaVencida && meta.progreso < 100)
+              Container(
+                margin: const EdgeInsets.only(bottom: 16),
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                decoration: BoxDecoration(
+                  color: Colors.red.shade50,
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.red.shade100),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.timer_off_outlined, color: Themes.red, size: 16),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(
+                        'Esta meta ha superado su fecha límite.',
+                        style: TextStyle(
+                          color: Colors.red.shade800,
+                          fontSize: 11,
+                          fontWeight: FontWeight.w600,
+                        ),
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+
+            // Barra de progreso animada de M3
+            TweenAnimationBuilder<double>(
+              tween: Tween<double>(begin: 0.0, end: progresoVal),
+              duration: const Duration(milliseconds: 800),
+              curve: Curves.fastOutSlowIn,
+              builder: (context, value, child) {
+                return ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: LinearProgressIndicator(
+                    value: value,
+                    minHeight: 14,
+                    color: getProgressColor(),
+                    backgroundColor: Colors.grey.shade100,
+                  ),
+                );
+              },
+            ),
+            const SizedBox(height: 16),
+
+            // Layout Responsivo para Montos
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final bool esAncho = constraints.maxWidth > 300;
+                final widgetMontoActual = Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Ahorrado',
+                      style: TextStyle(
+                        fontSize: 11,
+                        color: Colors.grey.shade500,
+                        fontWeight: FontWeight.w500,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        UIHelpers.formatCurrency(meta.montoActual),
+                        style: TextStyle(
+                          fontSize: 22,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green.shade700,
+                          letterSpacing: -0.5,
+                        ),
+                      ),
+                    ),
+                  ],
+                );
+
+                final widgetMontoObjetivo = Column(
+                  crossAxisAlignment: esAncho ? CrossAxisAlignment.end : CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Objetivo: ${UIHelpers.formatCurrency(meta.montoObjetivo)}',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                    const SizedBox(height: 2),
+                    Text(
+                      meta.montoRestante > 0
+                          ? 'Faltan ${UIHelpers.formatCurrency(meta.montoRestante)}'
+                          : '🎉 ¡Meta cumplida!',
+                      style: TextStyle(
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                        color: meta.montoRestante > 0 ? Colors.grey.shade500 : Colors.green,
+                      ),
+                    ),
+                  ],
+                );
+
+                if (esAncho) {
+                  return Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Expanded(child: widgetMontoActual),
+                      const SizedBox(width: 12),
+                      Expanded(child: widgetMontoObjetivo),
+                    ],
+                  );
+                } else {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      widgetMontoActual,
+                      const SizedBox(height: 12),
+                      widgetMontoObjetivo,
+                    ],
+                  );
+                }
+              },
+            ),
+            const SizedBox(height: 20),
+
+            // Plan de Ahorro Desglosado Responsivo
+            if (mostrarDesglose && desglose.esValido && meta.montoRestante > 0)
               _construirSeccionDesglose(
                   context, desglose, estaVencida, meta.montoActual > 0)
-            else if (mostrarDesglose)
+            else if (mostrarDesglose && meta.montoRestante > 0)
               Padding(
                 padding: const EdgeInsets.symmetric(vertical: 8),
                 child: Text(
                   estaVencida
-                      ? 'El plan de ahorro ya no aplica'
-                      : 'Plan no disponible',
-                  style: const TextStyle(color: Colors.orange),
+                      ? 'El plan de ahorro ya expiró.'
+                      : 'El plan de ahorro no está disponible.',
+                  style: const TextStyle(color: Colors.orange, fontSize: 12, fontWeight: FontWeight.bold),
                   textAlign: TextAlign.center,
                 ),
               ),
 
-            const SizedBox(height: 16),
+            if (mostrarDesglose && meta.montoRestante > 0)
+              const SizedBox(height: 20),
 
-            // Botones
-            OverflowBar(
-              alignment: MainAxisAlignment.spaceEvenly,
+            // Fila de Botones M3
+            Row(
+              mainAxisAlignment: MainAxisAlignment.end,
               children: [
-                IconButton(
-                  tooltip: estaVencida ? 'Meta vencida' : 'Depositar',
-                  icon: Icon(Icons.add_circle,
-                      color: estaVencida ? Colors.grey : Colors.green),
-                  onPressed:
-                      estaVencida ? null : () => onTransaccion('deposito'),
+                // Detalles / Historial
+                _botonAccion(
+                  icon: Icons.history,
+                  tooltip: 'Historial',
+                  color: Themes.primary,
+                  onPressed: onVerDetalles,
                 ),
-                IconButton(
-                  tooltip: estaVencida ? 'Meta vencida' : 'Retirar',
-                  icon: Icon(Icons.remove_circle,
-                      color: estaVencida ? Colors.grey : Colors.red),
-                  onPressed: estaVencida ? null : () => onTransaccion('retiro'),
+                const SizedBox(width: 8),
+                
+                // Eliminar
+                _botonAccion(
+                  icon: Icons.delete_outline,
+                  tooltip: 'Eliminar',
+                  color: Colors.red.shade400,
+                  onPressed: onEliminar,
                 ),
-                IconButton(
-                    tooltip: 'Detalles',
-                    icon: const Icon(Icons.info_outline, color: Colors.blue),
-                    onPressed: onVerDetalles),
-                IconButton(
-                    tooltip: 'Eliminar',
-                    icon: const Icon(Icons.delete, color: Colors.red),
-                    onPressed: onEliminar),
+                
+                const Spacer(),
+
+                // Transacciones si no está vencida y no completada
+                if (!estaVencida && meta.montoRestante > 0) ...[
+                  // Retirar
+                  OutlinedButton.icon(
+                    onPressed: meta.montoActual > 0 ? () => onTransaccion('retiro') : null,
+                    icon: const Icon(Icons.remove, size: 16),
+                    label: const Text(
+                      'Retirar',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    style: OutlinedButton.styleFrom(
+                      foregroundColor: Colors.red.shade700,
+                      side: BorderSide(color: Colors.red.shade200),
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+
+                  // Depositar
+                  ElevatedButton.icon(
+                    onPressed: () => onTransaccion('deposito'),
+                    icon: const Icon(Icons.add, size: 16),
+                    label: const Text(
+                      'Ahorrar',
+                      style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
+                    ),
+                    style: ElevatedButton.styleFrom(
+                      backgroundColor: Colors.green.shade600,
+                      foregroundColor: Colors.white,
+                      elevation: 0,
+                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
+                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                    ),
+                  ),
+                ],
               ],
             ),
           ],
@@ -177,73 +356,133 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
   Widget _construirSeccionDesglose(BuildContext context,
       AhorroDesglose desglose, bool vencida, bool tieneProgreso) {
     return Container(
-      padding: const EdgeInsets.all(12),
+      padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: vencida ? Colors.red.shade50 : Colors.blue.shade50,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(
-            color: vencida ? Colors.red.shade200 : Colors.blue.shade200),
+        color: Themes.infoBlue.withOpacity(0.4),
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Themes.primary.withOpacity(0.06)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              Icon(Icons.trending_up,
-                  color: vencida ? Colors.red.shade700 : Colors.blue.shade700,
-                  size: 18),
+              const Icon(Icons.insights, color: Themes.primary, size: 18),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
-                  tieneProgreso ? 'Plan de ahorro restante' : 'Plan de ahorro',
-                  style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      color:
-                          vencida ? Colors.red.shade700 : Colors.blue.shade700),
+                  tieneProgreso ? 'Plan de ahorro restante' : 'Plan de ahorro sugerido',
+                  style: const TextStyle(
+                    fontWeight: FontWeight.bold,
+                    fontSize: 13,
+                    color: Themes.primary,
+                  ),
                 ),
               ),
-              Text(desglose.mensajeTiempoRestante,
-                  style: TextStyle(
-                      color: vencida
-                          ? Colors.red.shade600
-                          : Colors.blue.shade600)),
+              Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: Themes.primary.withOpacity(0.08),
+                  borderRadius: BorderRadius.circular(12),
+                ),
+                child: Text(
+                  desglose.mensajeTiempoRestante,
+                  style: const TextStyle(
+                    color: Themes.primary,
+                    fontSize: 10,
+                    fontWeight: FontWeight.bold,
+                  ),
+                ),
+              ),
             ],
           ),
-          const SizedBox(height: 10),
-          GridView.count(
-            crossAxisCount: 2,
-            shrinkWrap: true,
-            physics: const NeverScrollableScrollPhysics(),
-            mainAxisSpacing: 8,
-            crossAxisSpacing: 8,
-            childAspectRatio: 1.5,
-            children: [
-              _tarjetaAhorro(
-                  'Diario', desglose.ahorrosDiarios, Icons.calendar_today),
-              _tarjetaAhorro(
-                  'Semanal', desglose.ahorrosSemanal, Icons.date_range),
-              _tarjetaAhorro(
-                  'Quincenal', desglose.ahorrosQuincenal, Icons.event_note),
-              _tarjetaAhorro(
-                  'Mensual', desglose.ahorrosMensual, Icons.calendar_month),
-            ],
+          const SizedBox(height: 12),
+
+          // Cuadrícula adaptable responsiva (Evita overflows de altura)
+          LayoutBuilder(
+            builder: (context, constraints) {
+              final bool esAncho = constraints.maxWidth > 345;
+              if (esAncho) {
+                return GridView.count(
+                  crossAxisCount: 2,
+                  shrinkWrap: true,
+                  physics: const NeverScrollableScrollPhysics(),
+                  mainAxisSpacing: 8,
+                  crossAxisSpacing: 8,
+                  childAspectRatio: 2.1,
+                  children: [
+                    _tarjetaAhorro('Diario', desglose.ahorrosDiarios, Icons.calendar_today, Colors.blue.shade50),
+                    _tarjetaAhorro('Semanal', desglose.ahorrosSemanal, Icons.date_range, Colors.indigo.shade50),
+                    _tarjetaAhorro('Quincenal', desglose.ahorrosQuincenal, Icons.event_note, Colors.teal.shade50),
+                    _tarjetaAhorro('Mensual', desglose.ahorrosMensual, Icons.calendar_month, Colors.purple.shade50),
+                  ],
+                );
+              } else {
+                return Column(
+                  crossAxisAlignment: CrossAxisAlignment.stretch,
+                  children: [
+                    _tarjetaAhorro('Diario', desglose.ahorrosDiarios, Icons.calendar_today, Colors.blue.shade50),
+                    const SizedBox(height: 8),
+                    _tarjetaAhorro('Semanal', desglose.ahorrosSemanal, Icons.date_range, Colors.indigo.shade50),
+                    const SizedBox(height: 8),
+                    _tarjetaAhorro('Quincenal', desglose.ahorrosQuincenal, Icons.event_note, Colors.teal.shade50),
+                    const SizedBox(height: 8),
+                    _tarjetaAhorro('Mensual', desglose.ahorrosMensual, Icons.calendar_month, Colors.purple.shade50),
+                  ],
+                );
+              }
+            },
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 12),
+
+          // Banner de Insight Financiero Inteligente
           Container(
-            padding: const EdgeInsets.all(8),
+            padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
-                color: Colors.green.shade50,
-                borderRadius: BorderRadius.circular(8),
-                border: Border.all(color: Colors.green.shade300)),
+              gradient: LinearGradient(
+                colors: [
+                  Colors.green.shade50,
+                  Colors.teal.shade50.withOpacity(0.4),
+                ],
+              ),
+              borderRadius: BorderRadius.circular(12),
+              border: Border.all(color: Colors.green.shade100),
+            ),
             child: Row(
               children: [
-                Icon(Icons.check_circle,
-                    color: Colors.green.shade700, size: 16),
-                const SizedBox(width: 6),
+                Container(
+                  padding: const EdgeInsets.all(6),
+                  decoration: const BoxDecoration(
+                    color: Colors.white,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Icon(Icons.star, color: Colors.green.shade700, size: 16),
+                ),
+                const SizedBox(width: 10),
                 Expanded(
-                  child: Text(
-                      '💡 Recomendado: ${_nombrePeriodo(desglose.periodoRecomendado)}',
-                      style: TextStyle(color: Colors.green.shade700)),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(
+                        'RECOMENDACIÓN DE AHORRO',
+                        style: TextStyle(
+                          fontSize: 9,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green.shade900,
+                          letterSpacing: 0.5,
+                        ),
+                      ),
+                      const SizedBox(height: 1),
+                      Text(
+                        _nombrePeriodo(desglose.periodoRecomendado),
+                        style: TextStyle(
+                          fontSize: 12,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green.shade800,
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -253,35 +492,89 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
     );
   }
 
-  Widget _tarjetaAhorro(String periodo, double monto, IconData icono) {
+  Widget _tarjetaAhorro(String periodo, double monto, IconData icono, Color bgColor) {
     return Container(
-      padding: const EdgeInsets.all(8),
+      padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-          color: Colors.white,
-          borderRadius: BorderRadius.circular(8),
-          border: Border.all(color: Colors.blue.shade100)),
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+        border: Border.all(color: Themes.primary.withOpacity(0.06)),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.01),
+            blurRadius: 4,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Row(
         children: [
-          Icon(icono, size: 16, color: Colors.blue.shade600),
-          const SizedBox(height: 4),
-          Text(periodo,
-              style:
-                  const TextStyle(fontSize: 10, fontWeight: FontWeight.w500)),
-          const SizedBox(height: 4),
-          FittedBox(
-            // ← Evita desbordamiento con montos grandes
-            fit: BoxFit.scaleDown,
-            child: Text(
-              UIHelpers.formatCurrency(monto),
-              style: const TextStyle(
-                  fontSize: 11,
-                  fontWeight: FontWeight.bold,
-                  color: Colors.green),
-              textAlign: TextAlign.center,
+          Container(
+            padding: const EdgeInsets.all(6),
+            decoration: BoxDecoration(
+              color: bgColor,
+              shape: BoxShape.circle,
+            ),
+            child: Icon(icono, size: 16, color: Themes.primary.withOpacity(0.8)),
+          ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                Text(
+                  periodo,
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(
+                    UIHelpers.formatCurrency(monto),
+                    style: const TextStyle(
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                      color: Themes.primary,
+                    ),
+                  ),
+                ),
+              ],
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _botonAccion({
+    required IconData icon,
+    required String tooltip,
+    required Color color,
+    required VoidCallback onPressed,
+  }) {
+    return Tooltip(
+      message: tooltip,
+      child: InkWell(
+        onTap: onPressed,
+        borderRadius: BorderRadius.circular(10),
+        child: Ink(
+          padding: const EdgeInsets.all(10),
+          decoration: BoxDecoration(
+            color: color.withOpacity(0.08),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Icon(
+            icon,
+            size: 18,
+            color: color,
+          ),
+        ),
       ),
     );
   }
@@ -295,21 +588,37 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
       };
 
   Widget _tarjetaMetaInvalida(BuildContext context, String msg) {
-    return Card(
+    return Container(
       margin: const EdgeInsets.symmetric(vertical: 10),
-      child: Padding(
-        padding: const EdgeInsets.all(16),
-        child: Column(children: [
-          Text(meta.nombre,
-              style:
-                  const TextStyle(fontWeight: FontWeight.bold, fontSize: 18)),
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(16),
+        border: Border.all(color: Colors.red.shade100),
+      ),
+      child: Column(
+        children: [
+          Text(
+            meta.nombre,
+            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+          ),
           const SizedBox(height: 12),
-          Text('⚠️ $msg', style: const TextStyle(color: Colors.red)),
-          const SizedBox(height: 12),
-          IconButton(
-              icon: const Icon(Icons.delete, color: Colors.red),
-              onPressed: onEliminar),
-        ]),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 18),
+              const SizedBox(width: 8),
+              Text(msg, style: const TextStyle(color: Colors.red, fontWeight: FontWeight.w600)),
+            ],
+          ),
+          const SizedBox(height: 16),
+          _botonAccion(
+            icon: Icons.delete_outline,
+            tooltip: 'Eliminar',
+            color: Colors.red,
+            onPressed: onEliminar,
+          ),
+        ],
       ),
     );
   }

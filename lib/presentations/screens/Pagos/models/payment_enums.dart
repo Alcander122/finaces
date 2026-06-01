@@ -12,6 +12,8 @@ enum FrequencyUnit {
   none,
   days,
   weeks,
+  semiMonthly,
   months,
   years,
 }
+

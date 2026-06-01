@@ -13,6 +13,7 @@ import 'widgets/fecha_vencimiento_picker.dart';
 import 'widgets/payment_config_bottom_sheet.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
+import 'package:finances/core/errors/handlers/db_error_handler.dart';
 import 'package:finances/presentations/widgets/custom_form_container.dart';
 import 'package:finances/presentations/widgets/app_input_style.dart';
 
@@ -121,7 +122,7 @@ class _AgregarEditarPagoScreenState
       if (!mounted) return;
       UIHelpers.showErrorSnackBar(
         context: context,
-        message: "Error: $e",
+        message: DbErrorHandler.handle(e),
       );
     }
   }

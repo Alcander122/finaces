@@ -25,9 +25,7 @@ class PagoItemWidget extends StatelessWidget {
   });
 
   String _formatNextDueDate(Payment pago) {
-    final date = pago.recurrence.unit == FrequencyUnit.none
-        ? pago.nextDueDate
-        : NextDueDateCalculator.calculateNextDueDate(pago);
+    final date = pago.nextDueDate;
     return date != null ? DateFormat('dd/MM/yyyy').format(date) : 'No definido';
   }
 

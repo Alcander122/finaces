@@ -1,20 +1,51 @@
-// core/data/providers/tutorial_provider.dart
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:finances/core/data/providers/auth_provider.dart';
 
 /// Proveedor que indica si el usuario ya vio el tutorial.
 /// - `true` → ya lo vio
 /// - `false` → primera vez
-/// - Usa keepAlive() para persistir
+/// - Usa persistencia híbrida (SharedPreferences + Firestore)
 final tutorialProvider = FutureProvider<bool>((ref) async {
+  final authState = ref.watch(authProvider);
+  if (!authState.isAuthenticated || authState.user == null) {
+    // Si el usuario no está logueado, por seguridad no mostramos el tutorial
+    return true; 
+  }
+
+  final uid = authState.user!.uid;
   final prefs = await SharedPreferences.getInstance();
-  final hasSeen = prefs.getBool('tutorial_seen') ?? false;
+  
+  // 🔑 Llave única por usuario para evitar multi-user overrides
+  final localSeen = prefs.getBool('tutorial_seen_$uid') ?? false;
 
-  debugPrint('>>> [tutorialProvider] ¿Ya vio el tutorial? $hasSeen');
-  ref.keepAlive(); // Mantiene el provider vivo
+  if (localSeen) {
+    debugPrint('>>> [tutorialProvider] Usuario $uid ya vio el tutorial localmente.');
+    return true;
+  }
 
-  return hasSeen;
+  // ☁️ Comprobar persistencia cruzada en Firestore
+  try {
+    debugPrint('>>> [tutorialProvider] Buscando tutorialSeen en Firestore para: $uid');
+    final userDoc = await FirebaseFirestore.instance.collection('users').doc(uid).get();
+    if (userDoc.exists) {
+      final data = userDoc.data();
+      final firestoreSeen = data?['tutorialSeen'] == true;
+      if (firestoreSeen) {
+        // Sincronizar localmente para futuros arranques rápidos sin red
+        await prefs.setBool('tutorial_seen_$uid', true);
+        debugPrint('>>> [tutorialProvider] Sincronizado tutorialSeen=true en SharedPreferences para: $uid');
+        return true;
+      }
+    }
+  } catch (e) {
+    debugPrint('⚠️ Error leyendo tutorialSeen de Firestore: $e');
+  }
+
+  debugPrint('>>> [tutorialProvider] El usuario $uid NO ha completado el tutorial.');
+  return false;
 }, name: 'tutorialProvider');
 
 /// Notificador para controlar el estado del tutorial
@@ -28,34 +59,50 @@ class OnboardingNotifier {
 
   OnboardingNotifier(this.ref);
 
-  /// Marca el tutorial como visto (solo si no lo estaba)
+  /// Marca el tutorial como visto en ambos repositorios
   Future<void> markAsSeen() async {
-    final prefs = await SharedPreferences.getInstance();
-    final alreadySeen = prefs.getBool('tutorial_seen') ?? false;
-
-    if (alreadySeen) {
-      debugPrint(
-          '>>> [markAsSeen] Ya estaba marcado como visto. No se hace nada.');
+    final authState = ref.read(authProvider);
+    if (!authState.isAuthenticated || authState.user == null) {
+      debugPrint('⚠️ Intento de marcar tutorial como visto sin usuario autenticado.');
       return;
     }
-
-    await prefs.setBool('tutorial_seen', true);
-    debugPrint('>>> [markAsSeen] Tutorial marcado como visto');
-    ref.invalidate(tutorialProvider); // Refresca el provider
-  }
-
-  /// [OPCIONAL] Reinicia el estado (útil para pruebas o botón "ver de nuevo")
-  Future<void> reset() async {
+    
+    final uid = authState.user!.uid;
     final prefs = await SharedPreferences.getInstance();
-    await prefs.remove('tutorial_seen');
-    debugPrint('>>> [reset] Estado del tutorial reiniciado');
-    ref.invalidate(tutorialProvider);
+    
+    // 1. Guardar en SharedPreferences localmente
+    await prefs.setBool('tutorial_seen_$uid', true);
+    debugPrint('>>> [markAsSeen] Tutorial marcado visto localmente para usuario: $uid');
+
+    // 2. Guardar en Firestore para sincronización entre múltiples dispositivos
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+        'tutorialSeen': true,
+      });
+      debugPrint('>>> [markAsSeen] Tutorial marcado visto en Firestore para usuario: $uid');
+    } catch (e) {
+      debugPrint('⚠️ Error guardando tutorialSeen en Firestore: $e');
+    }
+
+    ref.invalidate(tutorialProvider); // Refresca el provider reactivamente
   }
 
-  /// Verifica si se debe mostrar el tutorial (para navegación automática)
-  bool shouldShow() {
-    // Este método NO lee SharedPreferences directamente
-    // Usa el estado del provider
-    return !ref.read(tutorialProvider).valueOrNull!;
+  /// Reinicia el estado (útil para pruebas o depuración)
+  Future<void> reset() async {
+    final authState = ref.read(authProvider);
+    if (!authState.isAuthenticated || authState.user == null) return;
+    
+    final uid = authState.user!.uid;
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.remove('tutorial_seen_$uid');
+    
+    try {
+      await FirebaseFirestore.instance.collection('users').doc(uid).update({
+        'tutorialSeen': FieldValue.delete(),
+      });
+      debugPrint('>>> [reset] Estado del tutorial reiniciado en local y Firestore.');
+    } catch (_) {}
+
+    ref.invalidate(tutorialProvider);
   }
 }

@@ -2,10 +2,10 @@ import 'package:finances/core/errors/error_strings.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/foundation.dart';
 
-/// Traduce errores de Firebase Auth a mensajes amigables
+/// Traduce errores de Firebase Auth a mensajes amigables UX
 class AuthErrorHandler {
   static String handle(FirebaseAuthException error) {
-    debugPrint("Error Firebase Auth: ${error.code}");
+    debugPrint("🔥 Auth Error Catch: [${error.code}] - ${error.message}");
 
     switch (error.code.toLowerCase()) {
       case 'invalid-email':
@@ -15,7 +15,8 @@ class AuthErrorHandler {
       case 'user-not-found':
         return ErrorStrings.userNotFound;
       case 'wrong-password':
-        return ErrorStrings.wrongPassword;
+      case 'invalid-credential':
+        return ErrorStrings.invalidCredentials;
       case 'email-already-in-use':
         return ErrorStrings.emailInUse;
       case 'operation-not-allowed':
@@ -33,14 +34,16 @@ class AuthErrorHandler {
         return ErrorStrings.processCanceledByUser;
       case 'requires-recent-login':
         return ErrorStrings.requiresRecentLogin;
-      case 'invalid-credential':
       case 'invalid-verification-code':
       case 'invalid-verification-id':
         return ErrorStrings.invalidCredential;
       case 'account-exists-with-different-credential':
         return ErrorStrings.accountExistsWithDifferentCredential;
       default:
-        return "${ErrorStrings.unexpectedError} (${error.code})";
+        // En producción nunca mostramos el código técnico al usuario
+        return kDebugMode
+            ? "${ErrorStrings.unexpectedError} (${error.code})"
+            : ErrorStrings.unexpectedError;
     }
   }
 }

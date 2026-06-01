@@ -19,7 +19,7 @@ class DueDateUtils {
     }
 
     // Obtener cuántos días tiene el nuevo mes destino
-    final daysInNewMonth = _daysInMonth(newYear, newMonth);
+    final daysInNewMonth = daysInMonth(newYear, newMonth);
 
     // Snap to end: Si el día original es mayor a los días que tiene el mes destino, usar el límite del mes destino.
     int newDay = date.day;
@@ -31,7 +31,7 @@ class DueDateUtils {
   }
 
   /// Devuelve el número de días en un mes específico, contemplando años bisiestos.
-  static int _daysInMonth(int year, int month) {
+  static int daysInMonth(int year, int month) {
     if (month == 2) {
       bool isLeapYear = (year % 4 == 0) && ((year % 100 != 0) || (year % 400 == 0));
       return isLeapYear ? 29 : 28;
@@ -40,3 +40,4 @@ class DueDateUtils {
     return days[month - 1];
   }
 }
+

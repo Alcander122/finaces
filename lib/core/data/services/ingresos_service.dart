@@ -8,22 +8,18 @@ class IngresosService {
 
   /// Guarda un nuevo ingreso en Firestore
   Future<String> guardarIngreso(String userId, Ingreso ingreso) async {
-    try {
-      final docRef = await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('ingresos')
-          .add(ingreso.toMap());
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('ingresos')
-          .doc(docRef.id)
-          .update({'id': docRef.id});
-      return docRef.id;
-    } catch (e) {
-      throw Exception("No se pudo guardar el ingreso: $e");
-    }
+    final docRef = await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('ingresos')
+        .add(ingreso.toMap());
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('ingresos')
+        .doc(docRef.id)
+        .update({'id': docRef.id});
+    return docRef.id;
   }
 
   /// Método actualizado para obtener el total de ingresos del mes actual
@@ -78,33 +74,43 @@ class IngresosService {
     }
   }
 
+  /// Obtiene todos los ingresos del usuario ordenados por fecha como un Stream
+  Stream<List<Ingreso>> streamIngresos(String userId) {
+    return _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('ingresos')
+        .orderBy('fechaIngreso', descending: true)
+        .snapshots()
+        .map((snapshot) {
+      return snapshot.docs.map((doc) {
+        var data = doc.data();
+        return Ingreso.fromMap({...data, 'id': doc.id});
+      }).toList();
+    }).handleError((error) {
+      throw Exception("Error en streamIngresos: $error");
+    });
+  }
+
   /// Actualiza un ingreso existente en Firestore
   Future<void> actualizarIngreso(
       String userId, String ingresoId, Ingreso ingreso) async {
-    try {
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('ingresos')
-          .doc(ingresoId)
-          .update(ingreso.toMap());
-    } catch (e) {
-      throw Exception("No se pudo actualizar el ingreso: $e");
-    }
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('ingresos')
+        .doc(ingresoId)
+        .update(ingreso.toMap());
   }
 
   /// Elimina un ingreso de Firestore
   Future<void> eliminarIngreso(String userId, String ingresoId) async {
-    try {
-      await _firestore
-          .collection('users')
-          .doc(userId)
-          .collection('ingresos')
-          .doc(ingresoId)
-          .delete();
-    } catch (e) {
-      throw Exception("No se pudo eliminar el ingreso: $e");
-    }
+    await _firestore
+        .collection('users')
+        .doc(userId)
+        .collection('ingresos')
+        .doc(ingresoId)
+        .delete();
   }
 
   /// Obtiene el total de ingresos en un rango de fechas específico
@@ -135,7 +141,6 @@ class IngresosService {
       throw Exception("Error en streamTotalIngresosInRange: $e");
     }
   }
-  
 
   /// Obtiene los ingresos filtrados por rango de fechas (usado por la gráfica)
   Stream<List<Ingreso>> obtenerIngresosFiltrados(

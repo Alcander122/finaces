@@ -1,14 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:uuid/uuid.dart';
 import 'package:intl/intl.dart';
 import 'package:finances/core/data/models/portafolio_model.dart';
-import 'package:finances/core/data/services/portafolio_service.dart';
+import 'package:finances/core/data/providers/portafolio_provider.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:finances/presentations/widgets/custom_form_container.dart';
 import 'package:finances/presentations/widgets/app_input_style.dart';
 import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/core/errors/error_strings.dart';
+import 'package:finances/core/errors/handlers/db_error_handler.dart';
 
-class PortafolioFormScreen extends StatefulWidget {
+class PortafolioFormScreen extends ConsumerStatefulWidget {
   final String userId;
   final Portafolio? portafolio;
 
@@ -22,7 +25,7 @@ class PortafolioFormScreen extends StatefulWidget {
   PortafolioFormScreenState createState() => PortafolioFormScreenState();
 }
 
-class PortafolioFormScreenState extends State<PortafolioFormScreen> {
+class PortafolioFormScreenState extends ConsumerState<PortafolioFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _nombreController = TextEditingController();
   final _descripcionController = TextEditingController();
@@ -63,24 +66,29 @@ class PortafolioFormScreenState extends State<PortafolioFormScreen> {
       nota: _notaController.text.trim(),
     );
 
-    final service = PortafolioService();
+    final service = ref.read(portafolioServiceProvider);
     final future = widget.portafolio == null
         ? service.agregarPortafolio(widget.userId, portafolio)
         : service.actualizarPortafolio(widget.userId, portafolio);
 
     future.then((_) {
-      Navigator.pop(context);
-      UIHelpers.showSuccessSnackBar(
-        context: context,
-        message: widget.portafolio == null
-            ? 'Portafolio creado correctamente'
-            : 'Portafolio actualizado correctamente',
-      );
+      if (mounted) {
+        Navigator.pop(context);
+        UIHelpers.showSuccessSnackBar(
+          context: context,
+          message: widget.portafolio == null
+              ? 'Portafolio creado correctamente'
+              : 'Portafolio actualizado correctamente',
+        );
+      }
     }).catchError((error) {
-      UIHelpers.showErrorSnackBar(
-        context: context,
-        message: 'Error: $error',
-      );
+      if (mounted) {
+        final friendlyError = DbErrorHandler.handle(error);
+        UIHelpers.showErrorSnackBar(
+          context: context,
+          message: friendlyError,
+        );
+      }
     });
   }
 
@@ -128,7 +136,7 @@ class PortafolioFormScreenState extends State<PortafolioFormScreen> {
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'El nombre es obligatorio';
+                  return ErrorStrings.requiredField;
                 }
                 return null;
               },
@@ -155,7 +163,7 @@ class PortafolioFormScreenState extends State<PortafolioFormScreen> {
               ),
               validator: (value) {
                 if (value == null || value.trim().isEmpty) {
-                  return 'La nota es obligatoria';
+                  return ErrorStrings.requiredField;
                 }
                 return null;
               },
@@ -192,3 +200,4 @@ class PortafolioFormScreenState extends State<PortafolioFormScreen> {
     );
   }
 }
+

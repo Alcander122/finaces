@@ -11,6 +11,7 @@ class FrequencySelectorChips extends ConsumerWidget {
       case FrequencyUnit.none: return 'Único';
       case FrequencyUnit.days: return 'Diario';
       case FrequencyUnit.weeks: return 'Semanal';
+      case FrequencyUnit.semiMonthly: return 'Quincenal';
       case FrequencyUnit.months: return 'Mensual';
       case FrequencyUnit.years: return 'Anual';
     }
@@ -27,7 +28,7 @@ class FrequencySelectorChips extends ConsumerWidget {
         const SizedBox(height: 8),
         Wrap(
           spacing: 8.0,
-          children: [FrequencyUnit.none, FrequencyUnit.weeks, FrequencyUnit.months, FrequencyUnit.years]
+          children: [FrequencyUnit.none, FrequencyUnit.weeks, FrequencyUnit.semiMonthly, FrequencyUnit.months, FrequencyUnit.years]
               .map((unit) {
             return ChoiceChip(
               label: Text(_getLabel(unit)),

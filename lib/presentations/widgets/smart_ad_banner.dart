@@ -1,3 +1,4 @@
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart';
@@ -25,8 +26,9 @@ class _SmartAdBannerState extends ConsumerState<SmartAdBanner> {
 
   void _loadAd() {
     _bannerAd = BannerAd(
-      adUnitId:
-          'ca-app-pub-3940256099942544/6300978111', // ID de prueba de Google
+      adUnitId: kDebugMode
+          ? 'ca-app-pub-3940256099942544/6300978111' // ID de prueba de Google
+          : 'ca-app-pub-6536574784899409/6209842510', // ID de producción real (Banner_Home)
       request: const AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(

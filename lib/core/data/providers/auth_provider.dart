@@ -213,9 +213,10 @@ class AuthNotifier extends StateNotifier<AuthState> {
       state = const AuthState.loading();
       await _storage.clearLoggedOut();
 
-      // 🔥 LIMPIEZA DE SEGURIDAD: Igual que en signIn
+      // 🔥 LIMPIEZA DE SEGURIDAD
       await BiometricAuthService().clearBiometricSetting();
 
+      // Registrar
       await _userService.registerUser(
         name: name,
         displayName: displayName,
@@ -223,16 +224,13 @@ class AuthNotifier extends StateNotifier<AuthState> {
         password: password,
       );
 
-      final user = _auth.currentUser;
-      if (user != null) {
-        state = AuthState.authenticated(user);
-        // 💾 GUARDAR CORREO DEL NUEVO USUARIO
-        final prefs = await SharedPreferences.getInstance();
-        await prefs.setString('last_email', email);
-      } else {
-        state = AuthState.error('Error al obtener usuario tras registro');
-        throw Exception('Usuario no disponible tras registro');
-      }
+      // 🚪 FORZAR CIERRE DE SESIÓN INMEDIATO
+      await _auth.signOut();
+      state = const AuthState.unauthenticated();
+
+      // 💾 Guardar correo para pre-rellenar
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setString('last_email', email);
     } on FirebaseAuthException catch (e) {
       final message = AuthErrorHandler.handle(e);
       state = AuthState.error(message);
