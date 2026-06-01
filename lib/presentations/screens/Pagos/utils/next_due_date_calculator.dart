@@ -41,6 +41,10 @@ class NextDueDateCalculator {
             baseDate.add(Duration(days: interval * 7 * effectiveInstallment));
         break;
 
+      case FrequencyUnit.semiMonthly:
+        nextDate = _calculateNextSemiMonthly(baseDate, interval * effectiveInstallment);
+        break;
+
       case FrequencyUnit.months:
         nextDate = DueDateUtils.addMonthsWithSnapToEnd(
             baseDate, interval * effectiveInstallment);
@@ -57,5 +61,36 @@ class NextDueDateCalculator {
     }
 
     return nextDate;
+  }
+
+  static tz.TZDateTime _calculateNextSemiMonthly(tz.TZDateTime date, int steps) {
+    tz.TZDateTime current = date;
+    for (int i = 0; i < steps; i++) {
+      int year = current.year;
+      int month = current.month;
+      int day = current.day;
+
+      int newYear = year;
+      int newMonth = month;
+      int newDay;
+
+      final lastDayOfCurrentMonth = DueDateUtils.daysInMonth(year, month);
+
+      if (day < 15) {
+        newDay = 15;
+      } else if (day < lastDayOfCurrentMonth) {
+        newDay = lastDayOfCurrentMonth;
+      } else {
+        // Avanzar al 15 del mes siguiente
+        newMonth = month + 1;
+        if (newMonth > 12) {
+          newYear++;
+          newMonth = 1;
+        }
+        newDay = 15;
+      }
+      current = tz.TZDateTime(current.location, newYear, newMonth, newDay, current.hour, current.minute, current.second);
+    }
+    return current;
   }
 }

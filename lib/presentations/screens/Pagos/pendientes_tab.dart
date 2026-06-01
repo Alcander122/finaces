@@ -8,7 +8,8 @@ import 'package:finances/presentations/screens/Pagos/widgets/empty_state_widget.
 import 'package:finances/presentations/screens/Pagos/widgets/confirm_delete_dialog.dart';
 import 'package:finances/presentations/screens/Pagos/models/payment_enums.dart';
 
-import '../../../utils/ui_helpers.dart';
+import 'package:finances/core/data/utils/ui_helpers.dart';
+import 'package:finances/core/errors/handlers/db_error_handler.dart';
 
 class PendientesTab extends ConsumerWidget {
   final String userId;
@@ -60,7 +61,29 @@ class PendientesTab extends ConsumerWidget {
           },
         );
       },
-      error: (err, stack) => Center(child: Text("Error: $err")),
+      error: (err, stack) => Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              const Icon(Icons.error_outline, color: Colors.red, size: 48),
+              const SizedBox(height: 16),
+              Text(
+                DbErrorHandler.handle(err),
+                style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              ElevatedButton.icon(
+                icon: const Icon(Icons.refresh),
+                label: const Text('Reintentar'),
+                onPressed: () => ref.invalidate(paymentsStreamProvider(userId)),
+              ),
+            ],
+          ),
+        ),
+      ),
       loading: () => const Center(child: CircularProgressIndicator()),
     );
   }
@@ -77,7 +100,7 @@ class PendientesTab extends ConsumerWidget {
         if (!context.mounted) return;
         UIHelpers.showErrorSnackBar(
           context: context,
-          message: "Error eliminando pago: $e",
+          message: DbErrorHandler.handle(e),
         );
       }
     }

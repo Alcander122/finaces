@@ -1,15 +1,20 @@
 import 'package:finances/core/data/models/investment_model.dart';
+import 'package:finances/core/data/providers/investment_provider.dart';
+import 'package:finances/core/data/providers/portafolio_provider.dart';
 import 'package:finances/core/data/services/currency_service.dart';
-import 'package:finances/core/data/services/investment_service.dart';
 import 'package:finances/core/data/utils/form_validator.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
-import 'dart:math';
 import 'package:uuid/uuid.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
+import 'package:finances/core/errors/handlers/db_error_handler.dart';
+import 'package:finances/presentations/widgets/custom_form_container.dart';
+import 'package:finances/presentations/widgets/app_input_style.dart';
+import 'package:finances/presentations/theme/themes.dart';
 
-class InvestmentFormScreen extends StatefulWidget {
+class InvestmentFormScreen extends ConsumerStatefulWidget {
   final String userId;
   final String portafolioId;
   final Investment? investment;
@@ -22,14 +27,13 @@ class InvestmentFormScreen extends StatefulWidget {
   });
 
   @override
-  State<InvestmentFormScreen> createState() => _InvestmentFormScreenState();
+  ConsumerState<InvestmentFormScreen> createState() => _InvestmentFormScreenState();
 }
 
-class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
+class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _montoController = TextEditingController();
   final _descripcionController = TextEditingController();
-  final _currencyService = CurrencyService();
   final _validator = FormValidator();
 
   // === VALORES SELECCIONADOS ===
@@ -46,7 +50,6 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
   bool _isLoadingConversion = false;
 
   // === LISTAS DE OPCIONES ===
-  // MESES: Capitalizados correctamente (Enero, Febrero, ...)
   late final List<String> _meses;
 
   final List<String> _origenes = [
@@ -54,13 +57,6 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
     'Salario',
     'Rendimientos',
     'Otros'
-  ];
-
-  final List<String> _activos = [
-    'ETF SP&500',
-    'Acciones',
-    'Criptomonedas',
-    'Bonos'
   ];
 
   @override
@@ -74,23 +70,19 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
         .map((mes) => mes[0].toUpperCase() + mes.substring(1).toLowerCase())
         .toList();
 
-// Listener DESPUÉS de inicializar
+    // Listener DESPUÉS de inicializar
     _montoController.addListener(_updateConversion);
 
     // Conversión inicial DESPUÉS del primer frame
     WidgetsBinding.instance.addPostFrameCallback((_) {
       if (mounted) {
         _updateConversion();
-        // Validar después de cargar para limpiar errores visuales
         _formKey.currentState?.validate();
       }
     });
+    
     // 2. Inicializar todos los campos
     _initializeFields();
-
-    // 3. Escuchar cambios en el monto para conversión
-    _montoController.addListener(_updateConversion);
-    _updateConversion(); // Conversión inicial
   }
 
   /// Inicializa todos los campos del formulario
@@ -106,70 +98,78 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
 
     // === ORIGEN, ACTIVO, ESTADO ===
     _selectedOrigen = widget.investment?.origen ?? _origenes[0];
-    _selectedActivo = widget.investment?.activo ?? _activos[0];
+    _selectedActivo = widget.investment?.activo ?? 'Acciones';
     _selectedEstado = widget.investment?.estado ?? 'Activo';
 
     // === FECHA DE INVERSIÓN ===
     _selectedFechaInversion = widget.investment?.fechaInversion ?? now;
 
-    // === MONTO (SIEMPRE 2 DECIMALES) ===
-    final monto = widget.investment?.invMensual ?? 0.0;
-    _montoController.text = UIHelpers.formatCurrency(monto);
+    // === MONTO ===
+    if (widget.investment != null) {
+      final monto = widget.investment!.invMensual;
+      _montoController.text = NumberFormat.decimalPattern('es_CO').format(monto.round());
+    } else {
+      _montoController.text = '';
+    }
 
     // === DESCRIPCIÓN ===
     _descripcionController.text = widget.investment?.descripcion ?? '';
   }
 
   /// Normaliza cualquier variante del mes a su forma capitalizada estándar
-  /// Ej: "octubre", "OCTUBRE", "Octubre" → "Octubre"
   String? _normalizeMonth(String? mes) {
     if (mes == null || mes.trim().isEmpty) return null;
 
     final cleaned = mes.trim();
     final lowerCase = cleaned.toLowerCase();
 
-    // Buscar en la lista original en minúsculas
     final index = DateFormat.MMMM('es').dateSymbols.MONTHS.indexWhere(
           (m) => m.toLowerCase() == lowerCase,
         );
 
     if (index != -1) {
-      return _meses[index]; // Devuelve "Octubre", "Enero", etc.
+      return _meses[index];
     }
 
-    return null; // No encontrado
+    return null;
   }
 
   /// Actualiza la conversión de moneda en tiempo real
   Future<void> _updateConversion() async {
-    // Limpiar formato: "$ 1.234,56" → "1234.56"
     final rawText = _montoController.text;
     final cleanText =
         rawText.replaceAll(RegExp(r'[^\d,]'), '').replaceAll('.', '');
     final monto = double.tryParse(cleanText.replaceAll(',', '.')) ?? 0.0;
 
     if (monto <= 0 || _selectedMoneda == 'COP') {
-      setState(() {
-        _tasaConversion = 1.0;
-        _montoConvertido = monto;
-        _isLoadingConversion = false;
-      });
+      if (mounted) {
+        setState(() {
+          _tasaConversion = 1.0;
+          _montoConvertido = monto;
+          _isLoadingConversion = false;
+        });
+      }
       return;
     }
 
-    setState(() => _isLoadingConversion = true);
+    if (mounted) {
+      setState(() => _isLoadingConversion = true);
+    }
 
     try {
+      final currencyService = ref.read(currencyServiceProvider);
       final rate =
-          await _currencyService.getExchangeRate(_selectedMoneda, 'COP');
-      setState(() {
-        _tasaConversion = rate;
-        _montoConvertido = monto * rate;
-      });
+          await currencyService.getExchangeRate(_selectedMoneda, 'COP');
+      if (mounted) {
+        setState(() {
+          _tasaConversion = rate;
+          _montoConvertido = monto * rate;
+        });
+      }
     } catch (e) {
       if (mounted) {
         UIHelpers.showErrorSnackBar(
-            context: context, message: 'Error en conversión de moneda');
+            context: context, message: 'No se pudo actualizar la tasa de cambio');
       }
     } finally {
       if (mounted) {
@@ -195,7 +195,6 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
   Future<void> _guardarInversion() async {
     if (!_formKey.currentState!.validate()) return;
 
-    // Limpiar monto
     final rawText = _montoController.text;
     final cleanText =
         rawText.replaceAll(RegExp(r'[^\d,]'), '').replaceAll('.', '');
@@ -206,7 +205,7 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
       userId: widget.userId,
       portafolioId: widget.portafolioId,
       fecha: DateTime.now(),
-      mes: _selectedMes, // ← Siempre capitalizado y válido
+      mes: _selectedMes,
       invMensual: monto,
       moneda: _selectedMoneda,
       descripcion: _descripcionController.text,
@@ -217,7 +216,7 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
     );
 
     try {
-      final service = InvestmentService();
+      final service = ref.read(investmentServiceProvider);
       if (widget.investment == null) {
         await service.agregarInvestment(
             widget.userId, widget.portafolioId, investment);
@@ -228,13 +227,14 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
 
       if (mounted) {
         UIHelpers.showSuccessSnackBar(
-            context: context, message: 'Inversión guardada');
+            context: context, message: 'Inversión guardada con éxito');
         Navigator.pop(context);
       }
     } catch (e) {
       if (mounted) {
+        final friendlyError = DbErrorHandler.handle(e);
         UIHelpers.showErrorSnackBar(
-            context: context, message: 'Error al guardar');
+            context: context, message: friendlyError);
       }
     }
   }
@@ -249,171 +249,237 @@ class _InvestmentFormScreenState extends State<InvestmentFormScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final assetCatalogAsync = ref.watch(assetCatalogProvider);
+
     return Scaffold(
+      backgroundColor: Themes.light,
       appBar: AppBar(
+        backgroundColor: Themes.primary,
+        foregroundColor: Colors.white,
         title: Text(
             widget.investment == null ? "Nueva Inversión" : "Editar Inversión"),
+        centerTitle: true,
       ),
       body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              // === MONTO CON FORMATO ===
-              TextFormField(
-                controller: _montoController,
-                decoration: const InputDecoration(labelText: 'Monto *'),
-                keyboardType: TextInputType.numberWithOptions(decimal: true),
-                inputFormatters: [
-                  FilteringTextInputFormatter.allow(RegExp(r'[\d,.]')),
-                ],
-                onChanged: (value) {
-                  // Evitar bucle infinito
-                  if (value == _montoController.text) return;
-
-                  final clean = value
-                      .replaceAll(RegExp(r'[^\d,]'), '')
-                      .replaceAll('.', '');
-
-                  final parts = clean.split(',');
-                  final integer = parts[0];
-                  final decimal = parts.length > 1
-                      ? parts[1]
-                          .substring(0, min(2, parts[1].length))
-                          .padRight(2, '0')
-                      : '00';
-
-                  final numberStr = '$integer.$decimal';
-                  final number = double.tryParse(numberStr);
-
-                  if (number != null && number > 0) {
-                    final formatted = UIHelpers.formatCurrency(number);
-                    if (formatted != _montoController.text) {
-                      _montoController.value = TextEditingValue(
-                        text: formatted,
-                        selection:
-                            TextSelection.collapsed(offset: formatted.length),
-                      );
-                    }
-                  }
-
-                  _updateConversion();
-                },
-                validator: _validator.validateAmount,
+        child: CustomFormContainer(
+          formKey: _formKey,
+          onCancel: () => Navigator.pop(context),
+          onSave: _guardarInversion,
+          saveButtonText: 'Guardar',
+          cancelButtonText: 'Cancelar',
+          children: [
+            Text(
+              widget.investment == null
+                  ? "Registrar Inversión"
+                  : "Editar Inversión",
+              style: const TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: Themes.primary,
               ),
-              const SizedBox(height: 12),
+              textAlign: TextAlign.center,
+            ),
+            const SizedBox(height: 20),
 
-              // === MONEDA ===
-              DropdownButtonFormField<String>(
-                value: _selectedMoneda,
-                items: ['COP', 'USD', 'EUR']
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (v) async {
-                  setState(() => _selectedMoneda = v!);
-                  await _updateConversion();
-                },
-                decoration: const InputDecoration(labelText: 'Moneda'),
+            // === MONTO CON FORMATO ===
+            TextFormField(
+              controller: _montoController,
+              decoration: AppInputStyle.textField(
+                label: 'Monto *',
+                suffixIcon: const Icon(Icons.monetization_on_outlined),
+              ).copyWith(
+                prefixText: _selectedMoneda == 'COP' ? '\$ ' : (_selectedMoneda == 'USD' ? 'US\$ ' : '€ '),
+                prefixStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+                hintText: '0',
               ),
-              const SizedBox(height: 12),
-
-              // === CONVERSIÓN ===
-              if (_isLoadingConversion)
-                const LinearProgressIndicator(minHeight: 2)
-              else ...[
-                Text(
-                  'Tasa: 1 $_selectedMoneda = ${UIHelpers.formatRate(_tasaConversion)}',
-                  style: TextStyle(fontSize: 13, color: Colors.grey[700]),
-                ),
-                const SizedBox(height: 4),
-                Text(
-                  'Convertido: ${UIHelpers.formatCurrency(_montoConvertido)}',
-                  style: const TextStyle(
-                      fontSize: 15,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.green),
-                ),
+              keyboardType: TextInputType.number,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
               ],
-              const SizedBox(height: 12),
+              onChanged: (value) {
+                if (value.isEmpty) {
+                  _updateConversion();
+                  return;
+                }
 
-              // === FECHA DE INVERSIÓN ===
-              InkWell(
-                onTap: _selectFechaInversion,
-                child: InputDecorator(
-                  decoration:
-                      const InputDecoration(labelText: 'Fecha de Inversión'),
-                  child: Text(
-                      DateFormat('dd/MM/yyyy').format(_selectedFechaInversion)),
+                final cleanDigits = value.replaceAll(RegExp(r'[^\d]'), '');
+                final number = double.tryParse(cleanDigits) ?? 0.0;
+
+                if (number > 0) {
+                  final formatted = NumberFormat.decimalPattern('es_CO').format(number.round());
+                  if (formatted != _montoController.text) {
+                    _montoController.value = TextEditingValue(
+                      text: formatted,
+                      selection: TextSelection.collapsed(offset: formatted.length),
+                    );
+                  }
+                } else {
+                  _montoController.text = '';
+                }
+
+                _updateConversion();
+              },
+              validator: (val) {
+                if (val == null || val.trim().isEmpty) {
+                  return 'El monto es obligatorio';
+                }
+                final cleanDigits = val.replaceAll(RegExp(r'[^\d]'), '');
+                final parsed = double.tryParse(cleanDigits) ?? 0.0;
+                if (parsed <= 0) {
+                  return 'El monto debe ser mayor a 0';
+                }
+                return null;
+              },
+            ),
+            const SizedBox(height: 12),
+
+            // === MONEDA ===
+            DropdownButtonFormField<String>(
+              value: _selectedMoneda,
+              items: ['COP', 'USD', 'EUR']
+                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                  .toList(),
+              onChanged: (v) async {
+                setState(() => _selectedMoneda = v!);
+                await _updateConversion();
+              },
+              decoration: AppInputStyle.dropdown(label: 'Moneda'),
+            ),
+            const SizedBox(height: 12),
+
+            // === CONVERSIÓN ===
+            if (_isLoadingConversion)
+              const Padding(
+                padding: EdgeInsets.symmetric(vertical: 8.0),
+                child: LinearProgressIndicator(minHeight: 2),
+              )
+            else ...[
+              Container(
+                padding: const EdgeInsets.all(12),
+                decoration: BoxDecoration(
+                  color: Colors.green.withOpacity(0.05),
+                  borderRadius: BorderRadius.circular(8),
+                  border: Border.all(color: Colors.green.withOpacity(0.15)),
                 ),
-              ),
-              const SizedBox(height: 12),
-
-              // === MES (SOLUCIONADO) ===
-              DropdownButtonFormField<String>(
-                value: _selectedMes,
-                items: _meses
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (v) => setState(() => _selectedMes = v!),
-                decoration: const InputDecoration(labelText: 'Mes'),
-              ),
-              const SizedBox(height: 12),
-
-              // === ORIGEN ===
-              DropdownButtonFormField<String>(
-                value: _selectedOrigen,
-                items: _origenes
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (v) => setState(() => _selectedOrigen = v!),
-                decoration: const InputDecoration(labelText: 'Origen'),
-              ),
-              const SizedBox(height: 12),
-
-              // === ACTIVO ===
-              DropdownButtonFormField<String>(
-                value: _selectedActivo,
-                items: _activos
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (v) => setState(() => _selectedActivo = v!),
-                decoration: const InputDecoration(labelText: 'Activo'),
-              ),
-              const SizedBox(height: 12),
-
-              // === ESTADO ===
-              DropdownButtonFormField<String>(
-                value: _selectedEstado,
-                items: ['Activo', 'Inactivo']
-                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
-                    .toList(),
-                onChanged: (v) => setState(() => _selectedEstado = v!),
-                decoration: const InputDecoration(labelText: 'Estado'),
-              ),
-              const SizedBox(height: 12),
-
-              // === DESCRIPCIÓN ===
-              TextFormField(
-                controller: _descripcionController,
-                decoration: const InputDecoration(labelText: 'Descripción'),
-                maxLength: 100,
-                validator: _validator.validateDescription,
-              ),
-              const SizedBox(height: 24),
-
-              // === BOTÓN GUARDAR ===
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: _guardarInversion,
-                  child: const Text('Guardar Inversión'),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      'Tasa: 1 $_selectedMoneda = ${UIHelpers.formatRate(_tasaConversion)}',
+                      style: TextStyle(fontSize: 13, color: Colors.grey[700], fontWeight: FontWeight.w500),
+                    ),
+                    const SizedBox(height: 4),
+                    Text(
+                      'Convertido: ${UIHelpers.formatCurrency(_montoConvertido)}',
+                      style: const TextStyle(
+                          fontSize: 15,
+                          fontWeight: FontWeight.bold,
+                          color: Colors.green),
+                    ),
+                  ],
                 ),
               ),
             ],
-          ),
+            const SizedBox(height: 12),
+
+            // === FECHA DE INVERSIÓN ===
+            InkWell(
+              onTap: _selectFechaInversion,
+              child: InputDecorator(
+                decoration: AppInputStyle.textField(
+                  label: 'Fecha de Inversión',
+                  suffixIcon: const Icon(Icons.calendar_today_outlined),
+                ),
+                child: Text(
+                    DateFormat('dd/MM/yyyy').format(_selectedFechaInversion)),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // === MES ===
+            DropdownButtonFormField<String>(
+              value: _selectedMes,
+              items: _meses
+                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                  .toList(),
+              onChanged: (v) => setState(() => _selectedMes = v!),
+              decoration: AppInputStyle.dropdown(label: 'Mes'),
+            ),
+            const SizedBox(height: 12),
+
+            // === ORIGEN ===
+            DropdownButtonFormField<String>(
+              value: _selectedOrigen,
+              items: _origenes
+                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                  .toList(),
+              onChanged: (v) => setState(() => _selectedOrigen = v!),
+              decoration: AppInputStyle.dropdown(label: 'Origen'),
+            ),
+            const SizedBox(height: 12),
+
+            // === ACTIVO ===
+            assetCatalogAsync.when(
+              data: (catalogList) {
+                final items = catalogList.map((e) => e.nombre).toList();
+                if (!items.contains(_selectedActivo)) {
+                  items.add(_selectedActivo);
+                }
+
+                return DropdownButtonFormField<String>(
+                  value: _selectedActivo,
+                  items: items
+                      .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                      .toList(),
+                  onChanged: (v) => setState(() => _selectedActivo = v!),
+                  decoration: AppInputStyle.dropdown(label: 'Activo'),
+                );
+              },
+              loading: () => DropdownButtonFormField<String>(
+                value: _selectedActivo,
+                items: [_selectedActivo]
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: null,
+                decoration: AppInputStyle.dropdown(label: 'Cargando activos...'),
+              ),
+              error: (err, _) => DropdownButtonFormField<String>(
+                value: _selectedActivo,
+                items: [_selectedActivo]
+                    .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                    .toList(),
+                onChanged: null,
+                decoration: AppInputStyle.dropdown(label: 'Error al cargar activos'),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // === ESTADO ===
+            DropdownButtonFormField<String>(
+              value: _selectedEstado,
+              items: ['Activo', 'Inactivo']
+                  .map((e) => DropdownMenuItem(value: e, child: Text(e)))
+                  .toList(),
+              onChanged: (v) => setState(() => _selectedEstado = v!),
+              decoration: AppInputStyle.dropdown(label: 'Estado'),
+            ),
+            const SizedBox(height: 12),
+
+            // === DESCRIPCIÓN ===
+            TextFormField(
+              controller: _descripcionController,
+              decoration: AppInputStyle.textField(
+                label: 'Descripción',
+                suffixIcon: const Icon(Icons.description_outlined),
+              ),
+              maxLength: 100,
+              validator: _validator.validateDescription,
+            ),
+          ],
         ),
       ),
     );
   }
 }
+

@@ -10,7 +10,7 @@ import 'package:finances/routes/app_routes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/presentations/theme/themes.dart';
-import 'package:finances/utils/ui_helpers.dart';
+import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:finances/core/errors/error_strings.dart';
 // SOLUCIÓN: Usamos un prefijo para evitar el conflicto de nombres con DateUtils
 import 'package:finances/core/data/utils/date_utils.dart' as MyDateUtils;

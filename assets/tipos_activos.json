@@ -1,0 +1,58 @@
+[
+  {
+    "id": "acciones",
+    "nombre": "Acciones",
+    "categoria": "Renta Variable",
+    "riesgo": "Alto",
+    "activo": true,
+    "popularidad": 5
+  },
+  {
+    "id": "renta_fija",
+    "nombre": "CDT / Renta Fija",
+    "categoria": "Renta Fija",
+    "riesgo": "Bajo",
+    "activo": true,
+    "popularidad": 4
+  },
+  {
+    "id": "criptomonedas",
+    "nombre": "Criptomonedas",
+    "categoria": "Alternativos",
+    "riesgo": "Muy Alto",
+    "activo": true,
+    "popularidad": 3
+  },
+  {
+    "id": "etf_fondos",
+    "nombre": "ETF / Fondos Mutuos",
+    "categoria": "Híbrido",
+    "riesgo": "Medio",
+    "activo": true,
+    "popularidad": 5
+  },
+  {
+    "id": "finca_raiz",
+    "nombre": "Finca Raíz / Inmobiliario",
+    "categoria": "Activos Reales",
+    "riesgo": "Bajo-Medio",
+    "activo": true,
+    "popularidad": 4
+  },
+  {
+    "id": "metales_preciosos",
+    "nombre": "Metales Preciosos",
+    "categoria": "Alternativos",
+    "riesgo": "Bajo",
+    "activo": true,
+    "popularidad": 2
+  },
+  {
+    "id": "otros",
+    "nombre": "Otros",
+    "categoria": "Otros",
+    "riesgo": "Variable",
+    "activo": true,
+    "popularidad": 1
+  }
+]

@@ -7,6 +7,7 @@ import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/core/errors/handlers/auth_error_handler.dart';
 import 'package:finances/presentations/screens/auth/register.screen.dart';
+import 'package:finances/presentations/screens/terms_acceptance.screen.dart';
 import 'package:finances/presentations/screens/auth/widgets/forgot_password_dialog.dart';
 import 'package:finances/presentations/screens/auth/widgets/login_divider.dart';
 import 'package:finances/presentations/screens/auth/widgets/register_link.dart';
@@ -130,7 +131,12 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
       final isNewUser =
           await ref.read(authProvider.notifier).signInWithGoogle();
       if (isNewUser && mounted) {
-        _showNewUserDialog();
+        // Redirigir a aceptación de términos
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (_) => const TermsAcceptanceScreen()),
+        );
+        return; // Detener flujo
       }
 
       final tutorialSeen = await ref.read(tutorialProvider.future);

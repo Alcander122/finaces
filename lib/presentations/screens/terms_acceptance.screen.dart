@@ -1,13 +1,14 @@
 import 'package:finances/core/errors/error_strings.dart';
-import 'package:finances/presentations/screens/home/home_screen.dart';
 import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/routes/app_routes.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
-
 import 'package:finances/core/data/services/user_service.dart';
+import 'package:finances/core/data/providers/auth_provider.dart';
 
-class TermsAcceptanceScreen extends StatefulWidget {
+class TermsAcceptanceScreen extends ConsumerStatefulWidget {
   final User? user;
   final bool isNewUser;
 
@@ -21,10 +22,10 @@ class TermsAcceptanceScreen extends StatefulWidget {
       : isNewUser = false;
 
   @override
-  State<TermsAcceptanceScreen> createState() => _TermsAcceptanceScreenState();
+  ConsumerState<TermsAcceptanceScreen> createState() => _TermsAcceptanceScreenState();
 }
 
-class _TermsAcceptanceScreenState extends State<TermsAcceptanceScreen> {
+class _TermsAcceptanceScreenState extends ConsumerState<TermsAcceptanceScreen> {
   bool _agreePersonalData = false;
   bool _isLoading = false;
 
@@ -68,11 +69,24 @@ class _TermsAcceptanceScreenState extends State<TermsAcceptanceScreen> {
         'termsAcceptedAt': FieldValue.serverTimestamp(),
       }, SetOptions(merge: true));
 
-      // Navegar a la pantalla principal
+      // 🚪 CIERRE DE SESIÓN EN REGISTRO DE GOOGLE
+      // Para consistencia absoluta con el flujo de correo, cerramos sesión de Firebase
+      await ref.read(authProvider.notifier).signOut();
+
       if (mounted) {
-        Navigator.pushAndRemoveUntil(
+        // Mostrar confirmación
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Registro exitoso. Inicie sesión para continuar."),
+            backgroundColor: Colors.green,
+            duration: Duration(seconds: 4),
+          ),
+        );
+        
+        // Redirigir al Login vaciando el historial
+        Navigator.pushNamedAndRemoveUntil(
           context,
-          MaterialPageRoute(builder: (_) => const HomeScreen()),
+          AppRoutes.login,
           (route) => false,
         );
       }

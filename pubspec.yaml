@@ -102,6 +102,7 @@ flutter:
   assets:
      - assets/images/ # Aquí se añade la carpeta de las imágenes
      - assets/bancos_colombia.json 
+     - assets/tipos_activos.json 
   #   - images/a_dot_ham.jpeg
 # 🎯 CONFIGURACIÓN DE ÍCONO DE APP (usado por flutter_launcher_icons)
 flutter_launcher_icons:

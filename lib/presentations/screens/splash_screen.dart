@@ -6,6 +6,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:finances/core/data/services/BiometricAuthService.dart';
 import 'package:finances/routes/app_routes.dart';
 import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/core/data/providers/tutorial_provider.dart';
 
 /// Pantalla inicial que decide hacia dónde navegar según el estado de sesión.
 /// Flujo:
@@ -37,7 +38,15 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
       return;
     }
 
-    // 2️⃣ Usuario logueado → revisar biometría
+    // 2️⃣ Usuario logueado → revisar tutorial
+    final tutorialSeen = await ref.read(tutorialProvider.future);
+    if (!tutorialSeen) {
+      // ℹ️ Si no ha visto el tutorial → ir a Tutorial
+      _goTo(AppRoutes.tutorial);
+      return;
+    }
+
+    // 3️⃣ Usuario logueado y vio tutorial → revisar biometría
     final biometricEnabled = await BiometricAuthService().isBiometricEnabled();
     if (!biometricEnabled) {
       // ℹ️ Si biometría no está activada → ir al Home directamente

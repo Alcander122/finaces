@@ -1,30 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import '../../../../core/data/models/investment_model.dart';
-import '../../../../core/data/models/portafolio_model.dart';
+import 'package:finances/presentations/theme/themes.dart';
+import '../../../../core/data/providers/portafolio_provider.dart';
 import '../../../../utils/category_color_generator.dart';
+import '../../../../core/data/utils/ui_helpers.dart';
 
-class PortafolioChart extends StatelessWidget {
-  final List<Investment> investments;
-  final List<Portafolio> portfolios;
+class PortafolioChart extends StatefulWidget {
+  final double totalValueCOP;
+  final List<PortafolioItemState> portfolioItems;
 
   const PortafolioChart({
     super.key,
-    required this.investments,
-    required this.portfolios,
+    required this.totalValueCOP,
+    required this.portfolioItems,
   });
 
   @override
-  Widget build(BuildContext context) {
-    if (investments.isEmpty) return const SizedBox.shrink();
+  State<PortafolioChart> createState() => _PortafolioChartState();
+}
 
-    final total = investments.fold(0.0, (sum, item) => sum + item.invMensual);
-    if (total == 0) return const SizedBox.shrink();
+class _PortafolioChartState extends State<PortafolioChart> {
+  int _touchedIndex = -1;
+
+  @override
+  Widget build(BuildContext context) {
+    if (widget.portfolioItems.isEmpty || widget.totalValueCOP <= 0) return const SizedBox.shrink();
+
+    // Obtener item seleccionado para mostrar en el card dinámico
+    // Calcular valor consolidado de portfolios pequeños (<1%)
+    double otrosValue = 0.0;
+    for (final item in widget.portfolioItems) {
+      if (item.totalValueCOP > 0) {
+        final share = item.totalValueCOP / widget.totalValueCOP;
+        if (share < 0.01) {
+          otrosValue += item.totalValueCOP;
+        }
+      }
+    }
+
+    final hasSelection = _touchedIndex >= 0 && _touchedIndex < widget.portfolioItems.length;
+    final selectedItem = hasSelection ? widget.portfolioItems[_touchedIndex] : null;
+    final isOtrosSelected = _touchedIndex == widget.portfolioItems.length && otrosValue > 0.0;
 
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Card(
         elevation: 4,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        color: Colors.white,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -36,19 +59,230 @@ class PortafolioChart extends StatelessWidget {
                       color: Colors.blueGrey,
                     ),
               ),
-              const SizedBox(height: 20),
-              AspectRatio(
-                aspectRatio: 1.3,
-                child: PieChart(
-                  PieChartData(
-                    sections: _chartSections(total),
-                    centerSpaceRadius: 40,
-                    sectionsSpace: 0,
-                    startDegreeOffset: -90,
-                  ),
+              const SizedBox(height: 8),
+              Text(
+                'Total: ${UIHelpers.formatCurrency(widget.totalValueCOP)}',
+                style: const TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w500,
+                  color: Colors.black87,
                 ),
               ),
               const SizedBox(height: 20),
+              AspectRatio(
+                aspectRatio: 1.3,
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    PieChart(
+                      PieChartData(
+                        pieTouchData: PieTouchData(
+                          touchCallback: (FlTouchEvent event, pieTouchResponse) {
+                            setState(() {
+                              if (!event.isInterestedForInteractions ||
+                                  pieTouchResponse == null ||
+                                  pieTouchResponse.touchedSection == null) {
+                                _touchedIndex = -1;
+                                return;
+                              }
+                              _touchedIndex = pieTouchResponse.touchedSection!.touchedSectionIndex;
+                            });
+                          },
+                        ),
+                        sections: _chartSections(otrosValue),
+                        centerSpaceRadius: 55,
+                        sectionsSpace: 2,
+                        startDegreeOffset: -90,
+                      ),
+                    ),
+                    Column(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          _touchedIndex >= 0 ? 'Porcentaje' : 'Total',
+                          style: TextStyle(
+                            fontSize: 11,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.grey[600],
+                          ),
+                        ),
+                        const SizedBox(height: 2),
+                        Text(
+                          _touchedIndex >= 0
+                              ? (_touchedIndex == widget.portfolioItems.length
+                                  ? '${((otrosValue / widget.totalValueCOP) * 100).toStringAsFixed(1)}%'
+                                  : (_touchedIndex < widget.portfolioItems.length
+                                      ? '${((widget.portfolioItems[_touchedIndex].totalValueCOP / widget.totalValueCOP) * 100).toStringAsFixed(1)}%'
+                                      : '0.0%'))
+                              : UIHelpers.formatCurrency(widget.totalValueCOP),
+                          style: const TextStyle(
+                            fontSize: 13,
+                            fontWeight: FontWeight.bold,
+                            color: Themes.primary,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 20),
+              
+              // Animación fluida para mostrar detalles del sector seleccionado
+              AnimatedSwitcher(
+                duration: const Duration(milliseconds: 300),
+                transitionBuilder: (child, animation) => FadeTransition(
+                  opacity: animation,
+                  child: ScaleTransition(scale: animation, child: child),
+                ),
+                child: selectedItem != null
+                    ? Container(
+                        key: ValueKey(selectedItem.portafolio.id),
+                        width: double.infinity,
+                        padding: const EdgeInsets.all(12),
+                        decoration: BoxDecoration(
+                          color: CategoryColorGenerator.getColor(selectedItem.portafolio.id).withOpacity(0.08),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(
+                            color: CategoryColorGenerator.getColor(selectedItem.portafolio.id).withOpacity(0.3),
+                            width: 1,
+                          ),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              children: [
+                                Container(
+                                  width: 10,
+                                  height: 10,
+                                  decoration: BoxDecoration(
+                                    color: CategoryColorGenerator.getColor(selectedItem.portafolio.id),
+                                    shape: BoxShape.circle,
+                                  ),
+                                ),
+                                const SizedBox(width: 8),
+                                Expanded(
+                                  child: Text(
+                                    selectedItem.portafolio.nombre,
+                                    style: TextStyle(
+                                      fontWeight: FontWeight.bold,
+                                      color: CategoryColorGenerator.getColor(selectedItem.portafolio.id),
+                                      fontSize: 14,
+                                    ),
+                                  ),
+                                ),
+                                Text(
+                                  '${(selectedItem.totalValueCOP / widget.totalValueCOP * 100).toStringAsFixed(1)}%',
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.w900,
+                                    color: Colors.blueGrey,
+                                    fontSize: 14,
+                                  ),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 4),
+                            Text(
+                              'Valor: ${UIHelpers.formatCurrency(selectedItem.totalValueCOP)}',
+                              style: const TextStyle(
+                                fontSize: 13,
+                                fontWeight: FontWeight.w600,
+                                color: Colors.black87,
+                              ),
+                            ),
+                            if (selectedItem.portafolio.nota.isNotEmpty) ...[
+                              const SizedBox(height: 4),
+                              Text(
+                                'Nota: ${selectedItem.portafolio.nota}',
+                                style: const TextStyle(
+                                  fontSize: 11,
+                                  color: Colors.black54,
+                                  fontStyle: FontStyle.italic,
+                                ),
+                              ),
+                            ]
+                          ],
+                        ),
+                      )
+                    : isOtrosSelected
+                        ? Container(
+                            key: const ValueKey('otros_selection'),
+                            width: double.infinity,
+                            padding: const EdgeInsets.all(12),
+                            decoration: BoxDecoration(
+                              color: Colors.grey.withOpacity(0.08),
+                              borderRadius: BorderRadius.circular(12),
+                              border: Border.all(
+                                color: Colors.grey.withOpacity(0.3),
+                                width: 1,
+                              ),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Row(
+                                  children: [
+                                    Container(
+                                      width: 10,
+                                      height: 10,
+                                      decoration: const BoxDecoration(
+                                        color: Colors.grey,
+                                        shape: BoxShape.circle,
+                                      ),
+                                    ),
+                                    const SizedBox(width: 8),
+                                    const Expanded(
+                                      child: Text(
+                                        'Otras Categorías Pequeñas',
+                                        style: TextStyle(
+                                          fontWeight: FontWeight.bold,
+                                          color: Colors.grey,
+                                          fontSize: 14,
+                                        ),
+                                      ),
+                                    ),
+                                    Text(
+                                      '${(otrosValue / widget.totalValueCOP * 100).toStringAsFixed(1)}%',
+                                      style: const TextStyle(
+                                        fontWeight: FontWeight.w900,
+                                        color: Colors.blueGrey,
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                                const SizedBox(height: 4),
+                                Text(
+                                  'Valor Consolidado: ${UIHelpers.formatCurrency(otrosValue)}',
+                                  style: const TextStyle(
+                                    fontSize: 13,
+                                    fontWeight: FontWeight.w600,
+                                    color: Colors.black87,
+                                  ),
+                                ),
+                                const SizedBox(height: 4),
+                                const Text(
+                                  'Agrupa portafolios individuales con participación menor al 1% del total.',
+                                  style: TextStyle(
+                                    fontSize: 11,
+                                    color: Colors.black54,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          )
+                        : const Text(
+                            'Toca un sector del gráfico para ver detalles',
+                            key: ValueKey('prompt'),
+                            style: TextStyle(
+                              fontSize: 12,
+                              color: Colors.grey,
+                              fontStyle: FontStyle.italic,
+                            ),
+                          ),
+              ),
+              const SizedBox(height: 16),
               _buildLeyenda(),
             ],
           ),
@@ -57,40 +291,56 @@ class PortafolioChart extends StatelessWidget {
     );
   }
 
-  List<PieChartSectionData> _chartSections(double total) {
-    return portfolios.map((portfolio) {
-      final portfolioInvestments =
-          investments.where((inv) => inv.portafolioId == portfolio.id).toList();
-      final value = portfolioInvestments.fold(
-          0.0, (sum, investment) => sum + investment.invMensual);
-      final percentage = (value / total * 100).toStringAsFixed(1);
+  List<PieChartSectionData> _chartSections(double otrosValue) {
+    final List<PieChartSectionData> sections = [];
 
-      return PieChartSectionData(
-        color: CategoryColorGenerator.getColor(portfolio.id),
-        value: value,
-        title: '$percentage%',
-        radius: 25,
-        titleStyle: const TextStyle(
-          fontSize: 14,
-          color: Colors.white,
-          fontWeight: FontWeight.bold,
-        ),
-      );
-    }).toList();
+    for (int i = 0; i < widget.portfolioItems.length; i++) {
+      final item = widget.portfolioItems[i];
+      if (item.totalValueCOP <= 0) continue;
+
+      final share = item.totalValueCOP / widget.totalValueCOP;
+      if (share < 0.01) {
+        continue; // Agrupados
+      }
+
+      final isTouched = i == _touchedIndex;
+      final radius = isTouched ? 22.0 : 16.0;
+
+      sections.add(PieChartSectionData(
+        color: CategoryColorGenerator.getColor(item.portafolio.id),
+        value: item.totalValueCOP,
+        title: '', // Sin texto sobre las rebanadas para evitar amontonamiento visual
+        radius: radius,
+      ));
+    }
+
+    if (otrosValue > 0.0) {
+      final isTouched = _touchedIndex == widget.portfolioItems.length;
+      final radius = isTouched ? 22.0 : 16.0;
+
+      sections.add(PieChartSectionData(
+        color: Colors.grey,
+        value: otrosValue,
+        title: '', // Sin texto sobre las rebanadas
+        radius: radius,
+      ));
+    }
+
+    return sections;
   }
 
   Widget _buildLeyenda() {
     return Wrap(
       spacing: 10,
       runSpacing: 10,
-      children: portfolios.map((portfolio) {
-        final color = CategoryColorGenerator.getColor(portfolio.id);
+      children: widget.portfolioItems.map((item) {
+        final color = CategoryColorGenerator.getColor(item.portafolio.id);
         return Row(
           mainAxisSize: MainAxisSize.min,
           children: [
             Container(
-              width: 16,
-              height: 16,
+              width: 12,
+              height: 12,
               decoration: BoxDecoration(
                 color: color,
                 shape: BoxShape.circle,
@@ -98,10 +348,11 @@ class PortafolioChart extends StatelessWidget {
             ),
             const SizedBox(width: 4),
             Text(
-              portfolio.nombre,
+              item.portafolio.nombre,
               style: TextStyle(
                 color: color,
                 fontWeight: FontWeight.bold,
+                fontSize: 13,
               ),
             ),
           ],
@@ -109,4 +360,7 @@ class PortafolioChart extends StatelessWidget {
       }).toList(),
     );
   }
+
 }
+
+

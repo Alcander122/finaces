@@ -1,34 +1,44 @@
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'package:flutter_riverpod/flutter_riverpod.dart';
+
+/// Proveedor para inyección de dependencias de CurrencyService
+final currencyServiceProvider = Provider<CurrencyService>((ref) => CurrencyService());
 
 class CurrencyService {
-  // ignore: constant_identifier_names
-  static const String API_URL = 'https://api.exchangerate.host/latest';
+  // 📌 Usamos el endpoint abierto de ExchangeRate-API (sin llave, estable e ilimitado para uso de desarrollo)
+  static const String API_URL = 'https://open.er-api.com/v6/latest';
 
   /// Retorna la tasa de conversión entre [from] y [to]
   Future<double> getExchangeRate(String from, String to) async {
+    if (from == to) return 1.0;
+    
     try {
-      // 📌 Definimos la moneda base como "from"
       final response = await http.get(
-        Uri.parse('$API_URL?base=$from&symbols=$to'),
-      );
+        Uri.parse('$API_URL/$from'),
+      ).timeout(const Duration(seconds: 5));
 
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final rates = data['rates'] as Map<String, dynamic>;
-        final toRate = rates[to];
-        if (toRate != null) return (toRate as num).toDouble();
+        if (data['result'] == 'success') {
+          final rates = data['rates'] as Map<String, dynamic>;
+          final toRate = rates[to];
+          if (toRate != null) return (toRate as num).toDouble();
+        }
       }
     } catch (e) {
-      // Log o manejo de error
-      // debugPrint('Error obteniendo tasa de cambio: $e');
+      // Fallback silencioso en caso de error de red o timeout
     }
 
-    // 🔙 Valor de respaldo (ejemplo COP/USD realista)
-    if (from == 'USD' && to == 'COP') return 4200.0;
-    if (from == 'COP' && to == 'USD') return 1 / 4200.0;
+    // 🔙 Valores de respaldo realistas (COP/USD/EUR) en caso de fallo de red
+    if (from == 'USD' && to == 'COP') return 4000.0;
+    if (from == 'COP' && to == 'USD') return 1 / 4000.0;
+    if (from == 'EUR' && to == 'COP') return 4300.0;
+    if (from == 'COP' && to == 'EUR') return 1 / 4300.0;
+    if (from == 'USD' && to == 'EUR') return 0.92;
+    if (from == 'EUR' && to == 'USD') return 1 / 0.92;
 
-    // 🔙 Si no hay datos, devolvemos 1.0 (equivalente)
     return 1.0;
   }
 }
+

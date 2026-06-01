@@ -84,27 +84,34 @@ class _ProfileBiometricSettingsState extends State<ProfileBiometricSettings> {
   Widget build(BuildContext context) {
     if (_isLoading) {
       return const ListTile(
-        title: Text('Autenticación Biométrica'),
-        subtitle: Text('Verificando disponibilidad...'),
-        trailing: CircularProgressIndicator(strokeWidth: 2),
+        title: Text('Autenticación Biométrica', style: TextStyle(color: Colors.white, fontSize: 15)),
+        subtitle: Text('Verificando disponibilidad...', style: TextStyle(color: Colors.white60, fontSize: 12)),
+        trailing: SizedBox(
+          width: 16,
+          height: 16,
+          child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white70),
+        ),
       );
     }
 
     if (_isBiometricAvailable == false) {
       return const ListTile(
-        title: Text('Autenticación Biométrica'),
-        subtitle: Text('No disponible en este dispositivo'),
-        trailing: Icon(Icons.block, color: Colors.grey),
+        title: Text('Autenticación Biométrica', style: TextStyle(color: Colors.white, fontSize: 15)),
+        subtitle: Text('No disponible en este dispositivo', style: TextStyle(color: Colors.white30, fontSize: 12)),
+        trailing: Icon(Icons.block, color: Colors.white24),
       );
     }
 
     return SwitchListTile(
-      title: const Text('Iniciar sesión con huella'),
-      subtitle: const Text('Protege tu app con tu biometría'),
+      title: const Text('Iniciar sesión con huella', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+      subtitle: const Text('Protege tu app con tu biometría', style: TextStyle(color: Colors.white60, fontSize: 12)),
       value: _isBiometricEnabled ?? false,
       onChanged: _onBiometricChanged,
-      activeThumbColor: Themes.primary,
-      secondary: const Icon(Icons.fingerprint),
+      activeColor: const Color(0xFF26A69A), // Esmeralda para activo
+      activeTrackColor: const Color(0xFF26A69A).withValues(alpha: 0.3),
+      inactiveThumbColor: Colors.white70,
+      inactiveTrackColor: Colors.white10,
+      secondary: const Icon(Icons.fingerprint, color: Color(0xFF64B5F6), size: 24), // Azul para icono
     );
   }
 }

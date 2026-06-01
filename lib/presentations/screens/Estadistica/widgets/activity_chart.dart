@@ -9,7 +9,7 @@ import 'package:finances/core/data/models/ingreso.model.dart';
 import 'package:finances/core/data/models/egreso_model.dart';
 import 'package:finances/core/data/providers/ingreso_provider.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
-import 'package:finances/utils/ui_helpers.dart';
+import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'dart:math';
 import 'package:finances/core/data/utils/date_utils.dart'
     as AppDateUtils; // Usamos prefijo para evitar conflictos

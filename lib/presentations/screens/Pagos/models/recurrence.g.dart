@@ -26,6 +26,7 @@ const _$FrequencyUnitEnumMap = {
   FrequencyUnit.none: 'none',
   FrequencyUnit.days: 'days',
   FrequencyUnit.weeks: 'weeks',
+  FrequencyUnit.semiMonthly: 'semiMonthly',
   FrequencyUnit.months: 'months',
   FrequencyUnit.years: 'years',
 };

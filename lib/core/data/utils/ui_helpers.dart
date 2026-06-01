@@ -97,9 +97,9 @@ class UIHelpers {
 
   // ===================== FORMATEO =====================
 
-  static String formatCurrency(double value) {
+  static String formatCurrency(double value, {bool showDecimals = false}) {
     final formatter = NumberFormat.decimalPattern('es_CO');
-    return '\$${formatter.format(value)}';
+    return '\$${formatter.format(showDecimals ? value : value.round())}';
   }
 
   static String formatCurrencyAmount(double value, {String currency = 'COP'}) {

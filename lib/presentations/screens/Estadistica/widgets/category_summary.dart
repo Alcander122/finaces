@@ -1,7 +1,7 @@
 import 'package:finances/core/data/providers/category_summary_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:finances/utils/ui_helpers.dart';
+import 'package:finances/core/data/utils/ui_helpers.dart';
 
 final selectedTabProvider = StateProvider<bool>((ref) => false);
 

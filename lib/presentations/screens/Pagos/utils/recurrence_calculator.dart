@@ -2,6 +2,7 @@ import 'package:timezone/timezone.dart' as tz;
 import '../models/payment_enums.dart';
 import '../models/payment.dart';
 import 'due_date_utils.dart';
+import 'next_due_date_calculator.dart';
 
 class RecurrenceCalculator {
   /// Calcula el siguiente estado del pago (fecha y cuota) después de pagarse.
@@ -35,6 +36,9 @@ class RecurrenceCalculator {
         break;
       case FrequencyUnit.weeks:
         newDate = oldDate.add(Duration(days: recurrence.interval * 7));
+        break;
+      case FrequencyUnit.semiMonthly:
+        newDate = NextDueDateCalculator.calculateNextDueDate(currentPayment);
         break;
       case FrequencyUnit.months:
         newDate =
