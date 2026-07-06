@@ -23,10 +23,14 @@ allprojects {
     }
 }
 
-// Configura las carpetas de build para todos los módulos
+// Configura las carpetas de build para los módulos locales.
+// Se evita redirigir el buildDir de plugins externos ubicados en otras unidades (ej. C:)
+// para prevenir el error de Gradle "different roots" en Windows.
 rootProject.buildDir = "../build"
 subprojects {
-    project.buildDir = "${rootProject.buildDir}/${project.name}"
+    if (project.projectDir.absolutePath.startsWith(rootProject.projectDir.parentFile.absolutePath)) {
+        project.buildDir = "${rootProject.buildDir}/${project.name}"
+    }
     project.evaluationDependsOn(":app")
 }
 

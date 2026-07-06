@@ -9,11 +9,22 @@ class TimezoneService {
   Future<void> init() async {
     tz.initializeTimeZones();
     try {
-      // Obtener el timezone dinámico del dispositivo (Soluciona el problema de UTC vs Local)
+      // 1. Intentar con la zona horaria del dispositivo
       final timeZoneInfo = await FlutterTimezone.getLocalTimezone();
-      tz.setLocalLocation(tz.getLocation(timeZoneInfo.identifier));
+      try {
+        tz.setLocalLocation(tz.getLocation(timeZoneInfo.identifier));
+      } catch (e) {
+        debugPrint('Zona horaria del dispositivo no soportada (${timeZoneInfo.identifier}), intentando fallback a America/Bogota: $e');
+        tz.setLocalLocation(tz.getLocation('America/Bogota'));
+      }
     } catch (e) {
-      debugPrint('Error inicializando flutter_timezone: $e');
+      debugPrint('Error obteniendo flutter_timezone: $e, intentando fallback a America/Bogota');
+      try {
+        tz.setLocalLocation(tz.getLocation('America/Bogota'));
+      } catch (_) {
+        debugPrint('Fallo fallback a America/Bogota, configurando UTC');
+        tz.setLocalLocation(tz.UTC);
+      }
     }
   }
 

@@ -51,10 +51,21 @@
 # SERIALIZACIÓN
 # ============================================================
 
--keepattributes Signature
--keepattributes *Annotation*
+-keepattributes Signature, InnerClasses, *Annotation*
 
 # ============================================================
 # PLAY CORE (Ignorar clases faltantes del motor Flutter)
 # ============================================================
 -dontwarn com.google.android.play.core.**
+
+# ============================================================
+# FLUTTER LOCAL NOTIFICATIONS
+# ============================================================
+-keep class com.dexterous.** { *; }
+-dontwarn com.dexterous.**
+
+# Gson rules (required by flutter_local_notifications)
+-keep class * implements com.google.gson.TypeAdapterFactory
+-keep class * implements com.google.gson.JsonSerializer
+-keep class * implements com.google.gson.JsonDeserializer
+-keepclassmembers,allowobfuscation class * { @com.google.gson.annotations.SerializedName <fields>; }

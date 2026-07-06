@@ -3,6 +3,14 @@ import 'package:timezone/timezone.dart' as tz;
 import 'package:permission_handler/permission_handler.dart';
 import 'dart:developer' as developer;
 class NotificationService {
+  static final NotificationService _instance = NotificationService._internal();
+
+  factory NotificationService() {
+    return _instance;
+  }
+
+  NotificationService._internal();
+
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   
   static const String channelId = 'finance_reminders_channel';
@@ -121,7 +129,11 @@ class NotificationService {
   }
 
   Future<void> cancelNotification(int id) async {
-    await _plugin.cancel(id);
-    developer.log('ID $id cancelada.', name: 'NotificationService');
+    try {
+      await _plugin.cancel(id);
+      developer.log('ID $id cancelada.', name: 'NotificationService');
+    } catch (e) {
+      developer.log('Error cancelando notificación ID $id: $e', name: 'NotificationService', error: e);
+    }
   }
 }
