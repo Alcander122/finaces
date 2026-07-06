@@ -156,7 +156,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     }
   }
 
-  void _showNewUserDialog() {
+  void showNewUserDialog() {
     showDialog(
       context: context,
       builder: (_) => AlertDialog(
