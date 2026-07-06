@@ -6,7 +6,8 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/core/data/providers/Ingreso_provider.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
-import 'package:finances/core/data/providers/payment_provider.dart';
+import 'package:finances/presentations/screens/Pagos/providers/payment_providers.dart';
+import 'package:finances/presentations/screens/Pagos/models/payment_enums.dart';
 import 'package:finances/core/data/providers/ahorro_provider.dart';
 import 'package:finances/core/data/providers/Bank_provider.dart';
 import 'package:finances/core/data/providers/portafolio_provider.dart';
@@ -1065,7 +1066,7 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildBentoPayments(BuildContext context, WidgetRef ref, String userId) {
-    final paymentsAsync = ref.watch(paymentProvider(userId));
+    final paymentsAsync = ref.watch(paymentsStreamProvider(userId));
 
     return GestureDetector(
       onTap: () {
@@ -1077,7 +1078,9 @@ class HomeScreen extends ConsumerWidget {
         borderRadius: 20.0,
         child: paymentsAsync.when(
           data: (pagos) {
-            final activePagos = pagos.where((p) => p.estaProgramado).toList();
+            final activePagos = pagos
+                .where((p) => p.recurrence.unit != FrequencyUnit.none && p.nextDueDate != null)
+                .toList();
 
             if (activePagos.isEmpty) {
               return Column(
@@ -1115,9 +1118,9 @@ class HomeScreen extends ConsumerWidget {
               );
             }
 
-            activePagos.sort((a, b) => a.fechaVencimiento.compareTo(b.fechaVencimiento));
+            activePagos.sort((a, b) => a.nextDueDate!.compareTo(b.nextDueDate!));
             final proximoPago = activePagos.first;
-            final diasFaltantes = proximoPago.fechaVencimiento.difference(DateTime.now()).inDays;
+            final diasFaltantes = proximoPago.nextDueDate!.difference(DateTime.now()).inDays;
             final vencimientoText = diasFaltantes == 0
                 ? 'Vence hoy'
                 : (diasFaltantes == 1 ? 'Vence mañana' : 'Vence en $diasFaltantes días');
@@ -1146,13 +1149,13 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 const Spacer(),
                 Text(
-                  proximoPago.descripcion,
+                  proximoPago.title.isNotEmpty ? proximoPago.title : proximoPago.description,
                   style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
                 Text(
-                  UIHelpers.formatCurrency(proximoPago.monto),
+                  UIHelpers.formatCurrency(proximoPago.totalAmount),
                   style: const TextStyle(color: Color(0xFFE57373), fontSize: 11, fontWeight: FontWeight.bold),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
