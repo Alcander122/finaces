@@ -75,6 +75,8 @@ dependencies:
   shimmer: ^3.0.0
   flutter_localizations:
     sdk: flutter
+  flutter_timezone: ^5.1.0
+  permission_handler: ^12.0.3
   #facebook_auth: ^0.0.3
 
 dev_dependencies:

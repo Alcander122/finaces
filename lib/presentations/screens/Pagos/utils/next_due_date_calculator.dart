@@ -63,6 +63,48 @@ class NextDueDateCalculator {
     return nextDate;
   }
 
+  /// Calcula la fecha de vencimiento que sea mayor o igual a hoy
+  /// basándose en la fecha base y la recurrencia.
+  static tz.TZDateTime calculateNextFutureDate(Payment payment) {
+    final baseDate = payment.nextDueDate;
+    if (baseDate == null) {
+      return tz.TZDateTime.now(tz.local);
+    }
+    if (payment.recurrence.unit == FrequencyUnit.none) {
+      return baseDate;
+    }
+
+    tz.TZDateTime nextDate = baseDate;
+    final now = tz.TZDateTime.now(tz.local);
+    final today = tz.TZDateTime(tz.local, now.year, now.month, now.day);
+    
+    // Mientras la fecha sea menor a hoy, seguir sumando el intervalo
+    int iteration = 0;
+    while (nextDate.isBefore(today) && iteration < 100) {
+      iteration++;
+      switch (payment.recurrence.unit) {
+        case FrequencyUnit.days:
+          nextDate = nextDate.add(Duration(days: payment.recurrence.interval));
+          break;
+        case FrequencyUnit.weeks:
+          nextDate = nextDate.add(Duration(days: payment.recurrence.interval * 7));
+          break;
+        case FrequencyUnit.semiMonthly:
+          nextDate = _calculateNextSemiMonthly(nextDate, payment.recurrence.interval);
+          break;
+        case FrequencyUnit.months:
+          nextDate = DueDateUtils.addMonthsWithSnapToEnd(nextDate, payment.recurrence.interval);
+          break;
+        case FrequencyUnit.years:
+          nextDate = DueDateUtils.addMonthsWithSnapToEnd(nextDate, payment.recurrence.interval * 12);
+          break;
+        case FrequencyUnit.none:
+          break;
+      }
+    }
+    return nextDate;
+  }
+
   static tz.TZDateTime _calculateNextSemiMonthly(tz.TZDateTime date, int steps) {
     tz.TZDateTime current = date;
     for (int i = 0; i < steps; i++) {

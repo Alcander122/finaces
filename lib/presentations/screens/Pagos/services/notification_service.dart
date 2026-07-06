@@ -1,7 +1,7 @@
 import 'package:flutter_local_notifications/flutter_local_notifications.dart';
 import 'package:timezone/timezone.dart' as tz;
+import 'package:permission_handler/permission_handler.dart';
 import 'dart:developer' as developer;
-
 class NotificationService {
   final FlutterLocalNotificationsPlugin _plugin = FlutterLocalNotificationsPlugin();
   
@@ -36,19 +36,28 @@ class NotificationService {
   }
 
   Future<bool> requestPermissions() async {
-    bool? granted = false;
+    bool granted = false;
     try {
       final androidPlugin = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
       if (androidPlugin != null) {
-        granted = await androidPlugin.requestNotificationsPermission();
-        await androidPlugin.requestExactAlarmsPermission();
+        // Pedir notificaciones estándar (Android 13+)
+        final bool? notificationsGranted = await androidPlugin.requestNotificationsPermission();
+        granted = notificationsGranted ?? false;
+
+        // Pedir permisos explícitos de Alarmas Exactas para Android 12, 13 y 14 (sin permiso de batería)
+        final status = await Permission.scheduleExactAlarm.status;
+        if (status.isDenied || status.isPermanentlyDenied) {
+          developer.log('Permiso de alarmas exactas denegado, solicitando...', name: 'NotificationService');
+          await Permission.scheduleExactAlarm.request();
+        }
       } else {
         // iOS
         final iosPlugin = _plugin.resolvePlatformSpecificImplementation<IOSFlutterLocalNotificationsPlugin>();
-        granted = await iosPlugin?.requestPermissions(alert: true, badge: true, sound: true);
+        final bool? iosGranted = await iosPlugin?.requestPermissions(alert: true, badge: true, sound: true);
+        granted = iosGranted ?? false;
       }
       developer.log('Permisos concedidos: $granted', name: 'NotificationService');
-      return granted ?? false;
+      return granted;
     } catch (e) {
       developer.log('Error pidiendo permisos: $e', name: 'NotificationService', error: e);
       return false;

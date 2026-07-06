@@ -208,54 +208,73 @@ class _AgregarEditarPagoScreenState
             ),
             const SizedBox(height: 12),
 
-            SwitchListTile(
-              title: const Text("Pago programado/recurrente"),
-              value: isProgramado,
-              onChanged: (value) {
-                if (value) {
-                  ref
-                      .read(paymentFormProvider.notifier)
-                      .updateFrequency(FrequencyUnit.months);
-                  PaymentConfigBottomSheet.show(context);
-                } else {
-                  ref
-                      .read(paymentFormProvider.notifier)
-                      .updateFrequency(FrequencyUnit.none);
-                }
-              },
-              activeThumbColor: Themes.primary,
+            Container(
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.grey.shade300),
+              ),
+              child: SwitchListTile.adaptive(
+                title: const Text(
+                  "Pago programado / recurrente",
+                  style: TextStyle(fontWeight: FontWeight.w600),
+                ),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
+                value: isProgramado,
+                onChanged: (value) {
+                  if (value) {
+                    ref
+                        .read(paymentFormProvider.notifier)
+                        .updateFrequency(FrequencyUnit.months);
+                    PaymentConfigBottomSheet.show(context);
+                  } else {
+                    ref
+                        .read(paymentFormProvider.notifier)
+                        .updateFrequency(FrequencyUnit.none);
+                  }
+                },
+                activeColor: Themes.primary,
+              ),
             ),
 
             if (isProgramado) ...[
               const SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade200,
+                  color: Themes.primary.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                      color: Themes.greyDisabled.withValues(alpha: 0.3)),
+                      color: Themes.primary.withValues(alpha: 0.2)),
                 ),
                 child: ListTile(
-                  leading: const Icon(Icons.repeat, color: Themes.primary),
+                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+                  leading: CircleAvatar(
+                    backgroundColor: Themes.primary.withValues(alpha: 0.1),
+                    child: const Icon(Icons.repeat, color: Themes.primary, size: 20),
+                  ),
                   title: Text(
                     "Frecuencia: ${draft.recurrence.unit.name.toUpperCase()}",
-                    style: const TextStyle(fontWeight: FontWeight.bold),
+                    style: const TextStyle(fontWeight: FontWeight.bold, color: Themes.primary),
                   ),
                   subtitle: Text(
-                      "Avisar: ${draft.notifyDaysBefore.join(', ')} días antes a las ${draft.notificationTimeOfDay?.hour.toString().padLeft(2, '0')}:${draft.notificationTimeOfDay?.minute.toString().padLeft(2, '0')}"),
+                    "Avisar: ${draft.notifyDaysBefore.join(', ')} días antes a las ${draft.notificationTimeOfDay?.hour.toString().padLeft(2, '0')}:${draft.notificationTimeOfDay?.minute.toString().padLeft(2, '0')}",
+                    style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                  ),
                   trailing: IconButton(
-                    icon: const Icon(Icons.edit, color: Themes.primary),
+                    icon: const Icon(Icons.edit_calendar, color: Themes.primary),
                     onPressed: () => PaymentConfigBottomSheet.show(context),
                   ),
                 ),
               ),
               const SizedBox(height: 12),
-              SwitchListTile(
-                title: const Text('Notificaciones activas'),
+              SwitchListTile.adaptive(
+                title: const Text('Notificaciones activas', style: TextStyle(fontWeight: FontWeight.w600)),
+                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
                 subtitle: Text(
                   draft.status == PaymentStatus.pending
                       ? 'Recibirás recordatorios según esta configuración.'
                       : 'Las notificaciones de este pago están pausadas.',
+                  style: const TextStyle(fontSize: 12),
                 ),
                 value: draft.status == PaymentStatus.pending,
                 onChanged: (value) {

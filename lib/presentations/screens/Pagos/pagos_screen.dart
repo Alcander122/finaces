@@ -99,7 +99,7 @@ class _PagosScreenState extends ConsumerState<PagosScreen>
                   ),
                   const SizedBox(height: 4),
                   const Text(
-                    'Visualiza y controla tus egresos periódicos.',
+                    'Visualiza y controla tus egresos periódico.',
                     style: TextStyle(fontSize: 14, color: Colors.grey),
                   ),
                   const SizedBox(height: 24),
