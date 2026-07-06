@@ -126,3 +126,12 @@ firebase-debug.log
 # ==================================
 # CI/CD temporales
 *.yml~
+
+# ==================================
+# Antigravity & AI Artifacts
+.antigravityignore
+.gemini/
+.gemini
+brain/
+artifacts/
+*.antigravity*

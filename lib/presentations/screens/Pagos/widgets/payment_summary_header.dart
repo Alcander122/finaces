@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
+import 'package:auto_size_text/auto_size_text.dart';
 import '../providers/payment_providers.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:finances/presentations/theme/themes.dart';
@@ -42,7 +43,7 @@ class PaymentSummaryHeader extends ConsumerWidget {
       ),
       _SummaryCard(
         title: 'Próximos 7 días',
-        value: '${stats.upcomingCount} recordatorios',
+        value: '${stats.upcomingCount} recordatorio${stats.upcomingCount == 1 ? '' : 's'}',
         icon: Icons.notifications_active,
         iconColor: Colors.blue,
         backgroundColor: Colors.blue.withValues(alpha: 0.1),
@@ -98,32 +99,36 @@ class _SummaryCard extends StatelessWidget {
         side: BorderSide(color: Colors.grey.shade200),
       ),
       child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 16),
+        padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
         child: Row(
           children: [
             Container(
-              padding: const EdgeInsets.all(10),
+              padding: const EdgeInsets.all(8),
               decoration: BoxDecoration(
                 color: backgroundColor,
                 shape: BoxShape.circle,
               ),
               child: Icon(icon, color: iconColor, size: 24),
             ),
-            const SizedBox(width: 12),
+            const SizedBox(width: 10),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
+                  AutoSizeText(
                     title,
                     style: const TextStyle(
                       fontSize: 12,
                       color: Colors.grey,
                       fontWeight: FontWeight.w500,
                     ),
+                    maxLines: 1,
+                    minFontSize: 9,
+                    overflow: TextOverflow.ellipsis,
                   ),
                   const SizedBox(height: 4),
-                  Text(
+                  AutoSizeText(
                     value,
                     style: const TextStyle(
                       fontSize: 15,
@@ -131,7 +136,7 @@ class _SummaryCard extends StatelessWidget {
                       color: Themes.primary,
                     ),
                     maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
+                    minFontSize: 10,
                   ),
                 ],
               ),
