@@ -131,10 +131,10 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     final biometricEnabled = await BiometricAuthService().isBiometricEnabled();
     final isFirstLogin = await _isFirstLogin(uid);
 
-    // Solo bloqueamos si NO tiene huella y NO es su primer inicio
-    if (!isFirstLogin && !biometricEnabled) {
+    // Solo bloqueamos si TIENE huella activa y NO es su primer inicio
+    if (!isFirstLogin && biometricEnabled) {
       debugPrint(
-          '🔐 Bloqueando: Se excedieron los 2 min y no hay huella activa.');
+          '🔐 Bloqueando: Se excedieron los 2 min y la biometría está activa.');
       _goToBlockedScreen();
     }
 
@@ -193,6 +193,18 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
 
   @override
   Widget build(BuildContext context) {
+    // Escuchar cambios de autenticación para redirigir si se cierra la sesión
+    ref.listen<AuthState>(authProvider, (previous, next) {
+      if (previous != null && previous.isAuthenticated && !next.isAuthenticated) {
+        if (_navigatorKey.currentState != null) {
+          _navigatorKey.currentState!.pushNamedAndRemoveUntil(
+            AppRoutes.welcome,
+            (route) => false,
+          );
+        }
+      }
+    });
+
     final authState = ref.watch(authProvider);
     final hasSeenTutorial = ref.watch(tutorialProvider);
 
