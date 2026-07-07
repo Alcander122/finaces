@@ -180,7 +180,19 @@ class PaymentController extends AsyncNotifier<void> {
       final scheduler = ref.read(paymentSchedulerProvider);
 
       if (payment.recurrence.unit != FrequencyUnit.none) {
-        // Si es recurrente, calculamos el siguiente estado del pago (nueva fecha de vencimiento)
+        // 1. Crear un registro histórico del pago realizado para el periodo actual
+        final historyPayment = payment.copyWith(
+          id: '', // Se autogenerará un nuevo ID en Firestore
+          status: PaymentStatus.paid,
+          recurrence: payment.recurrence.copyWith(
+            unit: FrequencyUnit.none, // Registro histórico no recurrente
+            totalInstallments: null,
+            currentInstallment: null,
+          ),
+        );
+        await repository.createPayment(historyPayment);
+
+        // 2. Si es recurrente, calculamos el siguiente estado del pago (nueva fecha de vencimiento)
         final nextPayment = RecurrenceCalculator.calculateNextPaymentState(payment);
         await repository.updatePayment(nextPayment);
         // Sincronizamos las alarmas para el nuevo periodo
