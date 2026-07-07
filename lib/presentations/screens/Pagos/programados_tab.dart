@@ -5,6 +5,7 @@ import 'package:finances/presentations/screens/Pagos/providers/payment_providers
 import 'package:finances/presentations/screens/Pagos/widgets/pago_item_widget.dart';
 import 'package:finances/presentations/screens/Pagos/widgets/empty_state_widget.dart';
 import 'package:finances/presentations/screens/Pagos/widgets/confirm_delete_dialog.dart';
+import 'package:finances/presentations/screens/Pagos/models/payment.dart';
 import 'package:finances/presentations/screens/Pagos/models/payment_enums.dart';
 
 import 'package:finances/core/data/utils/ui_helpers.dart';
@@ -53,6 +54,7 @@ class ProgramadosTab extends ConsumerWidget {
                 arguments: pago,
               ),
               onEliminar: () => _eliminarPago(context, ref, pago.id),
+              onCompletar: () => _completarPago(context, ref, pago),
             );
           },
         );
@@ -97,6 +99,26 @@ class ProgramadosTab extends ConsumerWidget {
         UIHelpers.showErrorSnackBar(
             context: context, message: DbErrorHandler.handle(e));
       }
+    }
+  }
+
+  Future<void> _completarPago(
+      BuildContext context, WidgetRef ref, Payment pago) async {
+    try {
+      await ref
+          .read(paymentControllerProvider.notifier)
+          .payPayment(pago);
+      if (!context.mounted) return;
+      UIHelpers.showSuccessSnackBar(
+        context: context,
+        message: 'Pago registrado y programado para el siguiente ciclo',
+      );
+    } catch (e) {
+      if (!context.mounted) return;
+      UIHelpers.showErrorSnackBar(
+        context: context,
+        message: DbErrorHandler.handle(e),
+      );
     }
   }
 }

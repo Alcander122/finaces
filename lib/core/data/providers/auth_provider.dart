@@ -123,24 +123,18 @@ class AuthNotifier extends StateNotifier<AuthState> {
           final isBiometricsEnabled =
               await BiometricAuthService().isBiometricEnabled();
 
+          // ✅ Mantenemos siempre la sesión activa si el usuario está logueado en Firebase
+          await user.reload();
+          state = AuthState.authenticated(user);
+
           if (isBiometricsEnabled) {
-            await user.reload();
-            state = AuthState.authenticated(user);
             debugPrint(
-                '🔒 Biometría activada: sesión mantenida pero bloqueada');
+                '🔒 Biometría activada: sesión mantenida');
           } else if (isFirstLogin) {
-            await user.reload();
-            state = AuthState.authenticated(user);
             debugPrint('🔓 Primer login: sesión mantenida sin biometría');
             await _markAsNotFirstLogin(user.uid);
           } else {
-            // 🚫 Cerrar sesión si no cumple requisitos (biometría o primer login)
-            await _auth.signOut();
-            try {
-              await googleSignIn.signOut();
-            } catch (_) {}
-            state = const AuthState.unauthenticated();
-            debugPrint('🔒 Sesión cerrada por falta de biometría activada');
+            debugPrint('🔓 Sesión mantenida sin biometría (usuario normal)');
           }
         } else {
           state = const AuthState.unauthenticated();
