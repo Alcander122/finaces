@@ -38,10 +38,13 @@ class PaymentRepository {
         .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
   }
 
-  /// Crea un nuevo pago
-  Future<void> createPayment(Payment payment) async {
+  /// Crea un nuevo pago y retorna el ID del documento creado
+  Future<String> createPayment(Payment payment) async {
     if (payment.userId.isEmpty) throw Exception("User ID requerido");
-    await _pagosRef(payment.userId).add(payment);
+    final docRef = _pagosRef(payment.userId).doc();
+    final paymentWithId = payment.copyWith(id: docRef.id);
+    await docRef.set(paymentWithId);
+    return docRef.id;
   }
 
   /// Actualiza un pago existente

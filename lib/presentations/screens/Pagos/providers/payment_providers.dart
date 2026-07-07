@@ -9,6 +9,7 @@ import '../models/payment.dart';
 import '../models/payment_enums.dart';
 import '../services/payment_scheduler_manager.dart';
 import '../services/notification_service.dart';
+import '../utils/recurrence_calculator.dart';
 
 // Repositorio
 final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
@@ -117,10 +118,11 @@ class PaymentController extends AsyncNotifier<void> {
         throw Exception('Usuario no autenticado');
       }
       final paymentWithUser = payment.copyWith(userId: user.uid);
-      await repository.createPayment(paymentWithUser);
+      final createdId = await repository.createPayment(paymentWithUser);
+      final finalPayment = paymentWithUser.copyWith(id: createdId);
       
-      // Sincronizar las alarmas de este pago
-      await ref.read(paymentSchedulerProvider).syncPaymentNotifications(paymentWithUser);
+      // Sincronizar las alarmas de este pago con el ID real de Firestore
+      await ref.read(paymentSchedulerProvider).syncPaymentNotifications(finalPayment);
     });
     
     if (result.hasError) {
@@ -160,6 +162,36 @@ class PaymentController extends AsyncNotifier<void> {
       await ref.read(paymentSchedulerProvider).cancelPaymentNotifications(dummyPayment);
       
       await repository.deletePayment(userId, paymentId);
+    });
+
+    if (result.hasError) {
+      final cleanedError = DbErrorHandler.handle(result.error);
+      state = AsyncValue.error(cleanedError, StackTrace.current);
+      throw cleanedError;
+    } else {
+      state = result;
+    }
+  }
+
+  Future<void> payPayment(Payment payment) async {
+    state = const AsyncValue.loading();
+    final result = await AsyncValue.guard(() async {
+      final repository = ref.read(paymentRepositoryProvider);
+      final scheduler = ref.read(paymentSchedulerProvider);
+
+      if (payment.recurrence.unit != FrequencyUnit.none) {
+        // Si es recurrente, calculamos el siguiente estado del pago (nueva fecha de vencimiento)
+        final nextPayment = RecurrenceCalculator.calculateNextPaymentState(payment);
+        await repository.updatePayment(nextPayment);
+        // Sincronizamos las alarmas para el nuevo periodo
+        await scheduler.syncPaymentNotifications(nextPayment);
+      } else {
+        // Si es pago único, lo marcamos como pagado
+        final paidPayment = payment.copyWith(status: PaymentStatus.paid);
+        await repository.updatePayment(paidPayment);
+        // Cancelamos las alarmas asociadas
+        await scheduler.cancelPaymentNotifications(paidPayment);
+      }
     });
 
     if (result.hasError) {

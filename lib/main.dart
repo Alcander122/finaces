@@ -16,28 +16,39 @@ void main() async {
   await initializeDateFormatting('es', null);
   debugPrint('Datos de localización para español inicializados correctamente');
 
+  // 1. Inicializar Firebase
   try {
-    // 1. Inicializar Firebase
     await Firebase.initializeApp();
-
-    // Configurar idioma para Firebase Auth
     FirebaseAuth.instance.setLanguageCode("es");
+    debugPrint('Firebase inicializado correctamente');
+  } catch (e) {
+    debugPrint('Error inicializando Firebase: $e');
+  }
 
-    // 2. 📢 INICIALIZAR ADMOB: Prepara el motor de anuncios para cargar banners e intersticiales
-    // Se inicializa después de Firebase para asegurar la conectividad
+  // 2. 📢 INICIALIZAR ADMOB
+  try {
     await MobileAds.instance.initialize();
     debugPrint('SDK de Google Mobile Ads inicializado');
+  } catch (e) {
+    debugPrint('Error inicializando Google Mobile Ads: $e');
+  }
 
-    // 3. Inicializar Timezone
+  // 3. Inicializar Timezone
+  try {
     await TimezoneService().init();
+    debugPrint('TimezoneService inicializado correctamente');
+  } catch (e) {
+    debugPrint('Error inicializando TimezoneService: $e');
+  }
 
-    // 4. Inicializar notificaciones locales
+  // 4. Inicializar notificaciones locales
+  try {
     final notificationService = NotificationService();
     await notificationService.init();
     await notificationService.requestPermissions();
+    debugPrint('NotificationService inicializado correctamente');
   } catch (e) {
-    debugPrint('Error durante la inicialización de servicios: $e');
-    // No lanzamos excepción para evitar que la aplicación se cierre inesperadamente
+    debugPrint('Error inicializando NotificationService: $e');
   }
 
   // Ejecutar la aplicación envuelta en ProviderScope para el manejo de estados con Riverpod
