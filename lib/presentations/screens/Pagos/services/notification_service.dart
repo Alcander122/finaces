@@ -34,6 +34,20 @@ class NotificationService {
       initSettings,
       onDidReceiveNotificationResponse: _onNotificationTapped,
     );
+
+    // Registrar el canal explícitamente en Android
+    final androidPlugin = _plugin.resolvePlatformSpecificImplementation<AndroidFlutterLocalNotificationsPlugin>();
+    if (androidPlugin != null) {
+      const channel = AndroidNotificationChannel(
+        channelId,
+        channelName,
+        description: channelDescription,
+        importance: Importance.max,
+        playSound: true,
+        enableVibration: true,
+      );
+      await androidPlugin.createNotificationChannel(channel);
+    }
     
     developer.log('Inicializado correctamente.', name: 'NotificationService');
   }

@@ -16,6 +16,7 @@ T _$identity<T>(T value) => value;
 mixin _$Payment {
   String get id;
   String get userId;
+  String get parentPaymentId;
   @JsonKey(name: 'title')
   String get title;
   @JsonKey(name: 'descripcion')
@@ -52,6 +53,8 @@ mixin _$Payment {
             other is Payment &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.userId, userId) || other.userId == userId) &&
+            (identical(other.parentPaymentId, parentPaymentId) ||
+                other.parentPaymentId == parentPaymentId) &&
             (identical(other.title, title) || other.title == title) &&
             (identical(other.description, description) ||
                 other.description == description) &&
@@ -77,6 +80,7 @@ mixin _$Payment {
       runtimeType,
       id,
       userId,
+      parentPaymentId,
       title,
       description,
       totalAmount,
@@ -90,7 +94,7 @@ mixin _$Payment {
 
   @override
   String toString() {
-    return 'Payment(id: $id, userId: $userId, title: $title, description: $description, totalAmount: $totalAmount, paidAmount: $paidAmount, nextDueDate: $nextDueDate, recurrence: $recurrence, notifyDaysBefore: $notifyDaysBefore, notificationTimeOfDay: $notificationTimeOfDay, status: $status, fcmTokens: $fcmTokens)';
+    return 'Payment(id: $id, userId: $userId, parentPaymentId: $parentPaymentId, title: $title, description: $description, totalAmount: $totalAmount, paidAmount: $paidAmount, nextDueDate: $nextDueDate, recurrence: $recurrence, notifyDaysBefore: $notifyDaysBefore, notificationTimeOfDay: $notificationTimeOfDay, status: $status, fcmTokens: $fcmTokens)';
   }
 }
 
@@ -102,6 +106,7 @@ abstract mixin class $PaymentCopyWith<$Res> {
   $Res call(
       {String id,
       String userId,
+      String parentPaymentId,
       @JsonKey(name: 'title') String title,
       @JsonKey(name: 'descripcion') String description,
       @JsonKey(name: 'monto') double totalAmount,
@@ -133,6 +138,7 @@ class _$PaymentCopyWithImpl<$Res> implements $PaymentCopyWith<$Res> {
   $Res call({
     Object? id = null,
     Object? userId = null,
+    Object? parentPaymentId = null,
     Object? title = null,
     Object? description = null,
     Object? totalAmount = null,
@@ -152,6 +158,10 @@ class _$PaymentCopyWithImpl<$Res> implements $PaymentCopyWith<$Res> {
       userId: null == userId
           ? _self.userId
           : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      parentPaymentId: null == parentPaymentId
+          ? _self.parentPaymentId
+          : parentPaymentId // ignore: cast_nullable_to_non_nullable
               as String,
       title: null == title
           ? _self.title
@@ -303,6 +313,7 @@ extension PaymentPatterns on Payment {
     TResult Function(
             String id,
             String userId,
+            String parentPaymentId,
             @JsonKey(name: 'title') String title,
             @JsonKey(name: 'descripcion') String description,
             @JsonKey(name: 'monto') double totalAmount,
@@ -325,6 +336,7 @@ extension PaymentPatterns on Payment {
         return $default(
             _that.id,
             _that.userId,
+            _that.parentPaymentId,
             _that.title,
             _that.description,
             _that.totalAmount,
@@ -358,6 +370,7 @@ extension PaymentPatterns on Payment {
     TResult Function(
             String id,
             String userId,
+            String parentPaymentId,
             @JsonKey(name: 'title') String title,
             @JsonKey(name: 'descripcion') String description,
             @JsonKey(name: 'monto') double totalAmount,
@@ -379,6 +392,7 @@ extension PaymentPatterns on Payment {
         return $default(
             _that.id,
             _that.userId,
+            _that.parentPaymentId,
             _that.title,
             _that.description,
             _that.totalAmount,
@@ -411,6 +425,7 @@ extension PaymentPatterns on Payment {
     TResult? Function(
             String id,
             String userId,
+            String parentPaymentId,
             @JsonKey(name: 'title') String title,
             @JsonKey(name: 'descripcion') String description,
             @JsonKey(name: 'monto') double totalAmount,
@@ -432,6 +447,7 @@ extension PaymentPatterns on Payment {
         return $default(
             _that.id,
             _that.userId,
+            _that.parentPaymentId,
             _that.title,
             _that.description,
             _that.totalAmount,
@@ -454,6 +470,7 @@ class _Payment extends Payment {
   const _Payment(
       {this.id = '',
       this.userId = '',
+      this.parentPaymentId = '',
       @JsonKey(name: 'title') this.title = 'Sin título',
       @JsonKey(name: 'descripcion') this.description = '',
       @JsonKey(name: 'monto') this.totalAmount = 0.0,
@@ -479,6 +496,9 @@ class _Payment extends Payment {
   @override
   @JsonKey()
   final String userId;
+  @override
+  @JsonKey()
+  final String parentPaymentId;
   @override
   @JsonKey(name: 'title')
   final String title;
@@ -546,6 +566,8 @@ class _Payment extends Payment {
             other is _Payment &&
             (identical(other.id, id) || other.id == id) &&
             (identical(other.userId, userId) || other.userId == userId) &&
+            (identical(other.parentPaymentId, parentPaymentId) ||
+                other.parentPaymentId == parentPaymentId) &&
             (identical(other.title, title) || other.title == title) &&
             (identical(other.description, description) ||
                 other.description == description) &&
@@ -572,6 +594,7 @@ class _Payment extends Payment {
       runtimeType,
       id,
       userId,
+      parentPaymentId,
       title,
       description,
       totalAmount,
@@ -585,7 +608,7 @@ class _Payment extends Payment {
 
   @override
   String toString() {
-    return 'Payment(id: $id, userId: $userId, title: $title, description: $description, totalAmount: $totalAmount, paidAmount: $paidAmount, nextDueDate: $nextDueDate, recurrence: $recurrence, notifyDaysBefore: $notifyDaysBefore, notificationTimeOfDay: $notificationTimeOfDay, status: $status, fcmTokens: $fcmTokens)';
+    return 'Payment(id: $id, userId: $userId, parentPaymentId: $parentPaymentId, title: $title, description: $description, totalAmount: $totalAmount, paidAmount: $paidAmount, nextDueDate: $nextDueDate, recurrence: $recurrence, notifyDaysBefore: $notifyDaysBefore, notificationTimeOfDay: $notificationTimeOfDay, status: $status, fcmTokens: $fcmTokens)';
   }
 }
 
@@ -598,6 +621,7 @@ abstract mixin class _$PaymentCopyWith<$Res> implements $PaymentCopyWith<$Res> {
   $Res call(
       {String id,
       String userId,
+      String parentPaymentId,
       @JsonKey(name: 'title') String title,
       @JsonKey(name: 'descripcion') String description,
       @JsonKey(name: 'monto') double totalAmount,
@@ -630,6 +654,7 @@ class __$PaymentCopyWithImpl<$Res> implements _$PaymentCopyWith<$Res> {
   $Res call({
     Object? id = null,
     Object? userId = null,
+    Object? parentPaymentId = null,
     Object? title = null,
     Object? description = null,
     Object? totalAmount = null,
@@ -649,6 +674,10 @@ class __$PaymentCopyWithImpl<$Res> implements _$PaymentCopyWith<$Res> {
       userId: null == userId
           ? _self.userId
           : userId // ignore: cast_nullable_to_non_nullable
+              as String,
+      parentPaymentId: null == parentPaymentId
+          ? _self.parentPaymentId
+          : parentPaymentId // ignore: cast_nullable_to_non_nullable
               as String,
       title: null == title
           ? _self.title

@@ -52,8 +52,18 @@ class PaymentRepository {
     await _pagosRef(payment.userId).doc(payment.id).update(payment.toJson());
   }
 
-  /// Elimina un pago
+  /// Elimina un pago y todos sus registros históricos vinculados
   Future<void> deletePayment(String userId, String paymentId) async {
+    // 1. Eliminar el pago principal
     await _pagosRef(userId).doc(paymentId).delete();
+
+    // 2. Buscar y eliminar todos los registros históricos vinculados
+    final querySnapshot = await _pagosRef(userId)
+        .where('parentPaymentId', isEqualTo: paymentId)
+        .get();
+
+    for (var doc in querySnapshot.docs) {
+      await doc.reference.delete();
+    }
   }
 }

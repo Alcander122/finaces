@@ -183,6 +183,7 @@ class PaymentController extends AsyncNotifier<void> {
         // 1. Crear un registro histórico del pago realizado para el periodo actual
         final historyPayment = payment.copyWith(
           id: '', // Se autogenerará un nuevo ID en Firestore
+          parentPaymentId: payment.id, // Vinculamos con el ID del pago padre
           status: PaymentStatus.paid,
           recurrence: payment.recurrence.copyWith(
             unit: FrequencyUnit.none, // Registro histórico no recurrente

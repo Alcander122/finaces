@@ -45,7 +45,6 @@ void main() async {
   try {
     final notificationService = NotificationService();
     await notificationService.init();
-    await notificationService.requestPermissions();
     debugPrint('NotificationService inicializado correctamente');
   } catch (e) {
     debugPrint('Error inicializando NotificationService: $e');

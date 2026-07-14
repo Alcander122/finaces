@@ -15,16 +15,26 @@ class _SmartAdBannerState extends ConsumerState<SmartAdBanner> {
   BannerAd? _bannerAd;
   bool _isLoaded = false;
 
+  bool _isCreatingAd = false;
+
   @override
-  void didChangeDependencies() {
-    super.didChangeDependencies();
-    // Si el usuario no es premium, cargamos el anuncio
-    if (!ref.watch(premiumProvider)) {
-      _loadAd();
-    }
+  void initState() {
+    super.initState();
+    _loadAdIfNeeded();
   }
 
-  void _loadAd() {
+  void _loadAdIfNeeded() {
+    final isPremium = ref.read(premiumProvider);
+    if (isPremium) {
+      _bannerAd?.dispose();
+      _bannerAd = null;
+      _isLoaded = false;
+      return;
+    }
+
+    if (_bannerAd != null || _isCreatingAd) return;
+
+    _isCreatingAd = true;
     _bannerAd = BannerAd(
       adUnitId: kDebugMode
           ? 'ca-app-pub-3940256099942544/6300978111' // ID de prueba de Google
@@ -32,10 +42,22 @@ class _SmartAdBannerState extends ConsumerState<SmartAdBanner> {
       request: const AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
-        onAdLoaded: (ad) => setState(() => _isLoaded = true),
+        onAdLoaded: (ad) {
+          if (!mounted) return;
+          setState(() {
+            _isLoaded = true;
+            _isCreatingAd = false;
+          });
+        },
         onAdFailedToLoad: (ad, error) {
+          debugPrint('SmartAdBanner: Error al cargar anuncio: $error (Código: ${error.code}, Mensaje: ${error.message})');
           ad.dispose();
-          debugPrint('Error al cargar anuncio: $error');
+          if (!mounted) return;
+          setState(() {
+            _bannerAd = null;
+            _isLoaded = false;
+            _isCreatingAd = false;
+          });
         },
       ),
     )..load();

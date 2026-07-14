@@ -11,10 +11,12 @@ class TimezoneService {
     try {
       // 1. Intentar con la zona horaria del dispositivo
       final timeZoneInfo = await FlutterTimezone.getLocalTimezone();
+      final String timeZoneId = timeZoneInfo.identifier;
       try {
-        tz.setLocalLocation(tz.getLocation(timeZoneInfo.identifier));
+        tz.setLocalLocation(tz.getLocation(timeZoneId));
+        debugPrint('Zona horaria del dispositivo configurada: $timeZoneId');
       } catch (e) {
-        debugPrint('Zona horaria del dispositivo no soportada (${timeZoneInfo.identifier}), intentando fallback a America/Bogota: $e');
+        debugPrint('Zona horaria del dispositivo no soportada ($timeZoneId), intentando fallback a America/Bogota: $e');
         tz.setLocalLocation(tz.getLocation('America/Bogota'));
       }
     } catch (e) {

@@ -43,7 +43,7 @@ class DynamicPreviewCard extends ConsumerWidget {
             Text(
               draft.nextDueDate != null
                   ? dateFormat
-                      .format(NextDueDateCalculator.calculateNextDueDate(draft))
+                      .format(NextDueDateCalculator.calculateNextFutureDate(draft))
                   : 'No definido',
               style: Theme.of(context)
                   .textTheme

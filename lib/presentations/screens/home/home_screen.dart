@@ -8,6 +8,8 @@ import 'package:finances/core/data/providers/Ingreso_provider.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
 import 'package:finances/presentations/screens/Pagos/providers/payment_providers.dart';
 import 'package:finances/presentations/screens/Pagos/models/payment_enums.dart';
+import 'package:finances/presentations/screens/Pagos/models/payment.dart';
+import 'package:finances/presentations/screens/Pagos/services/notification_service.dart';
 import 'package:finances/core/data/providers/ahorro_provider.dart';
 import 'package:finances/core/data/providers/Bank_provider.dart';
 import 'package:finances/core/data/providers/portafolio_provider.dart';
@@ -23,6 +25,12 @@ import 'package:finances/presentations/widgets/smart_ad_banner.dart';
 
 // Provider local para controlar la privacidad del saldo
 final isBalancePrivateProvider = StateProvider<bool>((ref) => false);
+
+// Provider local para controlar si ya se sincronizaron las notificaciones en la sesión actual
+final hasSyncedNotificationsProvider = StateProvider<bool>((ref) => false);
+
+// Provider local para controlar si ya se solicitaron los permisos de notificación en esta sesión
+final hasRequestedPermissionsProvider = StateProvider<bool>((ref) => false);
 
 // Provider combinado para el cálculo automático y determinístico del Saldo Disponible
 final saldoDisponibleProvider = Provider<AsyncValue<double>>((ref) {
@@ -68,6 +76,33 @@ class HomeScreen extends ConsumerWidget {
     final saldoAsync = ref.watch(saldoDisponibleProvider);
     final isPrivate = ref.watch(isBalancePrivateProvider);
     final userId = authState.user?.uid ?? '';
+
+    // Autocargar y sincronizar notificaciones en segundo plano al iniciar la app o tras una actualización
+    if (userId.isNotEmpty) {
+      ref.listen<AsyncValue<List<Payment>>>(paymentsStreamProvider(userId), (previous, next) {
+        if (ref.read(hasSyncedNotificationsProvider)) return;
+
+        next.whenData((pagos) async {
+          // Marcar como sincronizado para evitar ciclos infinitos en esta sesión
+          ref.read(hasSyncedNotificationsProvider.notifier).state = true;
+          
+          final scheduler = ref.read(paymentSchedulerProvider);
+          for (final pago in pagos) {
+            if (pago.status == PaymentStatus.pending) {
+              await scheduler.syncPaymentNotifications(pago);
+            }
+          }
+        });
+      });
+
+      // Solicitar permisos de notificación de forma segura una vez que la pantalla y el contexto de la app estén listos
+      WidgetsBinding.instance.addPostFrameCallback((_) async {
+        if (!ref.read(hasRequestedPermissionsProvider)) {
+          ref.read(hasRequestedPermissionsProvider.notifier).state = true;
+          await NotificationService().requestPermissions();
+        }
+      });
+    }
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B0E14),

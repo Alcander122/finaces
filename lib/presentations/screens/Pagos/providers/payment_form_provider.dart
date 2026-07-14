@@ -6,6 +6,7 @@ import '../models/payment.dart';
 import '../models/payment_enums.dart';
 import '../models/recurrence.dart';
 import '../utils/notification_date_utils.dart';
+import '../utils/next_due_date_calculator.dart';
 
 final paymentFormProvider = NotifierProvider<PaymentFormNotifier, Payment>(() {
   return PaymentFormNotifier();
@@ -81,9 +82,8 @@ class PaymentFormNotifier extends Notifier<Payment> {
 
 final paymentPreviewProvider = Provider.autoDispose<List<tz.TZDateTime>>((ref) {
   final draft = ref.watch(paymentFormProvider);
-  // Usar el próximo vencimiento calculado en lugar de la fecha base
-  final nextDueDate = draft.nextDueDate;
-  if (nextDueDate == null) return [];
+  // Usar el próximo vencimiento futuro calculado en lugar de la fecha base
+  final nextDueDate = NextDueDateCalculator.calculateNextFutureDate(draft);
 
   // Recalcular con el próximo vencimiento real
   final draftWithNextDue = draft.copyWith(nextDueDate: nextDueDate);

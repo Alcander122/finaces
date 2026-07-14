@@ -23,6 +23,7 @@ abstract class Payment with _$Payment {
   const factory Payment({
     @Default('') String id,
     @Default('') String userId,
+    @Default('') String parentPaymentId,
     @JsonKey(name: 'title') @Default('Sin título') String title,
     @JsonKey(name: 'descripcion') @Default('') String description,
     @JsonKey(name: 'monto') @Default(0.0) double totalAmount,
