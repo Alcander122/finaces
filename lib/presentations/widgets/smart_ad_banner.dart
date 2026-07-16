@@ -38,7 +38,7 @@ class _SmartAdBannerState extends ConsumerState<SmartAdBanner> {
     _bannerAd = BannerAd(
       adUnitId: kDebugMode
           ? 'ca-app-pub-3940256099942544/6300978111' // ID de prueba de Google
-          : 'ca-app-pub-6536574784899409/6209842510', // ID de producción real (Banner_Home)
+          : 'ca-app-pub-6536574784899409/5087872422', // ID de producción real (Banner_Home)
       request: const AdRequest(),
       size: AdSize.banner,
       listener: BannerAdListener(
