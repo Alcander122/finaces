@@ -73,6 +73,7 @@ class RegisterForm extends StatelessWidget {
   Widget _buildNameField() {
     return TextFormField(
       controller: nameController,
+      style: const TextStyle(color: Colors.black87, fontSize: 16),
       validator: (value) =>
           value?.isEmpty ?? true ? ErrorStrings.requiredField : null,
       decoration: _inputDecoration('Nombre Completo'),
@@ -83,6 +84,7 @@ class RegisterForm extends StatelessWidget {
   Widget _buildUsernameField() {
     return TextFormField(
       controller: usernameController,
+      style: const TextStyle(color: Colors.black87, fontSize: 16),
       validator: (value) =>
           value?.isEmpty ?? true ? ErrorStrings.requiredField : null,
       decoration: _inputDecoration('Nombre Usuario'),
@@ -93,6 +95,7 @@ class RegisterForm extends StatelessWidget {
   Widget _buildEmailField() {
     return TextFormField(
       controller: emailController,
+      style: const TextStyle(color: Colors.black87, fontSize: 16),
       validator: (value) {
         if (value == null || value.isEmpty) return ErrorStrings.requiredField;
         if (!_validateEmail(value)) return ErrorStrings.invalidEmail;
@@ -106,6 +109,7 @@ class RegisterForm extends StatelessWidget {
   Widget _buildPasswordField() {
     return TextFormField(
       controller: passwordController,
+      style: const TextStyle(color: Colors.black87, fontSize: 16),
       obscureText: !isPasswordVisible,
       validator: (value) =>
           value?.isEmpty ?? true ? ErrorStrings.requiredField : null,
@@ -124,6 +128,7 @@ class RegisterForm extends StatelessWidget {
   Widget _buildConfirmPasswordField() {
     return TextFormField(
       controller: confirmPasswordController,
+      style: const TextStyle(color: Colors.black87, fontSize: 16),
       obscureText: !isConfirmPasswordVisible,
       validator: (value) {
         if (value == null || value.isEmpty) return ErrorStrings.requiredField;
@@ -146,8 +151,11 @@ class RegisterForm extends StatelessWidget {
   InputDecoration _inputDecoration(String label) {
     return InputDecoration(
       labelText: label,
+      labelStyle: const TextStyle(color: Colors.black54),
       hintText: 'Ingresa $label',
-      hintStyle: const TextStyle(color: Colors.black26),
+      hintStyle: const TextStyle(color: Colors.black38),
+      filled: true,
+      fillColor: Colors.grey.shade50,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: const BorderSide(color: Colors.black12),

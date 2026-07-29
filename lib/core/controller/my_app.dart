@@ -1,6 +1,8 @@
 import 'dart:async';
 import 'package:finances/core/data/providers/tutorial_provider.dart';
+import 'package:finances/core/data/providers/theme_provider.dart'; // Provider del tema claro/oscuro
 import 'package:finances/presentations/screens/Tutorial/TutorialScreen.dart';
+import 'package:finances/presentations/theme/theme.dart'; // ThemeData lightMode / darkMode
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -167,12 +169,17 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
   // CONSTRUCCIÓN UI
   // ============================================================================
 
-  Widget _buildNormalApp(AuthState authState) {
+  Widget _buildNormalApp(AuthState authState, ThemeMode themeMode) {
     return Listener(
       behavior: HitTestBehavior.translucent,
       onPointerDown: (_) => _resetInactivityTimer(),
       child: MaterialApp(
         debugShowCheckedModeBanner: false,
+        // Tema claro y oscuro definidos en theme.dart
+        theme: lightMode,
+        darkTheme: darkMode,
+        // El usuario controla cuál modo está activo
+        themeMode: themeMode,
         localizationsDelegates: const [
           GlobalMaterialLocalizations.delegate,
           GlobalWidgetsLocalizations.delegate,
@@ -207,9 +214,11 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
 
     final authState = ref.watch(authProvider);
     final hasSeenTutorial = ref.watch(tutorialProvider);
+    // Escucha el tema elegido por el usuario (claro u oscuro)
+    final themeMode = ref.watch(themeProvider);
 
     if (!_isAppInitialized) {
-      return _buildLoadingScreen();
+      return _buildLoadingScreen(themeMode);
     }
 
     return hasSeenTutorial.when(
@@ -217,6 +226,10 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
         if (authState.isAuthenticated && !hasSeen) {
           return MaterialApp(
             debugShowCheckedModeBanner: false,
+            // Aplica el tema seleccionado también en la pantalla de tutorial
+            theme: lightMode,
+            darkTheme: darkMode,
+            themeMode: themeMode,
             localizationsDelegates: const [
               GlobalMaterialLocalizations.delegate,
               GlobalWidgetsLocalizations.delegate,
@@ -232,16 +245,20 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
             navigatorKey: _navigatorKey,
           );
         }
-        return _buildNormalApp(authState);
+        return _buildNormalApp(authState, themeMode);
       },
-      loading: () => _buildLoadingScreen('Cargando...'),
-      error: (error, _) => _buildNormalApp(authState),
+      loading: () => _buildLoadingScreen(themeMode, 'Cargando...'),
+      error: (error, _) => _buildNormalApp(authState, themeMode),
     );
   }
 
-  Widget _buildLoadingScreen([String message = 'Inicializando...']) {
+  Widget _buildLoadingScreen([ThemeMode themeMode = ThemeMode.dark, String message = 'Inicializando...']) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
+      // Mantiene el tema correcto incluso en la pantalla de carga inicial
+      theme: lightMode,
+      darkTheme: darkMode,
+      themeMode: themeMode,
       localizationsDelegates: const [
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
