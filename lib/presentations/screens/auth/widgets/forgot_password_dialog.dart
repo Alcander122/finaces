@@ -23,10 +23,13 @@ class ForgotPasswordDialog extends StatelessWidget {
           const SizedBox(height: 15),
           TextField(
             controller: emailController,
+            style: const TextStyle(color: Colors.black87, fontSize: 16),
             keyboardType: TextInputType.emailAddress,
             decoration: InputDecoration(
               labelText: 'Correo electrónico',
+              labelStyle: const TextStyle(color: Colors.black54),
               hintText: 'ejemplo@dominio.com',
+              hintStyle: const TextStyle(color: Colors.black38),
               border:
                   OutlineInputBorder(borderRadius: BorderRadius.circular(8)),
             ),

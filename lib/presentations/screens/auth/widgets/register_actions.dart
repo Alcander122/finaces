@@ -5,7 +5,7 @@
 // Última modificación: [Fecha]
 
 import 'package:flutter/material.dart';
-import 'package:icons_plus/icons_plus.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 /// Componente que encapsula todos los botones de acción en la pantalla de registro
 ///
@@ -75,7 +75,7 @@ class RegisterActions extends StatelessWidget {
       children: [
         GestureDetector(
           onTap: onGoogleSignIn,
-          child: Logo(Logos.google),
+          child: const FaIcon(FontAwesomeIcons.google, color: Color(0xFFEA4335), size: 28),
         ),
       ],
     );

@@ -16,7 +16,7 @@ import 'package:finances/presentations/widgets/custom_scaffold.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:icons_plus/icons_plus.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:finances/routes/app_routes.dart';
 import 'package:shared_preferences/shared_preferences.dart'; // 🔥 Necesario para last_email
 
@@ -249,9 +249,13 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
 
   InputDecoration _inputDecoration(String label, String hint) {
     return InputDecoration(
-      label: Text(label),
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.black54),
+      floatingLabelStyle: TextStyle(color: Themes.degradientLight, fontWeight: FontWeight.bold),
       hintText: hint,
-      hintStyle: const TextStyle(color: Colors.black26),
+      hintStyle: const TextStyle(color: Colors.black38),
+      filled: true,
+      fillColor: Colors.grey.shade50,
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: const BorderSide(color: Colors.black12),
@@ -259,6 +263,14 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
       enabledBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(10),
         borderSide: const BorderSide(color: Colors.black12),
+      ),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: const BorderSide(color: Colors.black12),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(10),
+        borderSide: BorderSide(color: Themes.degradientLight, width: 1.5),
       ),
     );
   }
@@ -310,6 +322,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                             // 🔥 CAMPO DE CORREO: Deshabilitado si usamos último correo
                             TextFormField(
                               controller: _emailController,
+                              style: const TextStyle(color: Colors.black87, fontSize: 16),
                               keyboardType: TextInputType.emailAddress,
                               validator: FormValidators.validateEmail,
                               enabled: !_isUsingLastEmail, // 🔥 ¡Clave!
@@ -319,6 +332,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                             const SizedBox(height: 25.0),
                             TextFormField(
                               controller: _passwordController,
+                              style: const TextStyle(color: Colors.black87, fontSize: 16),
                               obscureText: !_isPasswordVisible,
                               validator: (value) => value?.isEmpty ?? true
                                   ? ErrorStrings.requiredField
@@ -404,7 +418,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
                         children: [
                           GestureDetector(
                             onTap: _handleGoogleSignIn,
-                            child: Logo(Logos.google),
+                            child: const FaIcon(FontAwesomeIcons.google, color: Color(0xFFEA4335), size: 28),
                           ),
                         ],
                       ),
