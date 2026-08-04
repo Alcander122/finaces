@@ -20,7 +20,7 @@ const lightColorScheme = ColorScheme(
 
 // ============================================================================
 // PALETA MODO OSCURO
-// Fondo muy oscuro (#0B0E14) con textos blancos — aspecto actual de la app
+// Fondo muy oscuro (#0B0E14) con textos suaves en off-white para evitar deslumbramientos
 // ============================================================================
 const darkColorScheme = ColorScheme(
   brightness: Brightness.dark,
@@ -31,7 +31,11 @@ const darkColorScheme = ColorScheme(
   error: Color(0xFFCF6679),
   onError: Color(0xFF000000),
   surface: Color(0xFF0B0E14),          // Fondo oscuro característico de la app
-  onSurface: Color(0xFFFFFFFF),        // Texto blanco sobre fondo oscuro
+  onSurface: Color(0xFFE6E8EC),        // Texto blanco suave (off-white) para evitar deslumbramiento
+  onSurfaceVariant: Color(0xFFA0A5B5),  // Texto secundario suavizado
+  surfaceContainer: Color(0xFF161B22), // Fondo de tarjetas y contenedores en modo oscuro
+  surfaceContainerHigh: Color(0xFF1E2430), // Fondo de diálogos e hiper-elevaciones
+  surfaceContainerLow: Color(0xFF11151D),  // Fondo de contenedores hundidos
   shadow: Color(0xFF000000),
   outlineVariant: Color(0xFF44474E),
 );
@@ -93,4 +97,17 @@ extension ThemeContextExtension on BuildContext {
 
   /// Devuelve true si la app está en modo oscuro
   bool get isDarkMode => Theme.of(this).brightness == Brightness.dark;
+
+  /// Fondo de pantalla del Scaffold según el tema activo
+  Color get scaffoldBgColor => isDarkMode ? darkColorScheme.surface : const Color(0xFFD6EAF8);
+
+  /// Color de títulos principales adaptado al tema activo
+  Color get titleColor => isDarkMode ? const Color(0xFF6EAEE7) : const Color(0xFF003366);
+
+  /// Fondo de tarjetas y contenedores de formularios según el tema activo
+  Color get cardBgColor => isDarkMode ? darkColorScheme.surfaceContainer : Colors.white;
+
+  /// Fondo de diálogos e hiper-elevaciones según el tema activo
+  Color get dialogBgColor => isDarkMode ? darkColorScheme.surfaceContainerHigh : Colors.white;
 }
+

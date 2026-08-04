@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:auto_size_text/auto_size_text.dart';
 import '../providers/payment_providers.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 
 class PaymentSummaryHeader extends ConsumerWidget {
@@ -96,7 +97,7 @@ class _SummaryCard extends StatelessWidget {
       elevation: 0,
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.grey.shade200),
+        side: BorderSide(color: context.isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200),
       ),
       child: Padding(
         padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 10),
@@ -118,9 +119,9 @@ class _SummaryCard extends StatelessWidget {
                 children: [
                   AutoSizeText(
                     title,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Colors.grey,
+                      color: context.isDarkMode ? Colors.grey.shade400 : Colors.grey,
                       fontWeight: FontWeight.w500,
                     ),
                     maxLines: 1,
@@ -130,10 +131,10 @@ class _SummaryCard extends StatelessWidget {
                   const SizedBox(height: 4),
                   AutoSizeText(
                     value,
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 15,
                       fontWeight: FontWeight.bold,
-                      color: Themes.primary,
+                      color: context.isDarkMode ? Colors.white : Themes.primary,
                     ),
                     maxLines: 1,
                     minFontSize: 10,

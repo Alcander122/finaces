@@ -13,6 +13,7 @@ import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'dart:math';
 import 'package:finances/core/data/utils/date_utils.dart'
     as AppDateUtils; // Usamos prefijo para evitar conflictos
+import 'package:finances/presentations/theme/theme.dart';
 
 /// Clase que representa un periodo con ingresos y egresos
 class PeriodData {
@@ -39,7 +40,7 @@ class ActivityChart extends ConsumerWidget {
 
     return ingresosAsync.when(
       data: (ingresos) => egresosAsync.when(
-        data: (egresos) => _buildChartContent(ingresos, egresos, filtro),
+        data: (egresos) => _buildChartContent(context, ingresos, egresos, filtro),
         loading: _buildLoading,
         error: (err, _) => _buildError('Error en egresos: $err'),
       ),
@@ -49,28 +50,28 @@ class ActivityChart extends ConsumerWidget {
   }
 
   Widget _buildChartContent(
-      List<Ingreso> ingresos, List<Egreso> egresos, Filter filtro) {
+      BuildContext context, List<Ingreso> ingresos, List<Egreso> egresos, Filter filtro) {
     final periodos = _generarPeriodos(filtro);
     final transacciones =
         _calcularTransaccionesReal(ingresos, egresos, periodos);
 
     return Card(
       elevation: 0,
-      color: const Color.fromARGB(255, 206, 230, 248),
+      color: context.isDarkMode ? const Color(0xFF1E293B) : const Color.fromARGB(255, 206, 230, 248),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(4)),
       child: Padding(
         padding: const EdgeInsets.all(16),
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            _buildTitulo(filtro),
+            _buildTitulo(context, filtro),
             const SizedBox(height: 15),
             AspectRatio(
               aspectRatio: 1.7,
-              child: BarChart(_crearDatosChart(transacciones, filtro)),
+              child: BarChart(_crearDatosChart(context, transacciones, filtro)),
             ),
             const SizedBox(height: 10),
-            _buildLeyenda(),
+            _buildLeyenda(context),
           ],
         ),
       ),
@@ -167,7 +168,8 @@ class ActivityChart extends ConsumerWidget {
         !fechaNormalizada.isAfter(periodo.end);
   }
 
-  BarChartData _crearDatosChart(List<PeriodData> periodosData, Filter filtro) {
+  BarChartData _crearDatosChart(BuildContext context, List<PeriodData> periodosData, Filter filtro) {
+    final isDark = context.isDarkMode;
     return BarChartData(
       borderData: FlBorderData(show: false),
       barTouchData: BarTouchData(
@@ -192,7 +194,7 @@ class ActivityChart extends ConsumerWidget {
               padding: const EdgeInsets.only(top: 8),
               child: Text(
                 _buildEtiquetaEjeX(value, periodosData, filtro),
-                style: const TextStyle(fontSize: 10),
+                style: TextStyle(fontSize: 10, color: isDark ? Colors.white70 : Colors.black87),
               ),
             ),
           ),
@@ -266,14 +268,14 @@ class ActivityChart extends ConsumerWidget {
     return UIHelpers.formatCurrency(value);
   }
 
-  Widget _buildTitulo(Filter filtro) {
+  Widget _buildTitulo(BuildContext context, Filter filtro) {
     final rango = _calcularRango(filtro);
     return Text(
       '${DateFormat('dd/MM/yyyy').format(rango.start)} - ${DateFormat('dd/MM/yyyy').format(rango.end)}',
-      style: const TextStyle(
+      style: TextStyle(
         fontSize: 12,
         fontWeight: FontWeight.bold,
-        color: Colors.black87,
+        color: context.isDarkMode ? Colors.white70 : Colors.black87,
       ),
     );
   }
@@ -312,23 +314,24 @@ class ActivityChart extends ConsumerWidget {
     }
   }
 
-  Widget _buildLeyenda() {
+  Widget _buildLeyenda(BuildContext context) {
     return Row(
       mainAxisAlignment: MainAxisAlignment.center,
       children: [
-        _buildItemLeyenda(Colors.green, 'Ingresos'),
+        _buildItemLeyenda(context, Colors.green, 'Ingresos'),
         const SizedBox(width: 20),
-        _buildItemLeyenda(Colors.red, 'Egresos'),
+        _buildItemLeyenda(context, Colors.red, 'Egresos'),
       ],
     );
   }
 
-  Widget _buildItemLeyenda(Color color, String texto) {
+  Widget _buildItemLeyenda(BuildContext context, Color color, String texto) {
+    final isDark = context.isDarkMode;
     return Row(
       children: [
         Container(width: 12, height: 12, color: color),
         const SizedBox(width: 5),
-        Text(texto, style: const TextStyle(fontSize: 12)),
+        Text(texto, style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87)),
       ],
     );
   }

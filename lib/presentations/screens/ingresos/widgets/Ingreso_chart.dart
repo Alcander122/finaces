@@ -2,6 +2,7 @@ import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:syncfusion_flutter_charts/charts.dart';
 import 'package:finances/core/data/models/ingreso.model.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/utils/category_color_generator.dart';
 
@@ -47,7 +48,7 @@ class IncomeChart extends StatelessWidget {
     return Card(
       elevation: 2,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      color: Themes.primary,
+      color: context.isDarkMode ? context.colors.surfaceContainer : Themes.primary,
       child: Padding(
         padding: const EdgeInsets.all(16.0),
         child: SizedBox(

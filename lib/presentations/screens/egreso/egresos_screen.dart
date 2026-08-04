@@ -9,6 +9,7 @@ import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:finances/presentations/screens/Egreso/widgets/egreso_chart.dart';
 import 'package:finances/presentations/widgets/column_selection_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 
 class EgresosScreen extends ConsumerStatefulWidget {
@@ -105,7 +106,7 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
     final egresosAsync = ref.watch(egresosProvider);
 
     return Scaffold(
-      backgroundColor: Themes.light,
+      backgroundColor: context.scaffoldBgColor,
       appBar: AppBarFinances(
         title: 'Gastos',
         showProfileIcon: false,
@@ -138,7 +139,7 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
             children: [
               const Icon(Icons.error_outline, color: Themes.red, size: 64),
               const SizedBox(height: 16),
-              Text('Error: $error', style: const TextStyle(color: Colors.white70)),
+              Text('Error: $error', style: TextStyle(color: context.isDarkMode ? Colors.white70 : Colors.black54)),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _refreshData,
@@ -155,8 +156,8 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
 
           return RefreshIndicator(
             onRefresh: _refreshData,
-            color: Themes.primary,
-            backgroundColor: Themes.light,
+            color: context.colors.primary,
+            backgroundColor: context.scaffoldBgColor,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               child: Padding(
@@ -165,14 +166,14 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     // Dashboard Title
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
                       child: Text(
                         'Resumen Financiero',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Themes.primary,
+                          color: context.titleColor,
                         ),
                       ),
                     ),
@@ -181,14 +182,14 @@ class EgresosScreenState extends ConsumerState<EgresosScreen> {
                     const SizedBox(height: 24),
 
                     // Título de sección de tabla
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
                       child: Text(
                         'Movimientos',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Themes.primary,
+                          color: context.titleColor,
                         ),
                       ),
                     ),

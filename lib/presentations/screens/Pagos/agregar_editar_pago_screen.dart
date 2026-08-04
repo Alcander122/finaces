@@ -11,6 +11,7 @@ import 'providers/payment_form_provider.dart';
 import 'providers/payment_providers.dart';
 import 'widgets/fecha_vencimiento_picker.dart';
 import 'widgets/payment_config_bottom_sheet.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:finances/core/errors/handlers/db_error_handler.dart';
@@ -141,9 +142,9 @@ class _AgregarEditarPagoScreenState
     final isProgramado = draft.recurrence.unit != FrequencyUnit.none;
 
     return Scaffold(
-      backgroundColor: Themes.light,
+      backgroundColor: context.scaffoldBgColor,
       appBar: AppBar(
-        backgroundColor: Themes.primary,
+        backgroundColor: context.isDarkMode ? context.colors.surface : Themes.primary,
         foregroundColor: Colors.white,
         title: Text(isEditing ? "Editar Pago" : "Nuevo Pago"),
         centerTitle: true,
@@ -159,10 +160,10 @@ class _AgregarEditarPagoScreenState
           children: [
             Text(
               isEditing ? "Editar Pago" : "Nuevo Pago",
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Themes.primary,
+                color: context.isDarkMode ? context.colors.onSurface : Themes.primary,
               ),
               textAlign: TextAlign.center,
             ),
@@ -210,14 +211,17 @@ class _AgregarEditarPagoScreenState
 
             Container(
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.isDarkMode ? context.colors.surfaceContainerHigh : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.grey.shade300),
+                border: Border.all(color: context.isDarkMode ? Colors.white12 : Colors.grey.shade300),
               ),
               child: SwitchListTile.adaptive(
-                title: const Text(
+                title: Text(
                   "Pago programado / recurrente",
-                  style: TextStyle(fontWeight: FontWeight.w600),
+                  style: TextStyle(
+                    fontWeight: FontWeight.w600,
+                    color: context.isDarkMode ? context.colors.onSurface : Colors.black87,
+                  ),
                 ),
                 contentPadding: const EdgeInsets.symmetric(horizontal: 16),
                 value: isProgramado,
@@ -233,7 +237,7 @@ class _AgregarEditarPagoScreenState
                         .updateFrequency(FrequencyUnit.none);
                   }
                 },
-                activeColor: Themes.primary,
+                activeColor: context.colors.primary,
               ),
             ),
 
@@ -241,27 +245,27 @@ class _AgregarEditarPagoScreenState
               const SizedBox(height: 8),
               Container(
                 decoration: BoxDecoration(
-                  color: Themes.primary.withValues(alpha: 0.05),
+                  color: context.isDarkMode ? context.colors.surfaceContainerHigh : Themes.primary.withValues(alpha: 0.05),
                   borderRadius: BorderRadius.circular(12),
                   border: Border.all(
-                      color: Themes.primary.withValues(alpha: 0.2)),
+                      color: context.isDarkMode ? Colors.white12 : Themes.primary.withValues(alpha: 0.2)),
                 ),
                 child: ListTile(
                   contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
                   leading: CircleAvatar(
-                    backgroundColor: Themes.primary.withValues(alpha: 0.1),
-                    child: const Icon(Icons.repeat, color: Themes.primary, size: 20),
+                    backgroundColor: context.colors.primary.withValues(alpha: 0.1),
+                    child: Icon(Icons.repeat, color: context.colors.primary, size: 20),
                   ),
                   title: Text(
                     "Frecuencia: ${draft.recurrence.unit.name.toUpperCase()}",
-                    style: const TextStyle(fontWeight: FontWeight.bold, color: Themes.primary),
+                    style: TextStyle(fontWeight: FontWeight.bold, color: context.isDarkMode ? context.colors.onSurface : Themes.primary),
                   ),
                   subtitle: Text(
                     "Avisar: ${draft.notifyDaysBefore.join(', ')} días antes a las ${draft.notificationTimeOfDay?.hour.toString().padLeft(2, '0')}:${draft.notificationTimeOfDay?.minute.toString().padLeft(2, '0')}",
-                    style: TextStyle(color: Colors.grey.shade700, fontSize: 12),
+                    style: TextStyle(color: context.isDarkMode ? context.colors.onSurfaceVariant : Colors.grey.shade700, fontSize: 12),
                   ),
                   trailing: IconButton(
-                    icon: const Icon(Icons.edit_calendar, color: Themes.primary),
+                    icon: Icon(Icons.edit_calendar, color: context.colors.primary),
                     onPressed: () => PaymentConfigBottomSheet.show(context),
                   ),
                 ),

@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
 
@@ -32,7 +33,12 @@ class _EgresoTableState extends State<EgresoTable> {
   @override
   Widget build(BuildContext context) {
     if (widget.egresos.isEmpty) {
-      return const Center(child: Text('No hay egresos disponibles'));
+      return Center(
+        child: Text(
+          'No hay egresos disponibles',
+          style: TextStyle(color: context.isDarkMode ? Colors.white70 : Colors.black87),
+        ),
+      );
     }
 
     final totalItems = widget.egresos.length;
@@ -70,6 +76,8 @@ class _EgresoTableState extends State<EgresoTable> {
   }
 
   Widget _buildMobileList(List<Map<String, dynamic>> items) {
+    final isDark = context.isDarkMode;
+
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -122,8 +130,8 @@ class _EgresoTableState extends State<EgresoTable> {
                   children: [
                     // Icono de categoría
                     CircleAvatar(
-                      backgroundColor: Themes.primary.withOpacity(0.1),
-                      child: const Icon(Icons.shopping_bag, color: Themes.primary),
+                      backgroundColor: context.colors.primary.withValues(alpha: 0.15),
+                      child: Icon(Icons.shopping_bag, color: context.colors.primary),
                     ),
                     const SizedBox(width: 16),
                     // Detalles
@@ -132,7 +140,14 @@ class _EgresoTableState extends State<EgresoTable> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           if (widget.camposVisibles.contains('concepto')) ...[
-                            Text(concepto, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text(
+                              concepto,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                            ),
                             const SizedBox(height: 4),
                           ],
                           if (widget.camposVisibles.contains('categoria') || widget.camposVisibles.contains('fechaPago'))
@@ -141,7 +156,7 @@ class _EgresoTableState extends State<EgresoTable> {
                                 if (widget.camposVisibles.contains('categoria')) categoria,
                                 if (widget.camposVisibles.contains('fechaPago')) fechaFormateada
                               ].join(' • '),
-                              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                              style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600], fontSize: 13),
                             ),
                           // Otros campos dinámicos
                           ...widget.camposVisibles
@@ -151,12 +166,22 @@ class _EgresoTableState extends State<EgresoTable> {
                                     child: Row(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text('${_formatearNombreCampo(campo)}: ', style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.bold)),
+                                        Text(
+                                          '${_formatearNombreCampo(campo)}: ',
+                                          style: TextStyle(
+                                            color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
                                         Expanded(
                                           child: DefaultTextStyle(
-                                            style: TextStyle(color: Colors.grey[800]!, fontSize: 13),
-                                            child: _formatearCelda(campo, egreso[campo])
-                                          )
+                                            style: TextStyle(
+                                              color: isDark ? Colors.grey[200] : Colors.grey[800]!,
+                                              fontSize: 13,
+                                            ),
+                                            child: _formatearCelda(campo, egreso[campo]),
+                                          ),
                                         ),
                                       ],
                                     ),
@@ -170,10 +195,10 @@ class _EgresoTableState extends State<EgresoTable> {
                         padding: const EdgeInsets.only(left: 8.0),
                         child: Text(
                           UIHelpers.formatCurrency(valor),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
-                            color: Themes.red, // Egresos en rojo
+                            color: isDark ? Colors.redAccent : Themes.red,
                           ),
                         ),
                       ),
@@ -203,7 +228,7 @@ class _EgresoTableState extends State<EgresoTable> {
                 decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)),
               ),
               ListTile(
-                leading: const Icon(Icons.edit, color: Themes.primary),
+                leading: Icon(Icons.edit, color: context.colors.primary),
                 title: const Text('Editar Gasto'),
                 onTap: () {
                   Navigator.pop(context);
@@ -262,7 +287,7 @@ class _EgresoTableState extends State<EgresoTable> {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: DataTable(
-          headingRowColor: WidgetStateProperty.resolveWith((states) => Themes.primary),
+          headingRowColor: WidgetStateProperty.resolveWith((states) => context.colors.primary),
           headingTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           columns: [
             const DataColumn(label: Text('Acciones')),
@@ -274,7 +299,7 @@ class _EgresoTableState extends State<EgresoTable> {
                 DataCell(Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit, color: Themes.primary, size: 20),
+                      icon: Icon(Icons.edit, color: context.colors.primary, size: 20),
                       onPressed: () => widget.onEdit(egreso),
                     ),
                     IconButton(
@@ -367,6 +392,7 @@ class PaginationControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
     final startItem = currentPage * itemsPerPage + 1;
     final endItem = min(startItem + itemsPerPage - 1, totalItems);
 
@@ -380,12 +406,12 @@ class PaginationControl extends StatelessWidget {
         children: [
           Text(
             'Mostrando $startItem - $endItem de $totalItems',
-            style: const TextStyle(fontSize: 13, color: Colors.black87),
+            style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
           ),
           DropdownButton<int>(
             value: itemsPerPage,
-            dropdownColor: Themes.primary,
-            style: const TextStyle(color: Colors.black87),
+            dropdownColor: isDark ? const Color(0xFF1E293B) : Themes.primary,
+            style: TextStyle(color: isDark ? Colors.white : Colors.black87),
             items: [5, 10, 25, 50].map((int value) {
               return DropdownMenuItem<int>(
                 value: value,
@@ -395,21 +421,21 @@ class PaginationControl extends StatelessWidget {
             onChanged: (int? newValue) {
               if (newValue != null) onItemsPerPageChanged(newValue);
             },
-            underline: Container(height: 1, color: Colors.grey),
+            underline: Container(height: 1, color: isDark ? Colors.grey[700] : Colors.grey),
           ),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
-                icon: const Icon(Icons.chevron_left, color: Colors.black87),
+                icon: Icon(Icons.chevron_left, color: isDark ? Colors.white70 : Colors.black87),
                 onPressed: currentPage > 0 ? () => onPageChanged(currentPage - 1) : null,
               ),
               Text(
                 '${currentPage + 1}/$totalPages',
-                style: const TextStyle(fontSize: 12, color: Colors.black87),
+                style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87),
               ),
               IconButton(
-                icon: const Icon(Icons.chevron_right, color: Colors.black87),
+                icon: Icon(Icons.chevron_right, color: isDark ? Colors.white70 : Colors.black87),
                 onPressed: currentPage < totalPages - 1 ? () => onPageChanged(currentPage + 1) : null,
               ),
             ],

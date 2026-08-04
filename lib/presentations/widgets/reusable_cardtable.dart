@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:finances/presentations/theme/theme.dart';
 
 class ReusableCardTable extends StatelessWidget {
   final Widget child;
@@ -28,7 +29,7 @@ class ReusableCardTable extends StatelessWidget {
             child: Container(
               decoration: BoxDecoration(
                 borderRadius: BorderRadius.circular(20),
-                color: Colors.white,
+                color: context.cardBgColor,
               ),
               child: Align(
                 alignment: Alignment.topCenter,

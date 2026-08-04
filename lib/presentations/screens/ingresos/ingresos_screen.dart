@@ -9,6 +9,7 @@ import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:finances/presentations/screens/ingresos/widgets/Ingreso_chart.dart';
 import 'package:finances/presentations/widgets/column_selection_dialog.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 
 class IngresosScreen extends ConsumerStatefulWidget {
@@ -93,7 +94,7 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
     final ingresosAsync = ref.watch(ingresosProvider);
 
     return Scaffold(
-      backgroundColor: Themes.light,
+      backgroundColor: context.scaffoldBgColor,
       appBar: AppBarFinances(
         title: 'Ingresos',
         showProfileIcon: false,
@@ -126,7 +127,7 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
             children: [
               const Icon(Icons.error_outline, color: Themes.red, size: 64),
               const SizedBox(height: 16),
-              Text('Error: $error', style: const TextStyle(color: Colors.white70)),
+              Text('Error: $error', style: TextStyle(color: context.isDarkMode ? Colors.white70 : Colors.black54)),
               const SizedBox(height: 16),
               ElevatedButton(
                 onPressed: _refreshData,
@@ -143,7 +144,7 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
           return RefreshIndicator(
             onRefresh: _refreshData,
             color: Themes.green,
-            backgroundColor: Themes.light,
+            backgroundColor: context.scaffoldBgColor,
             child: SingleChildScrollView(
               physics: const AlwaysScrollableScrollPhysics(),
               child: Padding(
@@ -151,28 +152,28 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
                       child: Text(
                         'Resumen Financiero',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Themes.primary,
+                          color: context.titleColor,
                         ),
                       ),
                     ),
                     IncomeChart(ingresos: ingresos),
                     const SizedBox(height: 24),
 
-                    const Padding(
-                      padding: EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 8.0, vertical: 8.0),
                       child: Text(
                         'Movimientos',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.bold,
-                          color: Themes.primary,
+                          color: context.titleColor,
                         ),
                       ),
                     ),
@@ -183,13 +184,13 @@ class IngresosScreenState extends ConsumerState<IngresosScreen> {
                           padding: const EdgeInsets.all(32),
                           child: Column(
                             children: [
-                              Icon(Icons.account_balance_wallet, size: 64, color: Colors.grey[600]),
+                              Icon(Icons.account_balance_wallet, size: 64, color: context.isDarkMode ? Colors.grey[400] : Colors.grey[600]),
                               const SizedBox(height: 16),
                               Text(
                                 'No hay ingresos registrados aún.',
                                 style: TextStyle(
                                   fontSize: 16,
-                                  color: Colors.grey[800],
+                                  color: context.isDarkMode ? Colors.grey[300] : Colors.grey[800],
                                 ),
                               ),
                             ],

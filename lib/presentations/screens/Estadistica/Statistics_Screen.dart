@@ -15,6 +15,8 @@ import 'package:finances/core/errors/error_strings.dart';
 // SOLUCIÓN: Usamos un prefijo para evitar el conflicto de nombres con DateUtils
 import 'package:finances/core/data/utils/date_utils.dart' as MyDateUtils;
 
+import 'package:finances/presentations/theme/theme.dart';
+
 /// Pantalla principal de estadísticas que muestra:
 /// - Actividad financiera
 /// - Filtros (mensual, trimestral, anual, personalizado)
@@ -38,7 +40,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     final egresosAsync = ref.watch(filteredEgresosProvider);
 
     return Scaffold(
-      backgroundColor: Themes.light,
+      backgroundColor: context.scaffoldBgColor,
       appBar: const AppBarFinances(
         title: 'Estadistica',
         showProfileIcon: false,
@@ -70,12 +72,12 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Actividad Financiera',
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.w700,
-            color: Colors.black87,
+            color: context.isDarkMode ? Colors.white : Colors.black87,
           ),
         ),
         const SizedBox(height: 4),
@@ -132,6 +134,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     required VoidCallback onTap,
     required Color color,
   }) {
+    final isDark = context.isDarkMode;
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
       child: FilterChip(
@@ -141,11 +144,11 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
         selectedColor: color.withValues(alpha: 0.2),
         checkmarkColor: color,
         labelStyle: TextStyle(
-          color: isSelected ? color : Colors.grey[700],
+          color: isSelected ? color : (isDark ? Colors.grey[300] : Colors.grey[700]),
           fontWeight: FontWeight.w500,
         ),
         side: BorderSide(
-          color: isSelected ? color : Colors.grey[300]!,
+          color: isSelected ? color : (isDark ? Colors.grey[700]! : Colors.grey[300]!),
         ),
       ),
     );
@@ -154,6 +157,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
   /// Construye el botón especial para filtro personalizado
   Widget _buildCustomFilterChip(FilterType currentFilter) {
     final isCustomSelected = currentFilter == FilterType.custom;
+    final isDark = context.isDarkMode;
     return Padding(
       padding: const EdgeInsets.only(right: 8.0),
       child: FilterChip(
@@ -161,7 +165,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
           children: [
             Icon(Icons.calendar_month,
                 size: 18,
-                color: isCustomSelected ? Colors.orange : Colors.grey),
+                color: isCustomSelected ? Colors.orange : (isDark ? Colors.grey[400] : Colors.grey)),
             const SizedBox(width: 6),
             const Text('Personalizado'),
           ],
@@ -171,11 +175,11 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
         selectedColor: Colors.orange.withValues(alpha: 0.2),
         checkmarkColor: Colors.orange,
         labelStyle: TextStyle(
-          color: isCustomSelected ? Colors.orange : Colors.grey[700],
+          color: isCustomSelected ? Colors.orange : (isDark ? Colors.grey[300] : Colors.grey[700]),
           fontWeight: FontWeight.w500,
         ),
         side: BorderSide(
-          color: isCustomSelected ? Colors.orange : Colors.grey[300]!,
+          color: isCustomSelected ? Colors.orange : (isDark ? Colors.grey[700]! : Colors.grey[300]!),
         ),
       ),
     );
@@ -299,7 +303,7 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
           style: TextStyle(
             fontSize: 14,
             fontWeight: FontWeight.bold,
-            color: Colors.grey[800],
+            color: context.isDarkMode ? Colors.white70 : Colors.grey[800],
           ),
           overflow: TextOverflow.ellipsis,
           softWrap: false,
@@ -406,22 +410,22 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        const Text(
+        Text(
           'Resumen por Categoría',
           style: TextStyle(
             fontSize: 18,
             fontWeight: FontWeight.w700,
-            color: Colors.black87,
+            color: context.isDarkMode ? Colors.white : Colors.black87,
           ),
         ),
         const SizedBox(height: 16),
         Container(
           decoration: BoxDecoration(
-            color: Colors.white,
+            color: context.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
             borderRadius: BorderRadius.circular(12),
             boxShadow: [
               BoxShadow(
-                color: Colors.grey.withAlpha(50),
+                color: Colors.black.withValues(alpha: context.isDarkMode ? 0.2 : 0.05),
                 spreadRadius: 2,
                 blurRadius: 8,
               ),

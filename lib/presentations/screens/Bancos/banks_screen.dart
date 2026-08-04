@@ -16,6 +16,7 @@ import 'package:finances/core/data/providers/bank_provider.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 
 class PantallaBancos extends ConsumerStatefulWidget {
@@ -53,7 +54,7 @@ class _EstadoPantallaBancos extends ConsumerState<PantallaBancos>
     final bancosCached = bancosAsync.valueOrNull;
 
     return Scaffold(
-      backgroundColor: Themes.light,
+      backgroundColor: context.scaffoldBgColor,
       appBar: AppBarFinances(
         useLogoAsTitle: true,
         showProfileIcon: false,

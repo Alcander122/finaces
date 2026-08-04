@@ -1,6 +1,7 @@
 import 'package:finances/core/data/models/ingreso.model.dart';
 import 'package:finances/core/data/providers/Ingreso_provider.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -105,8 +106,8 @@ class _IngresoFormState extends ConsumerState<IngresoForm> {
   Future<void> _guardarIngreso() async {
     if (!_formKey.currentState!.validate()) return;
     
-    String valorLimpo = _valorController.text.replaceAll(RegExp(r'[^\d]'), '');
-    if (valorLimpo.isEmpty) {
+    String valorLimpio = _valorController.text.replaceAll(RegExp(r'[^\d]'), '');
+    if (valorLimpio.isEmpty) {
       UIHelpers.showErrorSnackBar(context: context, message: 'El valor no puede estar vacío');
       return;
     }
@@ -114,29 +115,26 @@ class _IngresoFormState extends ConsumerState<IngresoForm> {
     setState(() => _isLoading = true);
 
     try {
-      final user = ref.read(authProvider).user;
+      final user = FirebaseAuth.instance.currentUser;
       if (user == null) {
         throw Exception('Usuario no autenticado');
       }
 
-      final String quincenaInterna = _displayToQuincena[_quincena!] ?? _quincena!;
-      int valorNumerico = int.parse(valorLimpo);
-      
-      final ingreso = Ingreso(
+      final ingresoData = Ingreso(
         id: widget.ingreso?.id ?? _generarIdAleatorio(),
-        quincena: quincenaInterna,
-        fecha: _fechaActual,
+        concepto: _conceptoController.text.trim().isEmpty ? 'Sin concepto' : _conceptoController.text.trim(),
+        valor: int.parse(valorLimpio),
+        quincena: _displayToQuincena[_quincena] ?? _quincena!,
         fechaIngreso: fechaIngreso,
-        categoria: _categoria!,
-        concepto: _conceptoController.text,
-        valor: valorNumerico,
+        fecha: _fechaActual,
+        categoria: _categoria ?? 'Otros',
       );
 
       final service = ref.read(ingresosServiceProvider);
       if (widget.ingreso == null) {
-        await service.guardarIngreso(user.uid, ingreso);
+        await service.guardarIngreso(user.uid, ingresoData);
       } else {
-        await service.actualizarIngreso(user.uid, ingreso.id, ingreso);
+        await service.actualizarIngreso(user.uid, ingresoData.id, ingresoData);
       }
 
       if (mounted) {
@@ -169,7 +167,7 @@ class _IngresoFormState extends ConsumerState<IngresoForm> {
     final isEditing = widget.ingreso != null;
     
     return Scaffold(
-      backgroundColor: Themes.light,
+      backgroundColor: context.scaffoldBgColor,
       appBar: AppBarFinances(
         title: isEditing ? 'Editar Ingreso' : 'Nuevo Ingreso',
         showProfileIcon: false,
@@ -189,7 +187,7 @@ class _IngresoFormState extends ConsumerState<IngresoForm> {
                       Center(
                         child: Column(
                           children: [
-                            const Text('Monto del ingreso', style: TextStyle(color: Colors.black54, fontSize: 14)),
+                            Text('Monto del ingreso', style: TextStyle(color: context.isDarkMode ? Colors.white70 : Colors.black54, fontSize: 14)),
                             const SizedBox(height: 8),
                             SizedBox(
                               width: 250,
@@ -197,14 +195,14 @@ class _IngresoFormState extends ConsumerState<IngresoForm> {
                                 controller: _valorController,
                                 keyboardType: TextInputType.number,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Themes.primary),
+                                style: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: context.isDarkMode ? context.colors.primary : Themes.primary),
                                 inputFormatters: [CurrencyFormatterFromHelper()],
-                                decoration: const InputDecoration(
+                                decoration: InputDecoration(
                                   prefixText: '\$ ',
-                                  prefixStyle: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: Themes.primary),
+                                  prefixStyle: TextStyle(fontSize: 32, fontWeight: FontWeight.bold, color: context.isDarkMode ? context.colors.primary : Themes.primary),
                                   border: InputBorder.none,
                                   hintText: '0',
-                                  hintStyle: TextStyle(fontSize: 32, color: Colors.black26),
+                                  hintStyle: TextStyle(fontSize: 32, color: context.isDarkMode ? Colors.white70 : Colors.black26),
                                 ),
                                 validator: (value) {
                                   if (value == null || value.isEmpty || value == '0') {
@@ -222,7 +220,7 @@ class _IngresoFormState extends ConsumerState<IngresoForm> {
                       // TARJETA DE DETALLES
                       Container(
                         decoration: BoxDecoration(
-                          color: Colors.white,
+                          color: context.cardBgColor,
                           borderRadius: BorderRadius.circular(16),
                           boxShadow: [
                             BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, 4)),
@@ -231,7 +229,7 @@ class _IngresoFormState extends ConsumerState<IngresoForm> {
                         padding: const EdgeInsets.all(16),
                         child: Column(
                           children: [
-                            // PERIODICIDAD
+                             // PERIODICIDAD
                             _buildDropdownField(
                               icon: Icons.update,
                               label: 'Periodo',
@@ -239,7 +237,7 @@ class _IngresoFormState extends ConsumerState<IngresoForm> {
                               items: _quincenas,
                               onChanged: (val) => setState(() => _quincena = val),
                             ),
-                            const Divider(height: 24, color: Colors.black12),
+                            Divider(height: 24, color: context.isDarkMode ? Colors.white12 : Colors.black12),
 
                             // FECHA DE INGRESO
                             InkWell(
@@ -252,10 +250,8 @@ class _IngresoFormState extends ConsumerState<IngresoForm> {
                                   builder: (context, child) {
                                     return Theme(
                                       data: Theme.of(context).copyWith(
-                                        colorScheme: const ColorScheme.light(
-                                          primary: Themes.primary,
-                                          onPrimary: Colors.white,
-                                          onSurface: Colors.black87,
+                                        colorScheme: ColorScheme.light(
+                                          primary: context.colors.primary,
                                         ),
                                       ),
                                       child: child!,
@@ -270,25 +266,25 @@ class _IngresoFormState extends ConsumerState<IngresoForm> {
                                 children: [
                                   Container(
                                     padding: const EdgeInsets.all(8),
-                                    decoration: BoxDecoration(color: Themes.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                                    child: const Icon(Icons.calendar_today, color: Themes.primary, size: 20),
+                                    decoration: BoxDecoration(color: context.colors.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
+                                    child: Icon(Icons.calendar_today, color: context.colors.primary, size: 20),
                                   ),
                                   const SizedBox(width: 16),
                                   Expanded(
                                     child: Column(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        const Text('Fecha de ingreso', style: TextStyle(fontSize: 12, color: Colors.black54)),
+                                        Text('Fecha de ingreso', style: TextStyle(fontSize: 12, color: context.isDarkMode ? context.colors.onSurfaceVariant : Colors.black54)),
                                         const SizedBox(height: 4),
-                                        Text(DateFormat('dd MMM yyyy').format(fechaIngreso), style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
+                                        Text(DateFormat('dd MMM yyyy').format(fechaIngreso), style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: context.isDarkMode ? context.colors.onSurface : Colors.black87)),
                                       ],
                                     ),
                                   ),
-                                  const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.black26),
+                                  Icon(Icons.arrow_forward_ios, size: 16, color: context.isDarkMode ? Colors.white38 : Colors.black26),
                                 ],
                               ),
                             ),
-                            const Divider(height: 24, color: Colors.black12),
+                            Divider(height: 24, color: context.isDarkMode ? Colors.white12 : Colors.black12),
 
                             // CATEGORÍA
                             _buildDropdownField(
@@ -298,7 +294,7 @@ class _IngresoFormState extends ConsumerState<IngresoForm> {
                               items: _categorias,
                               onChanged: (val) => setState(() => _categoria = val),
                             ),
-                            const Divider(height: 24, color: Colors.black12),
+                            Divider(height: 24, color: context.isDarkMode ? Colors.white12 : Colors.black12),
 
                             // CONCEPTO
                             Row(
@@ -306,21 +302,21 @@ class _IngresoFormState extends ConsumerState<IngresoForm> {
                               children: [
                                 Container(
                                   padding: const EdgeInsets.all(8),
-                                  decoration: BoxDecoration(color: Themes.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-                                  child: const Icon(Icons.description, color: Themes.primary, size: 20),
+                                  decoration: BoxDecoration(color: context.colors.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
+                                  child: Icon(Icons.description, color: context.colors.primary, size: 20),
                                 ),
                                 const SizedBox(width: 16),
                                 Expanded(
                                   child: TextFormField(
                                     controller: _conceptoController,
-                                    decoration: const InputDecoration(
+                                    decoration: InputDecoration(
                                       labelText: 'Concepto (Opcional)',
-                                      labelStyle: TextStyle(fontSize: 14, color: Colors.black54),
+                                      labelStyle: TextStyle(fontSize: 14, color: context.isDarkMode ? context.colors.onSurfaceVariant : Colors.black54),
                                       border: InputBorder.none,
                                       isDense: true,
                                       contentPadding: EdgeInsets.zero,
                                     ),
-                                    style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500),
+                                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: context.isDarkMode ? context.colors.onSurface : Colors.black87),
                                   ),
                                 ),
                               ],
@@ -338,7 +334,7 @@ class _IngresoFormState extends ConsumerState<IngresoForm> {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.cardBgColor,
                 boxShadow: [
                   BoxShadow(color: Colors.black.withOpacity(0.05), blurRadius: 10, offset: const Offset(0, -4)),
                 ],
@@ -349,7 +345,7 @@ class _IngresoFormState extends ConsumerState<IngresoForm> {
                 child: ElevatedButton(
                   onPressed: _isLoading ? null : _guardarIngreso,
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: Themes.primary,
+                    backgroundColor: context.colors.primary,
                     shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                     elevation: 0,
                   ),
@@ -379,25 +375,26 @@ class _IngresoFormState extends ConsumerState<IngresoForm> {
       children: [
         Container(
           padding: const EdgeInsets.all(8),
-          decoration: BoxDecoration(color: Themes.primary.withOpacity(0.1), borderRadius: BorderRadius.circular(8)),
-          child: Icon(icon, color: Themes.primary, size: 20),
+          decoration: BoxDecoration(color: context.colors.primary.withValues(alpha: 0.15), borderRadius: BorderRadius.circular(8)),
+          child: Icon(icon, color: context.colors.primary, size: 20),
         ),
         const SizedBox(width: 16),
         Expanded(
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(label, style: const TextStyle(fontSize: 12, color: Colors.black54)),
+              Text(label, style: TextStyle(fontSize: 12, color: context.isDarkMode ? context.colors.onSurfaceVariant : Colors.black54)),
               DropdownButtonHideUnderline(
                 child: DropdownButton<String>(
                   value: value,
                   isDense: true,
                   isExpanded: true,
-                  icon: const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.black26),
-                  style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: Colors.black87),
+                  dropdownColor: context.dialogBgColor,
+                  icon: Icon(Icons.arrow_forward_ios, size: 16, color: context.isDarkMode ? Colors.white38 : Colors.black26),
+                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500, color: context.isDarkMode ? context.colors.onSurface : Colors.black87),
                   onChanged: onChanged,
                   items: items.map((String item) {
-                    return DropdownMenuItem<String>(value: item, child: Text(item));
+                    return DropdownMenuItem<String>(value: item, child: Text(item, style: TextStyle(color: context.isDarkMode ? context.colors.onSurface : Colors.black87)));
                   }).toList(),
                 ),
               ),

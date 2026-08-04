@@ -1,5 +1,6 @@
 import 'package:finances/core/data/models/egreso_model.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:firebase_auth/firebase_auth.dart';
@@ -119,19 +120,16 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
         throw Exception('Usuario no autenticado');
       }
 
-      final String quincenaInterna = _displayToQuincena[_quincena!] ?? _quincena!;
-      int valorNumerico = int.parse(valorLimpo);
-      
       final egreso = Egreso(
         id: widget.egreso?.id ?? _generarIdAleatorio(),
-        quincena: quincenaInterna,
-        fecha: _fechaActual,
-        fechaPago: fechaPago,
-        categoria: _categoria!,
         concepto: _conceptoController.text,
-        valor: valorNumerico,
+        valor: int.parse(valorLimpo),
+        quincena: _displayToQuincena[_quincena!] ?? _quincena!,
+        fechaPago: fechaPago,
+        fecha: _fechaActual,
+        categoria: _categoria ?? 'Otros',
+        estado: _estado ?? 'Pendiente',
         descripcion: _descripcionController.text,
-        estado: _estado!,
       );
 
       final service = ref.read(egresoServiceProvider);
@@ -154,7 +152,6 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
     } catch (e) {
       if (mounted) {
         UIHelpers.showErrorSnackBar(context: context, message: 'Ocurrió un error al guardar: $e');
-        // Aquí se usaría db_error_handler.dart -> DbErrorHandler.handleError(e)
       }
     } finally {
       if (mounted) setState(() => _isLoading = false);
@@ -172,7 +169,7 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
     final isEditing = widget.egreso != null;
     
     return Scaffold(
-      backgroundColor: Themes.light,
+      backgroundColor: context.scaffoldBgColor,
       appBar: AppBarFinances(
         title: isEditing ? 'Editar Gasto' : 'Nuevo Gasto',
         showProfileIcon: false,
@@ -192,18 +189,18 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
                       Center(
                         child: Column(
                           children: [
-                            const Text('Monto del gasto', style: TextStyle(color: Colors.black54, fontSize: 14)),
+                            Text('Monto del gasto', style: TextStyle(color: context.isDarkMode ? Colors.white70 : Colors.black54, fontSize: 14)),
                             const SizedBox(height: 8),
                             SizedBox(
                               width: 250,
                               child: TextFormField(
                                 controller: _valorController,
                                 textAlign: TextAlign.center,
-                                style: const TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: Themes.red),
-                                decoration: const InputDecoration(
+                                style: TextStyle(fontSize: 36, fontWeight: FontWeight.bold, color: context.isDarkMode ? context.colors.error : Themes.red),
+                                decoration: InputDecoration(
                                   border: InputBorder.none,
                                   hintText: '\$0',
-                                  hintStyle: TextStyle(color: Colors.grey),
+                                  hintStyle: TextStyle(color: context.isDarkMode ? Colors.white70 : Colors.grey),
                                 ),
                                 keyboardType: TextInputType.number,
                                 inputFormatters: [CurrencyFormatterFromHelper()],
@@ -216,13 +213,13 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
                       const SizedBox(height: 32),
 
                       // SECCIÓN DETALLES
-                      const Text('Detalles', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+                      Text('Detalles', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold, color: context.isDarkMode ? context.colors.onSurface : Colors.black87)),
                       const SizedBox(height: 16),
                       buildTextField(_conceptoController, 'Concepto (Ej. Mercado, Cine)', Icons.edit_note),
                       const SizedBox(height: 16),
                       
                       // SECCIÓN CATEGORÍA (CHIPS)
-                      const Text('Categoría', style: TextStyle(fontSize: 14, color: Colors.black87)),
+                      Text('Categoría', style: TextStyle(fontSize: 14, color: context.isDarkMode ? context.colors.onSurfaceVariant : Colors.black87)),
                       const SizedBox(height: 8),
                       Wrap(
                         spacing: 8,
@@ -232,9 +229,13 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
                           return ChoiceChip(
                             label: Text(cat),
                             selected: isSelected,
-                            selectedColor: Themes.primary.withValues(alpha: 0.2),
+                            selectedColor: context.isDarkMode ? context.colors.primary.withValues(alpha: 0.3) : Themes.primary.withValues(alpha: 0.2),
+                            backgroundColor: context.isDarkMode ? context.colors.surfaceContainerHigh : Colors.grey.shade100,
+                            side: BorderSide(color: context.isDarkMode ? Colors.white12 : Colors.transparent),
                             labelStyle: TextStyle(
-                              color: isSelected ? Themes.primary : Colors.black87,
+                              color: isSelected
+                                  ? (context.isDarkMode ? context.colors.primary : Themes.primary)
+                                  : (context.isDarkMode ? context.colors.onSurface : Colors.black87),
                               fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
                             ),
                             onSelected: (selected) {
@@ -259,8 +260,8 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
                                   builder: (context, child) {
                                     return Theme(
                                       data: Theme.of(context).copyWith(
-                                        colorScheme: const ColorScheme.light(
-                                          primary: Themes.primary,
+                                        colorScheme: ColorScheme.light(
+                                          primary: context.colors.primary,
                                         ),
                                       ),
                                       child: child!,
@@ -272,23 +273,23 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
                               child: Container(
                                 padding: const EdgeInsets.all(16),
                                 decoration: BoxDecoration(
-                                  color: Colors.white,
+                                  color: context.cardBgColor,
                                   borderRadius: BorderRadius.circular(16),
-                                  border: Border.all(color: Colors.grey[300]!),
+                                  border: Border.all(color: context.isDarkMode ? Colors.white12 : Colors.grey[300]!),
                                 ),
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    const Text('Fecha de pago', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                                    Text('Fecha de pago', style: TextStyle(color: context.isDarkMode ? context.colors.onSurfaceVariant : Colors.grey, fontSize: 12)),
                                     const SizedBox(height: 4),
                                     Row(
                                       children: [
-                                        const Icon(Icons.calendar_today, size: 16, color: Themes.primary),
+                                        Icon(Icons.calendar_today, size: 16, color: context.colors.primary),
                                         const SizedBox(width: 8),
                                         Expanded(
                                           child: Text(
                                             DateFormat('dd MMM yyyy').format(fechaPago), 
-                                            style: const TextStyle(fontWeight: FontWeight.bold),
+                                            style: TextStyle(fontWeight: FontWeight.bold, color: context.isDarkMode ? context.colors.onSurface : Colors.black87),
                                             overflow: TextOverflow.ellipsis,
                                           ),
                                         ),
@@ -304,14 +305,15 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
                             child: DropdownButtonFormField<String>(
                               isExpanded: true,
                               value: _quincena,
-                              items: _quincenas.map((item) => DropdownMenuItem(value: item, child: Text(item, style: const TextStyle(fontSize: 14)))).toList(),
+                              dropdownColor: context.dialogBgColor,
+                              items: _quincenas.map((item) => DropdownMenuItem(value: item, child: Text(item, style: TextStyle(fontSize: 14, color: context.isDarkMode ? context.colors.onSurface : Colors.black87)))).toList(),
                               onChanged: (val) => setState(() => _quincena = val),
                               decoration: InputDecoration(
                                 labelText: 'Periodo',
                                 filled: true,
-                                fillColor: Colors.white,
-                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey[300]!)),
-                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey[300]!)),
+                                fillColor: context.cardBgColor,
+                                border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.isDarkMode ? Colors.white12 : Colors.grey[300]!)),
+                                enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.isDarkMode ? Colors.white12 : Colors.grey[300]!)),
                               ),
                             ),
                           ),
@@ -322,15 +324,16 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
                       // ESTADO
                       DropdownButtonFormField<String>(
                         value: _estado,
-                        items: _estados.map((item) => DropdownMenuItem(value: item, child: Text(item))).toList(),
+                        dropdownColor: context.dialogBgColor,
+                        items: _estados.map((item) => DropdownMenuItem(value: item, child: Text(item, style: TextStyle(color: context.isDarkMode ? context.colors.onSurface : Colors.black87)))).toList(),
                         onChanged: (val) => setState(() => _estado = val),
                         decoration: InputDecoration(
                           labelText: 'Estado del pago',
                           filled: true,
-                          fillColor: Colors.white,
+                          fillColor: context.cardBgColor,
                           prefixIcon: Icon(_estado == 'Cancelado' ? Icons.check_circle : Icons.pending_actions, color: _estado == 'Cancelado' ? Themes.green : Colors.orange),
-                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey[300]!)),
-                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey[300]!)),
+                          border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.isDarkMode ? Colors.white12 : Colors.grey[300]!)),
+                          enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.isDarkMode ? Colors.white12 : Colors.grey[300]!)),
                         ),
                       ),
                       const SizedBox(height: 16),
@@ -348,7 +351,7 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
             Container(
               padding: const EdgeInsets.all(16.0),
               decoration: BoxDecoration(
-                color: Colors.white,
+                color: context.cardBgColor,
                 boxShadow: [BoxShadow(color: Colors.black.withValues(alpha: 0.05), blurRadius: 10, offset: const Offset(0, -5))],
               ),
               child: SafeArea(
@@ -358,7 +361,7 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
                   child: ElevatedButton(
                     onPressed: _isLoading ? null : _guardarEgreso,
                     style: ElevatedButton.styleFrom(
-                      backgroundColor: Themes.primary,
+                      backgroundColor: context.colors.primary,
                       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
                       elevation: 0,
                     ),
@@ -383,14 +386,16 @@ class _EgresoFormState extends ConsumerState<EgresoForm> {
       controller: controller,
       maxLines: isMultiline ? 3 : 1,
       minLines: isMultiline ? 3 : 1,
+      style: TextStyle(color: context.isDarkMode ? context.colors.onSurface : Colors.black87),
       decoration: InputDecoration(
         hintText: hint,
+        hintStyle: TextStyle(color: context.isDarkMode ? Colors.white38 : Colors.grey),
         filled: true,
-        fillColor: Colors.white,
-        prefixIcon: isMultiline ? null : Icon(icon, color: Colors.grey),
-        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey[300]!)),
-        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: Colors.grey[300]!)),
-        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: const BorderSide(color: Themes.primary, width: 2)),
+        fillColor: context.cardBgColor,
+        prefixIcon: isMultiline ? null : Icon(icon, color: context.isDarkMode ? Colors.white54 : Colors.grey),
+        border: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.isDarkMode ? Colors.white12 : Colors.grey[300]!)),
+        enabledBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.isDarkMode ? Colors.white12 : Colors.grey[300]!)),
+        focusedBorder: OutlineInputBorder(borderRadius: BorderRadius.circular(16), borderSide: BorderSide(color: context.colors.primary, width: 2)),
       ),
       validator: isMultiline ? null : (value) => value == null || value.isEmpty ? 'Requerido' : null,
     );

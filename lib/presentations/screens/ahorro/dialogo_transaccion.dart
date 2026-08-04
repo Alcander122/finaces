@@ -7,6 +7,7 @@ import 'package:finances/core/data/utils/ahorro_validator.dart';
 import 'package:finances/core/data/utils/thousands_formatter.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:finances/core/data/providers/ahorro_provider.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -127,7 +128,7 @@ class _DialogoTransaccionState extends ConsumerState<DialogoTransaccion> {
 
     return Dialog(
       elevation: 10,
-      backgroundColor: Colors.white,
+      backgroundColor: context.dialogBgColor,
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 400),

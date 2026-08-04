@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
-import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import '../../../../core/data/providers/portafolio_provider.dart';
 import '../../../../utils/category_color_generator.dart';
 import '../../../../core/data/utils/ui_helpers.dart';
@@ -47,7 +47,7 @@ class _PortafolioChartState extends State<PortafolioChart> {
       child: Card(
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-        color: Colors.white,
+        color: context.cardBgColor,
         child: Padding(
           padding: const EdgeInsets.all(16),
           child: Column(
@@ -56,16 +56,16 @@ class _PortafolioChartState extends State<PortafolioChart> {
                 'Distribución del Portafolio',
                 style: Theme.of(context).textTheme.titleLarge?.copyWith(
                       fontWeight: FontWeight.bold,
-                      color: Colors.blueGrey,
+                      color: context.isDarkMode ? context.colors.onSurface : Colors.blueGrey,
                     ),
               ),
               const SizedBox(height: 8),
               Text(
                 'Total: ${UIHelpers.formatCurrency(widget.totalValueCOP)}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w500,
-                  color: Colors.black87,
+                  color: context.isDarkMode ? context.colors.onSurface : Colors.black87,
                 ),
               ),
               const SizedBox(height: 20),
@@ -103,7 +103,7 @@ class _PortafolioChartState extends State<PortafolioChart> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
-                            color: Colors.grey[600],
+                            color: context.isDarkMode ? Colors.white60 : Colors.grey[600],
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -115,10 +115,10 @@ class _PortafolioChartState extends State<PortafolioChart> {
                                       ? '${((widget.portfolioItems[_touchedIndex].totalValueCOP / widget.totalValueCOP) * 100).toStringAsFixed(1)}%'
                                       : '0.0%'))
                               : UIHelpers.formatCurrency(widget.totalValueCOP),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: Themes.primary,
+                            color: context.colors.primary,
                           ),
                         ),
                       ],
