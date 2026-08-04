@@ -6,6 +6,7 @@
 import 'package:finances/core/data/models/objetivo_ahorro.dart';
 import 'package:finances/core/data/utils/ahorro_calculator.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -65,9 +66,9 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
     return Container(
       margin: const EdgeInsets.symmetric(vertical: 12),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.cardBgColor,
         borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.grey.shade100),
+        border: Border.all(color: context.isDarkMode ? Colors.white12 : Colors.grey.shade100),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.03),
@@ -93,7 +94,7 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
                         meta.nombre,
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
                               fontWeight: FontWeight.bold,
-                              color: Themes.primary,
+                              color: context.isDarkMode ? context.colors.onSurface : Themes.primary,
                               fontSize: 18,
                             ),
                       ),
@@ -358,24 +359,24 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Themes.infoBlue.withOpacity(0.4),
+        color: context.isDarkMode ? context.colors.surfaceContainerHigh : Themes.infoBlue.withOpacity(0.4),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Themes.primary.withOpacity(0.06)),
+        border: Border.all(color: context.isDarkMode ? Colors.white12 : Themes.primary.withOpacity(0.06)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.insights, color: Themes.primary, size: 18),
+              Icon(Icons.insights, color: context.colors.primary, size: 18),
               const SizedBox(width: 8),
               Expanded(
                 child: Text(
                   tieneProgreso ? 'Plan de ahorro restante' : 'Plan de ahorro sugerido',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 13,
-                    color: Themes.primary,
+                    color: context.isDarkMode ? context.colors.onSurface : Themes.primary,
                   ),
                 ),
               ),
@@ -411,23 +412,23 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
                   crossAxisSpacing: 8,
                   childAspectRatio: 2.1,
                   children: [
-                    _tarjetaAhorro('Diario', desglose.ahorrosDiarios, Icons.calendar_today, Colors.blue.shade50),
-                    _tarjetaAhorro('Semanal', desglose.ahorrosSemanal, Icons.date_range, Colors.indigo.shade50),
-                    _tarjetaAhorro('Quincenal', desglose.ahorrosQuincenal, Icons.event_note, Colors.teal.shade50),
-                    _tarjetaAhorro('Mensual', desglose.ahorrosMensual, Icons.calendar_month, Colors.purple.shade50),
+                    _tarjetaAhorro(context, 'Diario', desglose.ahorrosDiarios, Icons.calendar_today, Colors.blue.shade50),
+                    _tarjetaAhorro(context, 'Semanal', desglose.ahorrosSemanal, Icons.date_range, Colors.indigo.shade50),
+                    _tarjetaAhorro(context, 'Quincenal', desglose.ahorrosQuincenal, Icons.event_note, Colors.teal.shade50),
+                    _tarjetaAhorro(context, 'Mensual', desglose.ahorrosMensual, Icons.calendar_month, Colors.purple.shade50),
                   ],
                 );
               } else {
                 return Column(
                   crossAxisAlignment: CrossAxisAlignment.stretch,
                   children: [
-                    _tarjetaAhorro('Diario', desglose.ahorrosDiarios, Icons.calendar_today, Colors.blue.shade50),
+                    _tarjetaAhorro(context, 'Diario', desglose.ahorrosDiarios, Icons.calendar_today, Colors.blue.shade50),
                     const SizedBox(height: 8),
-                    _tarjetaAhorro('Semanal', desglose.ahorrosSemanal, Icons.date_range, Colors.indigo.shade50),
+                    _tarjetaAhorro(context, 'Semanal', desglose.ahorrosSemanal, Icons.date_range, Colors.indigo.shade50),
                     const SizedBox(height: 8),
-                    _tarjetaAhorro('Quincenal', desglose.ahorrosQuincenal, Icons.event_note, Colors.teal.shade50),
+                    _tarjetaAhorro(context, 'Quincenal', desglose.ahorrosQuincenal, Icons.event_note, Colors.teal.shade50),
                     const SizedBox(height: 8),
-                    _tarjetaAhorro('Mensual', desglose.ahorrosMensual, Icons.calendar_month, Colors.purple.shade50),
+                    _tarjetaAhorro(context, 'Mensual', desglose.ahorrosMensual, Icons.calendar_month, Colors.purple.shade50),
                   ],
                 );
               }
@@ -440,23 +441,22 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
             padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
             decoration: BoxDecoration(
               gradient: LinearGradient(
-                colors: [
-                  Colors.green.shade50,
-                  Colors.teal.shade50.withOpacity(0.4),
-                ],
+                colors: context.isDarkMode
+                    ? [const Color(0xFF064E3B), const Color(0xFF047857)]
+                    : [Colors.green.shade50, Colors.teal.shade50.withOpacity(0.4)],
               ),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.green.shade100),
+              border: Border.all(color: context.isDarkMode ? Colors.green.shade700 : Colors.green.shade100),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(6),
-                  decoration: const BoxDecoration(
-                    color: Colors.white,
+                  decoration: BoxDecoration(
+                    color: context.isDarkMode ? Colors.green.shade900 : Colors.white,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.star, color: Colors.green.shade700, size: 16),
+                  child: Icon(Icons.star, color: context.isDarkMode ? Colors.green.shade300 : Colors.green.shade700, size: 16),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -468,7 +468,7 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.bold,
-                          color: Colors.green.shade900,
+                          color: context.isDarkMode ? Colors.green.shade200 : Colors.green.shade900,
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -478,7 +478,7 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 12,
                           fontWeight: FontWeight.bold,
-                          color: Colors.green.shade800,
+                          color: context.isDarkMode ? Colors.white : Colors.green.shade800,
                         ),
                       ),
                     ],
@@ -492,13 +492,13 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
     );
   }
 
-  Widget _tarjetaAhorro(String periodo, double monto, IconData icono, Color bgColor) {
+  Widget _tarjetaAhorro(BuildContext context, String periodo, double monto, IconData icono, Color bgColor) {
     return Container(
       padding: const EdgeInsets.all(10),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.isDarkMode ? context.colors.surfaceContainerLow : Colors.white,
         borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Themes.primary.withOpacity(0.06)),
+        border: Border.all(color: context.isDarkMode ? Colors.white12 : Themes.primary.withOpacity(0.06)),
         boxShadow: [
           BoxShadow(
             color: Colors.black.withOpacity(0.01),
@@ -512,10 +512,10 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
           Container(
             padding: const EdgeInsets.all(6),
             decoration: BoxDecoration(
-              color: bgColor,
+              color: context.isDarkMode ? context.colors.primary.withValues(alpha: 0.15) : bgColor,
               shape: BoxShape.circle,
             ),
-            child: Icon(icono, size: 16, color: Themes.primary.withOpacity(0.8)),
+            child: Icon(icono, size: 16, color: context.isDarkMode ? context.colors.primary : Themes.primary.withOpacity(0.8)),
           ),
           const SizedBox(width: 10),
           Expanded(
@@ -528,7 +528,7 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
                   style: TextStyle(
                     fontSize: 11,
                     fontWeight: FontWeight.w500,
-                    color: Colors.grey.shade600,
+                    color: context.isDarkMode ? context.colors.onSurfaceVariant : Colors.grey.shade600,
                   ),
                 ),
                 const SizedBox(height: 2),
@@ -537,10 +537,10 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
                   alignment: Alignment.centerLeft,
                   child: Text(
                     UIHelpers.formatCurrency(monto),
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 13,
                       fontWeight: FontWeight.bold,
-                      color: Themes.primary,
+                      color: context.isDarkMode ? context.colors.onSurface : Themes.primary,
                     ),
                   ),
                 ),

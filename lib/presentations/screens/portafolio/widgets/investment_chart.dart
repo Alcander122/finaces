@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:finances/core/data/providers/investment_provider.dart';
 import 'package:fl_chart/fl_chart.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
 
@@ -36,25 +37,27 @@ class _InvestmentChartState extends State<InvestmentChart> {
     final isOtrosSelected = _touchedIndex == widget.investments.length && otrosValue > 0.0;
 
     return Container(
-      color: Themes.light,
+      color: Colors.transparent,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
       child: Card(
         elevation: 4,
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-        color: Colors.white,
+        color: context.cardBgColor,
         child: Padding(
           padding: const EdgeInsets.all(20),
           child: Column(
             children: [
-              const Text('Distribución de Inversiones',
+              Text('Distribución de Inversiones',
                   style: TextStyle(
                       fontWeight: FontWeight.bold,
                       fontSize: 18,
-                      color: Colors.blueGrey)),
+                      color: context.isDarkMode ? context.colors.onSurface : Colors.blueGrey)),
               const SizedBox(height: 8),
               Text('Total: ${UIHelpers.formatCurrency(total)}',
-                  style: const TextStyle(
-                      fontSize: 16, fontWeight: FontWeight.w500)),
+                  style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w500,
+                      color: context.isDarkMode ? context.colors.onSurface : Colors.black87)),
               const SizedBox(height: 20),
               AspectRatio(
                 aspectRatio: 1.3,
@@ -88,7 +91,7 @@ class _InvestmentChartState extends State<InvestmentChart> {
                           style: TextStyle(
                             fontSize: 11,
                             fontWeight: FontWeight.w500,
-                            color: Colors.grey[600],
+                            color: context.isDarkMode ? Colors.white60 : Colors.grey[600],
                           ),
                         ),
                         const SizedBox(height: 2),
@@ -100,10 +103,10 @@ class _InvestmentChartState extends State<InvestmentChart> {
                                       ? '${((widget.investments[_touchedIndex].convertedValueCOP / total) * 100).toStringAsFixed(1)}%'
                                       : '0.0%'))
                               : UIHelpers.formatCurrency(total),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontSize: 13,
                             fontWeight: FontWeight.bold,
-                            color: Themes.primary,
+                            color: context.colors.primary,
                           ),
                         ),
                       ],

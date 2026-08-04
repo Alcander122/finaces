@@ -6,7 +6,7 @@
 // ============================================================================
 
 import 'package:flutter/material.dart';
-import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/widgets/form_styles.dart';
 
 class CustomFormContainer extends StatelessWidget {
@@ -70,8 +70,8 @@ class CustomFormContainer extends StatelessWidget {
 
         // Decoración del contenedor
         decoration: BoxDecoration(
-          // Color de fondo blanco
-          color: Themes.white,
+          // Color de fondo adaptativo al tema activo (oscuro / claro)
+          color: context.cardBgColor,
 
           // Bordes redondeados
           borderRadius: BorderRadius.circular(FormStyles.borderRadius),
@@ -134,7 +134,7 @@ class CustomFormContainer extends StatelessWidget {
             onPressed: onCancel ?? () => Navigator.pop(context),
 
             // Estilo del botón (usa FormStyles)
-            style: FormStyles.buildSecondaryButtonStyle(),
+            style: FormStyles.buildSecondaryButtonStyle(context),
 
             // Texto del botón
             child: Text(cancelButtonText!),

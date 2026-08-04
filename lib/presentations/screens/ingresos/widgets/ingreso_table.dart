@@ -2,6 +2,7 @@ import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
 
@@ -32,7 +33,12 @@ class _IngresoTableState extends State<IngresoTable> {
   @override
   Widget build(BuildContext context) {
     if (widget.ingresos.isEmpty) {
-      return const Center(child: Text('No hay ingresos disponibles'));
+      return Center(
+        child: Text(
+          'No hay ingresos disponibles',
+          style: TextStyle(color: context.isDarkMode ? Colors.white70 : Colors.black87),
+        ),
+      );
     }
 
     final totalItems = widget.ingresos.length;
@@ -70,6 +76,8 @@ class _IngresoTableState extends State<IngresoTable> {
   }
 
   Widget _buildMobileList(List<Map<String, dynamic>> items) {
+    final isDark = context.isDarkMode;
+
     return ListView.builder(
       shrinkWrap: true,
       physics: const NeverScrollableScrollPhysics(),
@@ -100,7 +108,7 @@ class _IngresoTableState extends State<IngresoTable> {
             alignment: Alignment.centerRight,
             padding: const EdgeInsets.symmetric(horizontal: 20),
             decoration: BoxDecoration(
-              color: Themes.green,
+              color: Themes.red,
               borderRadius: BorderRadius.circular(16),
             ),
             child: const Icon(Icons.delete, color: Colors.white),
@@ -120,19 +128,24 @@ class _IngresoTableState extends State<IngresoTable> {
                 padding: const EdgeInsets.all(16.0),
                 child: Row(
                   children: [
-                    // Icono de categoría
                     CircleAvatar(
-                      backgroundColor: Themes.primary.withOpacity(0.1),
-                      child: const Icon(Icons.shopping_bag, color: Themes.primary),
+                      backgroundColor: context.colors.primary.withValues(alpha: 0.15),
+                      child: Icon(Icons.shopping_bag, color: context.colors.primary),
                     ),
                     const SizedBox(width: 16),
-                    // Detalles
                     Expanded(
                       child: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           if (widget.camposVisibles.contains('concepto')) ...[
-                            Text(concepto, style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                            Text(
+                              concepto,
+                              style: TextStyle(
+                                fontWeight: FontWeight.bold,
+                                fontSize: 16,
+                                color: isDark ? Colors.white : Colors.black87,
+                              ),
+                            ),
                             const SizedBox(height: 4),
                           ],
                           if (widget.camposVisibles.contains('categoria') || widget.camposVisibles.contains('fechaIngreso'))
@@ -141,9 +154,8 @@ class _IngresoTableState extends State<IngresoTable> {
                                 if (widget.camposVisibles.contains('categoria')) categoria,
                                 if (widget.camposVisibles.contains('fechaIngreso')) fechaFormateada
                               ].join(' • '),
-                              style: TextStyle(color: Colors.grey[600], fontSize: 13),
+                              style: TextStyle(color: isDark ? Colors.grey[400] : Colors.grey[600], fontSize: 13),
                             ),
-                          // Otros campos dinámicos
                           ...widget.camposVisibles
                               .where((c) => !['concepto', 'categoria', 'fechaIngreso', 'valor'].contains(c))
                               .map((campo) => Padding(
@@ -151,10 +163,20 @@ class _IngresoTableState extends State<IngresoTable> {
                                     child: Row(
                                       crossAxisAlignment: CrossAxisAlignment.start,
                                       children: [
-                                        Text('${_formatearNombreCampo(campo)}: ', style: TextStyle(color: Colors.grey[600], fontSize: 13, fontWeight: FontWeight.bold)),
+                                        Text(
+                                          '${_formatearNombreCampo(campo)}: ',
+                                          style: TextStyle(
+                                            color: isDark ? Colors.grey[400] : Colors.grey[600],
+                                            fontSize: 13,
+                                            fontWeight: FontWeight.bold,
+                                          ),
+                                        ),
                                         Expanded(
                                           child: DefaultTextStyle(
-                                            style: TextStyle(color: Colors.grey[800]!, fontSize: 13),
+                                            style: TextStyle(
+                                              color: isDark ? Colors.grey[200] : Colors.grey[800]!,
+                                              fontSize: 13,
+                                            ),
                                             child: _formatearCelda(campo, ingreso[campo])
                                           )
                                         ),
@@ -164,16 +186,15 @@ class _IngresoTableState extends State<IngresoTable> {
                         ],
                       ),
                     ),
-                    // Valor
                     if (widget.camposVisibles.contains('valor'))
                       Padding(
                         padding: const EdgeInsets.only(left: 8.0),
                         child: Text(
                           UIHelpers.formatCurrency(valor),
-                          style: const TextStyle(
+                          style: TextStyle(
                             fontWeight: FontWeight.bold,
                             fontSize: 16,
-                            color: Themes.green, // ingresos en rojo
+                            color: isDark ? Colors.greenAccent : Themes.green,
                           ),
                         ),
                       ),
@@ -203,7 +224,7 @@ class _IngresoTableState extends State<IngresoTable> {
                 decoration: BoxDecoration(color: Colors.grey[300], borderRadius: BorderRadius.circular(10)),
               ),
               ListTile(
-                leading: const Icon(Icons.edit, color: Themes.primary),
+                leading: Icon(Icons.edit, color: context.colors.primary),
                 title: const Text('Editar Ingreso'),
                 onTap: () {
                   Navigator.pop(context);
@@ -211,7 +232,7 @@ class _IngresoTableState extends State<IngresoTable> {
                 },
               ),
               ListTile(
-                leading: const Icon(Icons.delete, color: Themes.green),
+                leading: const Icon(Icons.delete, color: Themes.red),
                 title: const Text('Eliminar Ingreso'),
                 onTap: () async {
                   Navigator.pop(context);
@@ -233,14 +254,14 @@ class _IngresoTableState extends State<IngresoTable> {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Eliminar Ingreso'),
-        content: const Text('¿Estás seguro de que deseas eliminar este Ingreso? Esta acción no se puede deshacer.'),
+        content: const Text('¿Estás seguro de que deseas eliminar este ingreso? Esta acción no se puede deshacer.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
             child: const Text('Cancelar'),
           ),
           ElevatedButton(
-            style: ElevatedButton.styleFrom(backgroundColor: Themes.green),
+            style: ElevatedButton.styleFrom(backgroundColor: Themes.red),
             onPressed: () => Navigator.pop(context, true),
             child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
           ),
@@ -262,7 +283,7 @@ class _IngresoTableState extends State<IngresoTable> {
       child: SingleChildScrollView(
         scrollDirection: Axis.horizontal,
         child: DataTable(
-          headingRowColor: WidgetStateProperty.resolveWith((states) => Themes.primary),
+          headingRowColor: WidgetStateProperty.resolveWith((states) => context.colors.primary),
           headingTextStyle: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold),
           columns: [
             const DataColumn(label: Text('Acciones')),
@@ -274,11 +295,11 @@ class _IngresoTableState extends State<IngresoTable> {
                 DataCell(Row(
                   children: [
                     IconButton(
-                      icon: const Icon(Icons.edit, color: Themes.primary, size: 20),
+                      icon: Icon(Icons.edit, color: context.colors.primary, size: 20),
                       onPressed: () => widget.onEdit(ingreso),
                     ),
                     IconButton(
-                      icon: const Icon(Icons.delete, color: Themes.green, size: 20),
+                      icon: const Icon(Icons.delete, color: Themes.red, size: 20),
                       onPressed: () async {
                         final confirm = await _showConfirmDeleteDialog(context);
                         if (confirm == true) {
@@ -335,7 +356,7 @@ class _IngresoTableState extends State<IngresoTable> {
 
   String _formatearNombreCampo(String campo) {
     switch (campo) {
-      case 'fechaIngreso': return 'Fecha Pago';
+      case 'fechaIngreso': return 'Fecha Ingreso';
       case 'quincena': return 'Periodo';
       case 'valor': return 'Valor';
       case 'categoria': return 'Categoría';
@@ -367,6 +388,7 @@ class PaginationControl extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
     final startItem = currentPage * itemsPerPage + 1;
     final endItem = min(startItem + itemsPerPage - 1, totalItems);
 
@@ -380,12 +402,12 @@ class PaginationControl extends StatelessWidget {
         children: [
           Text(
             'Mostrando $startItem - $endItem de $totalItems',
-            style: const TextStyle(fontSize: 13, color: Colors.black87),
+            style: TextStyle(fontSize: 13, color: isDark ? Colors.white70 : Colors.black87),
           ),
           DropdownButton<int>(
             value: itemsPerPage,
-            dropdownColor: Themes.primary,
-            style: const TextStyle(color: Colors.black87),
+            dropdownColor: isDark ? const Color(0xFF1E293B) : Themes.primary,
+            style: TextStyle(color: isDark ? Colors.white : Colors.black87),
             items: [5, 10, 25, 50].map((int value) {
               return DropdownMenuItem<int>(
                 value: value,
@@ -395,21 +417,21 @@ class PaginationControl extends StatelessWidget {
             onChanged: (int? newValue) {
               if (newValue != null) onItemsPerPageChanged(newValue);
             },
-            underline: Container(height: 1, color: Colors.grey),
+            underline: Container(height: 1, color: isDark ? Colors.grey[700] : Colors.grey),
           ),
           Row(
             mainAxisSize: MainAxisSize.min,
             children: [
               IconButton(
-                icon: const Icon(Icons.chevron_left, color: Colors.black87),
+                icon: Icon(Icons.chevron_left, color: isDark ? Colors.white70 : Colors.black87),
                 onPressed: currentPage > 0 ? () => onPageChanged(currentPage - 1) : null,
               ),
               Text(
                 '${currentPage + 1}/$totalPages',
-                style: const TextStyle(fontSize: 12, color: Colors.black87),
+                style: TextStyle(fontSize: 12, color: isDark ? Colors.white70 : Colors.black87),
               ),
               IconButton(
-                icon: const Icon(Icons.chevron_right, color: Colors.black87),
+                icon: Icon(Icons.chevron_right, color: isDark ? Colors.white70 : Colors.black87),
                 onPressed: currentPage < totalPages - 1 ? () => onPageChanged(currentPage + 1) : null,
               ),
             ],

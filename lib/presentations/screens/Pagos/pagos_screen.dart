@@ -6,6 +6,7 @@ import 'package:finances/presentations/screens/Pagos/pendientes_tab.dart';
 import 'package:finances/presentations/screens/Pagos/programados_tab.dart';
 import 'package:finances/presentations/screens/Pagos/widgets/payment_summary_header.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 
 class PagosScreen extends ConsumerStatefulWidget {
@@ -54,7 +55,7 @@ class _PagosScreenState extends ConsumerState<PagosScreen>
     final bool isTablet = screenWidth >= 600;
 
     return Scaffold(
-      backgroundColor: Themes.light,
+      backgroundColor: context.scaffoldBgColor,
       appBar: AppBarFinances(
         useLogoAsTitle: true,
         showProfileIcon: false,
@@ -81,7 +82,7 @@ class _PagosScreenState extends ConsumerState<PagosScreen>
           child: Container(
             decoration: BoxDecoration(
               border: Border(
-                right: BorderSide(color: Colors.grey.shade200, width: 1.5),
+                right: BorderSide(color: context.isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200, width: 1.5),
               ),
             ),
             child: SingleChildScrollView(
@@ -89,12 +90,12 @@ class _PagosScreenState extends ConsumerState<PagosScreen>
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const Text(
+                  Text(
                     'Resumen del Mes',
                     style: TextStyle(
                       fontSize: 22,
                       fontWeight: FontWeight.bold,
-                      color: Themes.primary,
+                      color: context.titleColor,
                     ),
                   ),
                   const SizedBox(height: 4),
@@ -160,7 +161,7 @@ class _PagosScreenState extends ConsumerState<PagosScreen>
           child: PaymentSummaryHeader(userId: userId, isVertical: false),
         ),
         // Separador visual ligero
-        Divider(color: Colors.grey.shade200, height: 1),
+        Divider(color: context.isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200, height: 1),
         Container(
           decoration: const BoxDecoration(
             gradient: LinearGradient(

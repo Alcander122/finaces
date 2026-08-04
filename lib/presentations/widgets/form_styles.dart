@@ -131,8 +131,12 @@ class FormStyles {
   ///   child: const Text('Cancelar'),
   /// )
   /// ```
-  static ButtonStyle buildSecondaryButtonStyle() {
+  static ButtonStyle buildSecondaryButtonStyle([BuildContext? context]) {
+    final isDark = context != null && Theme.of(context).brightness == Brightness.dark;
     return OutlinedButton.styleFrom(
+      // Color de texto e ícono
+      foregroundColor: isDark ? Colors.white70 : Themes.primary,
+
       // Espaciado interno
       padding: const EdgeInsets.symmetric(vertical: 16),
 
@@ -142,7 +146,7 @@ class FormStyles {
       ),
 
       // Borde
-      side: const BorderSide(color: Colors.grey, width: 1),
+      side: BorderSide(color: isDark ? Colors.white30 : Colors.grey, width: 1),
     );
   }
 

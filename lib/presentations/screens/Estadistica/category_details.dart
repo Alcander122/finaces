@@ -4,6 +4,7 @@ import 'package:finances/core/data/providers/Ingreso_provider.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:finances/core/data/models/filter.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -34,7 +35,7 @@ class CategoryDetailsScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: Themes.light,
+      backgroundColor: context.scaffoldBgColor,
       appBar: const AppBarFinances(
         title: 'Categoria',
         showProfileIcon: false,

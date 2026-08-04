@@ -6,6 +6,7 @@
 // ============================================================================
 
 import 'package:flutter/material.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/presentations/widgets/form_styles.dart';
 
@@ -71,12 +72,14 @@ class CustomFormDialog extends StatelessWidget {
         borderRadius: BorderRadius.circular(0),
       ),
 
-      // Contenedor principal con fondo azul claro
+      // Contenedor principal con fondo adaptativo
       child: Container(
-        // Fondo azul claro (gradiente)
+        // Fondo con gradiente adaptativo según el tema
         decoration: BoxDecoration(
           gradient: LinearGradient(
-            colors: [Themes.degradientDark, Themes.degradientLight],
+            colors: context.isDarkMode
+                ? const [Color(0xFF0F172A), Color(0xFF1E293B)]
+                : [Themes.degradientDark, Themes.degradientLight],
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
           ),
@@ -86,10 +89,10 @@ class CustomFormDialog extends StatelessWidget {
         child: Column(
           mainAxisSize: MainAxisSize.max,
           children: [
-            // ========== SECCIÓN 1: HEADER AZUL OSCURO ==========
+            // ========== SECCIÓN 1: HEADER AZUL OSCURO / OSCURO ==========
             _buildHeader(context),
 
-            // ========== SECCIÓN 2: CONTENEDOR BLANCO CON CONTENIDO ==========
+            // ========== SECCIÓN 2: CONTENEDOR CON CONTENIDO ==========
             Expanded(
               child: _buildWhiteContainer(context),
             ),
@@ -114,9 +117,9 @@ class CustomFormDialog extends StatelessWidget {
       // Padding interno
       padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
 
-      // ⭐ Fondo azul oscuro (diferente al fondo del formulario)
+      // Fondo adaptativo del header
       decoration: BoxDecoration(
-        color: Themes.degradientDark, // Azul oscuro
+        color: context.isDarkMode ? const Color(0xFF0F172A) : Themes.degradientDark,
       ),
 
       // Contenido del header: Título + Botón Cerrar
@@ -148,24 +151,24 @@ class CustomFormDialog extends StatelessWidget {
   }
 
   // ============================================================================
-  // 📝 CONTENEDOR BLANCO - Formulario con Scroll
+  // 📝 CONTENEDOR INTERIOR - Formulario con Scroll
   // ============================================================================
 
-  /// Construye el contenedor blanco redondeado con el formulario
+  /// Construye el contenedor interior redondeado con el formulario
   ///
   /// Características:
-  /// - Fondo blanco
+  /// - Fondo adaptativo
   /// - Bordes redondeados
   /// - Padding interno
   /// - Scroll automático
   Widget _buildWhiteContainer(BuildContext context) {
     return Container(
-      // Margen alrededor del contenedor blanco
+      // Margen alrededor del contenedor
       margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
 
-      // Decoración: fondo blanco con bordes redondeados
+      // Decoración: fondo adaptativo con bordes redondeados
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.dialogBgColor,
         borderRadius: BorderRadius.circular(20), // ⭐ Bordes redondeados
       ),
 

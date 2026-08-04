@@ -1,4 +1,5 @@
 import 'package:finances/core/data/models/objetivo_ahorro.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:flutter/material.dart';
@@ -13,7 +14,7 @@ class DetallesTransacciones extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Themes.light,
+      backgroundColor: context.scaffoldBgColor,
       appBar: AppBarFinances(
         title: 'Detalles de ${meta.nombre}',
         showProfileIcon: false,

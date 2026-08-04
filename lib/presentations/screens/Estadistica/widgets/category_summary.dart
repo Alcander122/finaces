@@ -2,6 +2,7 @@ import 'package:finances/core/data/providers/category_summary_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
+import 'package:finances/presentations/theme/theme.dart';
 
 final selectedTabProvider = StateProvider<bool>((ref) => false);
 
@@ -17,9 +18,10 @@ class CategorySummary extends ConsumerWidget {
 
     return Column(
       children: [
-        _buildTabSelector(ref, selectedTab),
+        _buildTabSelector(context, ref, selectedTab),
         summaryAsync.when(
           data: (summaryData) => _buildCategoryList(
+            context,
             selectedTab,
             summaryData['ingresos'] ?? {},
             summaryData['egresos'] ?? {},
@@ -34,16 +36,18 @@ class CategorySummary extends ConsumerWidget {
     );
   }
 
-  Widget _buildTabSelector(WidgetRef ref, bool selectedTab) {
+  Widget _buildTabSelector(BuildContext context, WidgetRef ref, bool selectedTab) {
     return Row(
       children: [
         _buildTabButton(
+          context: context,
           label: 'INGRESO',
           isSelected: !selectedTab,
           color: Colors.green,
           onTap: () => ref.read(selectedTabProvider.notifier).state = false,
         ),
         _buildTabButton(
+          context: context,
           label: 'EGRESO',
           isSelected: selectedTab,
           color: Colors.red,
@@ -53,28 +57,33 @@ class CategorySummary extends ConsumerWidget {
     );
   }
 
-  Widget _buildCategoryList(bool isExpenseTab, Map<String, double> ingresos,
+  Widget _buildCategoryList(BuildContext context, bool isExpenseTab, Map<String, double> ingresos,
       Map<String, double> egresos) {
     final data = isExpenseTab ? egresos : ingresos;
 
     return data.isEmpty
-        ? _buildEmptyState()
+        ? _buildEmptyState(context)
         : ListView.separated(
             shrinkWrap: true,
             physics: const NeverScrollableScrollPhysics(),
             padding: const EdgeInsets.all(8),
             itemCount: data.length,
-            separatorBuilder: (_, __) => const Divider(height: 1),
+            separatorBuilder: (_, __) => Divider(height: 1, color: context.isDarkMode ? Colors.grey[800] : Colors.grey[200]),
             itemBuilder: (context, index) {
               final category = data.keys.elementAt(index);
               final amount = data.values.elementAt(index);
 
               return ListTile(
-                title: Text(category),
+                title: Text(
+                  category,
+                  style: TextStyle(color: context.isDarkMode ? Colors.white : Colors.black87),
+                ),
                 trailing: Text(
                   UIHelpers.formatCurrency(amount),
                   style: TextStyle(
-                    color: isExpenseTab ? Colors.red[700] : Colors.green[700],
+                    color: isExpenseTab 
+                        ? (context.isDarkMode ? Colors.redAccent : Colors.red[700])
+                        : (context.isDarkMode ? Colors.greenAccent : Colors.green[700]),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -85,18 +94,22 @@ class CategorySummary extends ConsumerWidget {
   }
 
   Widget _buildTabButton({
+    required BuildContext context,
     required String label,
     required bool isSelected,
     required Color color,
     required VoidCallback onTap,
   }) {
+    final isDark = context.isDarkMode;
     return Expanded(
       child: InkWell(
         onTap: onTap,
         child: Container(
           padding: const EdgeInsets.symmetric(vertical: 16),
           decoration: BoxDecoration(
-            color: isSelected ? color.withOpacity(0.15) : Colors.grey[100],
+            color: isSelected 
+                ? color.withValues(alpha: isDark ? 0.25 : 0.15) 
+                : (isDark ? const Color(0xFF0F172A) : Colors.grey[100]),
             border: Border(
               bottom: BorderSide(
                 color: isSelected ? color : Colors.transparent,
@@ -110,7 +123,7 @@ class CategorySummary extends ConsumerWidget {
             style: TextStyle(
               fontSize: 16,
               fontWeight: FontWeight.w600,
-              color: isSelected ? color : Colors.grey[700],
+              color: isSelected ? color : (isDark ? Colors.grey[400] : Colors.grey[700]),
             ),
           ),
         ),
@@ -118,13 +131,13 @@ class CategorySummary extends ConsumerWidget {
     );
   }
 
-  Widget _buildEmptyState() {
+  Widget _buildEmptyState(BuildContext context) {
     return Padding(
       padding: const EdgeInsets.all(16),
       child: Center(
         child: Text(
           'No hay transacciones en este período',
-          style: TextStyle(color: Colors.grey[600], fontSize: 16),
+          style: TextStyle(color: context.isDarkMode ? Colors.grey[400] : Colors.grey[600], fontSize: 16),
         ),
       ),
     );

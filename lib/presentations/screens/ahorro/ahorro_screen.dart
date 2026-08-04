@@ -12,6 +12,7 @@ import 'package:finances/presentations/screens/ahorro/dialogo_nueva_meta_mejorad
 import 'package:finances/presentations/screens/ahorro/dialogo_transaccion.dart';
 import 'package:finances/presentations/screens/ahorro/widgets/elemento_objetivo_ahorro_mejorado.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -29,7 +30,7 @@ class AhorroScreenState extends ConsumerState<AhorroScreen> {
     final metasAsync = ref.watch(metasAhorroProvider);
 
     return Scaffold(
-      backgroundColor: Themes.light,
+      backgroundColor: context.scaffoldBgColor,
       appBar: const AppBarFinances(title: 'Metas', showProfileIcon: false),
       resizeToAvoidBottomInset: true,
       body: metasAsync.when(
@@ -44,7 +45,7 @@ class AhorroScreenState extends ConsumerState<AhorroScreen> {
                     Container(
                       padding: const EdgeInsets.all(24),
                       decoration: BoxDecoration(
-                        color: Colors.white,
+                        color: context.isDarkMode ? const Color(0xFF1E293B) : Colors.white,
                         shape: BoxShape.circle,
                         boxShadow: [
                           BoxShadow(
@@ -54,19 +55,19 @@ class AhorroScreenState extends ConsumerState<AhorroScreen> {
                           ),
                         ],
                       ),
-                      child: const Icon(
+                      child: Icon(
                         Icons.savings_outlined,
                         size: 72,
-                        color: Themes.primary,
+                        color: context.colors.primary,
                       ),
                     ),
                     const SizedBox(height: 24),
-                    const Text(
+                    Text(
                       'No hay metas de ahorro creadas',
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.bold,
-                        color: Themes.primary,
+                        color: context.titleColor,
                       ),
                     ),
                     const SizedBox(height: 8),
@@ -75,7 +76,7 @@ class AhorroScreenState extends ConsumerState<AhorroScreen> {
                       textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 14,
-                        color: Colors.grey.shade600,
+                        color: context.isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
                       ),
                     ),
                     const SizedBox(height: 32),

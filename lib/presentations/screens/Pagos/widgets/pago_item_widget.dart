@@ -5,6 +5,7 @@ import '../utils/next_due_date_calculator.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 
 class PagoItemWidget extends StatelessWidget {
@@ -59,7 +60,7 @@ class PagoItemWidget extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.all(10),
                   decoration: BoxDecoration(
-                    color: color.withValues(alpha: 0.15),
+                    color: color.withValues(alpha: context.isDarkMode ? 0.25 : 0.15),
                     shape: BoxShape.circle,
                   ),
                   child: Icon(icon, color: color, size: 24),
@@ -78,7 +79,7 @@ class PagoItemWidget extends StatelessWidget {
                         overflow: TextOverflow.ellipsis,
                         style: theme.textTheme.titleMedium?.copyWith(
                           fontWeight: FontWeight.bold,
-                          color: Themes.primary,
+                          color: context.isDarkMode ? context.colors.primary : Themes.primary,
                           fontSize: 18,
                         ),
                       ),
@@ -87,14 +88,14 @@ class PagoItemWidget extends StatelessWidget {
                         'Monto: ${UIHelpers.formatCurrency(pago.totalAmount)}',
                         style: theme.textTheme.bodyMedium?.copyWith(
                           fontWeight: FontWeight.w600,
-                          color: Colors.grey.shade800,
+                          color: context.isDarkMode ? Colors.grey.shade300 : Colors.grey.shade800,
                         ),
                       ),
                       const SizedBox(height: 4),
                       Text(
                         '$textoFecha: ${_formatNextDueDate(pago)}',
                         style: theme.textTheme.bodySmall?.copyWith(
-                          color: Colors.grey.shade600,
+                          color: context.isDarkMode ? Colors.grey.shade400 : Colors.grey.shade600,
                           fontSize: 12,
                         ),
                       ),
@@ -104,7 +105,7 @@ class PagoItemWidget extends StatelessWidget {
               ],
             ),
             const SizedBox(height: 12),
-            Divider(height: 1, color: Colors.grey.shade200, thickness: 1),
+            Divider(height: 1, color: context.isDarkMode ? Colors.grey.shade800 : Colors.grey.shade200, thickness: 1),
             const SizedBox(height: 12),
             
             // Acciones en un Wrap responsivo alineado a la derecha
@@ -117,19 +118,19 @@ class PagoItemWidget extends StatelessWidget {
                 _ActionButton(
                   icon: Icons.check_circle_outline,
                   label: 'Pagado',
-                  color: Colors.green,
+                  color: context.isDarkMode ? Colors.greenAccent : Colors.green,
                   onPressed: onCompletar,
                 ),
                 _ActionButton(
                   icon: Icons.edit,
                   label: 'Editar',
-                  color: Colors.blue,
+                  color: context.isDarkMode ? Colors.lightBlueAccent : Colors.blue,
                   onPressed: onEditar,
                 ),
                 _ActionButton(
                   icon: Icons.delete,
                   label: 'Eliminar',
-                  color: Colors.red,
+                  color: context.isDarkMode ? Colors.redAccent : Colors.red,
                   onPressed: onEliminar,
                 ),
               ],
@@ -156,11 +157,12 @@ class _ActionButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final isDark = Theme.of(context).brightness == Brightness.dark;
     return TextButton.icon(
       style: TextButton.styleFrom(
         foregroundColor: color,
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        backgroundColor: color.withValues(alpha: 0.1),
+        backgroundColor: color.withValues(alpha: isDark ? 0.2 : 0.1),
         shape: RoundedRectangleBorder(
           borderRadius: BorderRadius.circular(8),
         ),

@@ -8,7 +8,7 @@ import 'package:firebase_auth/firebase_auth.dart';
 import 'package:finances/core/data/providers/portafolio_provider.dart';
 import 'package:finances/presentations/screens/portafolio/portafolio_form_screen.dart';
 import 'package:finances/presentations/screens/portafolio/widgets/portafolio_chart.dart';
-import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/core/errors/handlers/db_error_handler.dart';
@@ -29,7 +29,7 @@ class PortafolioScreen extends ConsumerWidget {
     final dashboardAsync = ref.watch(portfolioDashboardProvider(user.uid));
 
     return Scaffold(
-      backgroundColor: Themes.light,
+      backgroundColor: context.scaffoldBgColor,
       appBar: const AppBarFinances(
         title: 'Mis Portafolios',
         showProfileIcon: false,
@@ -106,18 +106,18 @@ class PortafolioScreen extends ConsumerWidget {
                               children: [
                                 Text(
                                   portafolio.nombre,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 15,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
+                                    color: context.isDarkMode ? context.colors.onSurface : Colors.black87,
                                   ),
                                 ),
                                 const SizedBox(height: 2),
                                 Text(
                                   'Total: ${UIHelpers.formatCurrency(item.totalValueCOP)}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13,
-                                    color: Colors.grey,
+                                    color: context.isDarkMode ? context.colors.onSurfaceVariant : Colors.grey,
                                   ),
                                 ),
                               ],
@@ -215,7 +215,7 @@ class PortafolioScreen extends ConsumerWidget {
                         padding: const EdgeInsets.all(16.0),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: context.cardBgColor,
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: buildPortfolioList(true),
@@ -237,7 +237,7 @@ class PortafolioScreen extends ConsumerWidget {
                         padding: const EdgeInsets.all(16.0),
                         child: Container(
                           decoration: BoxDecoration(
-                            color: Colors.white,
+                            color: context.cardBgColor,
                             borderRadius: BorderRadius.circular(16),
                           ),
                           child: buildPortfolioList(false),
