@@ -15,12 +15,16 @@ workflows:
       xcode: latest
       cocoapods: default
     scripts:
+      - name: Disable Swift Package Manager
+        script: flutter config --no-enable-swift-package-manager
       - name: Get Flutter packages
         script: flutter pub get
-      - name: Initialize iOS Workspace & CocoaPods
+      - name: Prepare iOS configuration
+        script: flutter build ios --release --no-codesign --config-only
+      - name: Install CocoaPods
         script: |
-          flutter build ios --release --no-codesign --config-only
-          cd ios && pod install
+          cd ios
+          pod install --repo-update
       - name: Build iOS release
         script: flutter build ipa --release --no-codesign
     artifacts:
