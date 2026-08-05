@@ -1,9 +1,10 @@
 // tutorial_page_widget.dart (CORREGIDO Y COMENTADO)
 import 'package:flutter/material.dart';
+import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 
 /// Widget reutilizable que representa una página del tutorial.
 class TutorialPageWidget extends StatelessWidget {
-  final IconData icon;
+  final dynamic icon;
   final String title;
   final String description;
   final Color iconColor;
@@ -32,11 +33,19 @@ class TutorialPageWidget extends StatelessWidget {
                   alpha: 0.2), // ✅ CORRECTO: usamos withOpacity
               shape: BoxShape.circle,
             ),
-            child: Icon(
-              icon,
-              size: 60,
-              color: iconColor,
-            ),
+            child: icon is FaIconData
+                ? Center(
+                    child: FaIcon(
+                      icon,
+                      size: 60,
+                      color: iconColor,
+                    ),
+                  )
+                : Icon(
+                    icon,
+                    size: 60,
+                    color: iconColor,
+                  ),
           ),
           const SizedBox(height: 40),
           // Título

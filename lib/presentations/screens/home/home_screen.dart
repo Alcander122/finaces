@@ -6,6 +6,7 @@ import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/core/data/providers/Ingreso_provider.dart';
 import 'package:finances/core/data/providers/egreso_provider.dart';
+import 'package:finances/core/data/providers/theme_provider.dart'; // Provider del tema claro/oscuro
 import 'package:finances/presentations/screens/Pagos/providers/payment_providers.dart';
 import 'package:finances/presentations/screens/Pagos/models/payment_enums.dart';
 import 'package:finances/presentations/screens/Pagos/models/payment.dart';
@@ -21,6 +22,7 @@ import 'package:finances/presentations/screens/Estadistica/Statistics_Screen.dar
 import 'package:finances/presentations/screens/Pagos/pagos_screen.dart';
 import 'package:finances/presentations/screens/portafolio/portafolio_screen.dart';
 import 'package:finances/presentations/screens/ingresos/ingresos_screen.dart';
+import 'package:finances/presentations/theme/theme.dart'; // Extensión context.colors
 import 'package:finances/presentations/widgets/smart_ad_banner.dart';
 
 // Provider local para controlar la privacidad del saldo
@@ -56,15 +58,17 @@ class HomeScreen extends ConsumerWidget {
     final authState = ref.watch(authProvider);
 
     if (authState.isLoading) {
-      return const Scaffold(
-        backgroundColor: Color(0xFF0B0E14),
+      // Fondo adaptativo: usa el color 'surface' del tema activo
+      return Scaffold(
+        backgroundColor: context.colors.surface,
         body: Center(
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              CircularProgressIndicator(color: Color(0xFF26A69A)),
-              SizedBox(height: 20),
-              Text('Cargando...', style: TextStyle(color: Colors.white70)),
+              const CircularProgressIndicator(color: Color(0xFF26A69A)),
+              const SizedBox(height: 20),
+              // Texto adaptativo según el tema
+              Text('Cargando...', style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.7))),
             ],
           ),
         ),
@@ -76,6 +80,8 @@ class HomeScreen extends ConsumerWidget {
     final saldoAsync = ref.watch(saldoDisponibleProvider);
     final isPrivate = ref.watch(isBalancePrivateProvider);
     final userId = authState.user?.uid ?? '';
+    // Lee el modo de tema activo (claro u oscuro)
+    final themeMode = ref.watch(themeProvider);
 
     // Autocargar y sincronizar notificaciones en segundo plano al iniciar la app o tras una actualización
     if (userId.isNotEmpty) {
@@ -105,7 +111,8 @@ class HomeScreen extends ConsumerWidget {
     }
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0E14),
+      // El fondo toma el color 'surface' del tema activo (claro o  oscuro)
+      backgroundColor: context.colors.surface,
       body: Stack(
         children: [
           // 1. Aurora Radial Superior Derecha (Azul profundo neón)
@@ -168,8 +175,9 @@ class HomeScreen extends ConsumerWidget {
                                 '¡Hola, ${authState.user?.displayName ?? 'Usuario'}! 👋',
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white,
+                                style: TextStyle(
+                                  // Color adaptativo: blanco en oscuro, oscuro en claro
+                                  color: context.colors.onSurface,
                                   fontSize: 22,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: -0.5,
@@ -180,24 +188,58 @@ class HomeScreen extends ConsumerWidget {
                                 _getFormattedDate(),
                                 maxLines: 1,
                                 overflow: TextOverflow.ellipsis,
-                                style: const TextStyle(
-                                  color: Colors.white54,
+                                style: TextStyle(
+                                  // Color secundario adaptativo al 60% de opacidad
+                                  color: context.colors.onSurface.withValues(alpha: 0.6),
                                   fontSize: 13,
                                 ),
                               ),
                             ],
                           ),
                         ),
-                        const SizedBox(width: 8),
+                        const SizedBox(width: 4),
+                        // Fila de acciones del header
+                        // Se usan constraints reducidos (36x36) para que los 4 botones
+                        // quepan cómodamente en pantallas pequeñas (ej. iPhone SE, 320px)
                         Row(
+                          mainAxisSize: MainAxisSize.min,
                           children: [
+                            // Botón Sol/Luna: alterna entre modo claro y oscuro
                             IconButton(
+                              tooltip: themeMode == ThemeMode.dark
+                                  ? 'Cambiar a modo claro'
+                                  : 'Cambiar a modo oscuro',
+                              // Reduce el área de toque de 48x48 (default) a 36x36
+                              constraints: const BoxConstraints(
+                                minWidth: 36,
+                                minHeight: 36,
+                              ),
+                              padding: EdgeInsets.zero,
+                              icon: Icon(
+                                themeMode == ThemeMode.dark
+                                    ? Icons.light_mode_outlined  // Sol → pasar a claro
+                                    : Icons.dark_mode_outlined,  // Luna → pasar a oscuro
+                                color: context.colors.onSurface.withValues(alpha: 0.8),
+                                size: 21,
+                              ),
+                              onPressed: () {
+                                // Alterna y guarda la preferencia del usuario
+                                ref.read(themeProvider.notifier).toggleTheme();
+                              },
+                            ),
+                            // Botón visibilidad del saldo
+                            IconButton(
+                              constraints: const BoxConstraints(
+                                minWidth: 36,
+                                minHeight: 36,
+                              ),
+                              padding: EdgeInsets.zero,
                               icon: Icon(
                                 isPrivate
                                     ? Icons.visibility_off_outlined
                                     : Icons.visibility_outlined,
-                                color: Colors.white70,
-                                size: 22,
+                                color: context.colors.onSurface.withValues(alpha: 0.8),
+                                size: 21,
                               ),
                               onPressed: () {
                                 ref.read(isBalancePrivateProvider.notifier).state =
@@ -205,11 +247,17 @@ class HomeScreen extends ConsumerWidget {
                               },
                               tooltip: isPrivate ? 'Mostrar saldo' : 'Ocultar saldo',
                             ),
+                            // Botón notificaciones
                             IconButton(
-                              icon: const Icon(
+                              constraints: const BoxConstraints(
+                                minWidth: 36,
+                                minHeight: 36,
+                              ),
+                              padding: EdgeInsets.zero,
+                              icon: Icon(
                                 Icons.notifications_none_rounded,
-                                color: Colors.white70,
-                                size: 24,
+                                color: context.colors.onSurface.withValues(alpha: 0.8),
+                                size: 22,
                               ),
                               onPressed: () {
                                 ScaffoldMessenger.of(context).clearSnackBars();
@@ -218,7 +266,8 @@ class HomeScreen extends ConsumerWidget {
                                     message: 'No tienes nuevas alertas financieras');
                               },
                             ),
-                            const SizedBox(width: 4),
+                            const SizedBox(width: 2),
+                            // Avatar → perfil
                             GestureDetector(
                               onTap: () {
                                 Navigator.pushNamed(context, '/profile');
@@ -227,15 +276,18 @@ class HomeScreen extends ConsumerWidget {
                                 decoration: BoxDecoration(
                                   shape: BoxShape.circle,
                                   border: Border.all(
-                                    color: Colors.white24,
+                                    color: context.colors.onSurface.withValues(alpha: 0.2),
                                     width: 1.5,
                                   ),
                                 ),
-                                child: const CircleAvatar(
-                                  radius: 18,
-                                  backgroundColor: Colors.white10,
-                                  child: Icon(Icons.person_outline_rounded,
-                                      color: Colors.white70, size: 20),
+                                child: CircleAvatar(
+                                  radius: 17,
+                                  backgroundColor: context.colors.onSurface.withValues(alpha: 0.08),
+                                  child: Icon(
+                                    Icons.person_outline_rounded,
+                                    color: context.colors.onSurface.withValues(alpha: 0.7),
+                                    size: 19,
+                                  ),
                                 ),
                               ),
                             ),
@@ -256,18 +308,18 @@ class HomeScreen extends ConsumerWidget {
                         children: [
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                            children: const [
+                            children: [
                               Text(
                                 'PLATA DISPONIBLE',
                                 style: TextStyle(
-                                  color: Colors.white60,
+                                  color: context.colors.onSurface.withValues(alpha: 0.6),
                                   fontSize: 11,
                                   fontWeight: FontWeight.bold,
                                   letterSpacing: 1.5,
                                 ),
                               ),
                               Icon(Icons.account_balance_wallet_outlined,
-                                  color: Colors.white38, size: 16),
+                                  color: context.colors.onSurface.withValues(alpha: 0.4), size: 16),
                             ],
                           ),
                           const SizedBox(height: 8),
@@ -276,8 +328,8 @@ class HomeScreen extends ConsumerWidget {
                               isPrivate ? '••••••••' : UIHelpers.formatCurrency(saldo),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                color: Colors.white,
+                              style: TextStyle(
+                                color: context.colors.onSurface,
                                 fontSize: 34,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: -0.5,
@@ -293,8 +345,8 @@ class HomeScreen extends ConsumerWidget {
                               r'$-',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
-                              style: const TextStyle(
-                                  color: Colors.white,
+                              style: TextStyle(
+                                  color: context.colors.onSurface,
                                   fontSize: 34,
                                   fontWeight: FontWeight.bold),
                             ),
@@ -313,15 +365,17 @@ class HomeScreen extends ConsumerWidget {
                             children: [
                               Expanded(
                                 child: _buildMiniStat(
+                                  context: context,
                                   label: 'Ingresos',
                                   amountAsync: totalIngresosAsync,
                                   isIncome: true,
                                   isPrivate: isPrivate,
                                 ),
                               ),
-                              Container(width: 1, height: 35, color: Colors.white10),
+                              Container(width: 1, height: 35, color: context.colors.onSurface.withValues(alpha: 0.1)),
                               Expanded(
                                 child: _buildMiniStat(
+                                  context: context,
                                   label: 'Gastos',
                                   amountAsync: totalGastosAsync,
                                   isIncome: false,
@@ -384,12 +438,12 @@ class HomeScreen extends ConsumerWidget {
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [
-                        const Text(
+                        Text(
                           'Mi Panel',
                           style: TextStyle(
                             fontSize: 18,
                             fontWeight: FontWeight.bold,
-                            color: Colors.white,
+                            color: context.colors.onSurface,
                             letterSpacing: 0.5,
                           ),
                         ),
@@ -452,7 +506,6 @@ class HomeScreen extends ConsumerWidget {
                         return _GlassmorphicCard(
                           padding: const EdgeInsets.all(16.0),
                           borderRadius: 16.0,
-                          backgroundColor: const Color(0x06FFFFFF),
                           child: Row(
                             children: [
                               Container(
@@ -471,8 +524,8 @@ class HomeScreen extends ConsumerWidget {
                               Expanded(
                                 child: Text(
                                   consejoText,
-                                  style: const TextStyle(
-                                    color: Color(0xB2FFFFFF),
+                                  style: TextStyle(
+                                    color: context.colors.onSurface.withValues(alpha: 0.75),
                                     fontSize: 13,
                                     height: 1.4,
                                   ),
@@ -517,6 +570,7 @@ class HomeScreen extends ConsumerWidget {
   }
 
   Widget _buildMiniStat({
+    required BuildContext context,
     required String label,
     required AsyncValue<double> amountAsync,
     required bool isIncome,
@@ -537,7 +591,7 @@ class HomeScreen extends ConsumerWidget {
               const SizedBox(width: 4),
               Text(
                 label,
-                style: const TextStyle(color: Colors.white60, fontSize: 11),
+                style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.6), fontSize: 11),
               ),
             ],
           ),
@@ -547,22 +601,22 @@ class HomeScreen extends ConsumerWidget {
               isPrivate ? '••••' : UIHelpers.formatCurrency(amount),
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Colors.white,
+              style: TextStyle(
+                color: context.colors.onSurface,
                 fontSize: 16,
                 fontWeight: FontWeight.bold,
               ),
             ),
-            loading: () => const SizedBox(
+            loading: () => SizedBox(
               width: 12,
               height: 12,
-              child: CircularProgressIndicator(strokeWidth: 2, color: Colors.white30),
+              child: CircularProgressIndicator(strokeWidth: 2, color: context.colors.onSurface.withValues(alpha: 0.3)),
             ),
-            error: (_, __) => const Text(r'$-',
+            error: (_, __) => Text(r'$-',
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
                 style: TextStyle(
-                    color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+                    color: context.colors.onSurface, fontSize: 16, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -572,7 +626,7 @@ class HomeScreen extends ConsumerWidget {
   Widget _actionButton({
     required BuildContext context,
     required String label,
-    required IconData icon,
+    required dynamic icon,
     required Color color,
     required Widget screen,
   }) {
@@ -584,17 +638,19 @@ class HomeScreen extends ConsumerWidget {
       child: _GlassmorphicCard(
         padding: const EdgeInsets.symmetric(vertical: 14.0),
         borderRadius: 16.0,
-        backgroundColor: Colors.white.withValues(alpha: 0.04),
+        backgroundColor: context.isDarkMode ? Colors.white.withValues(alpha: 0.04) : Colors.white.withValues(alpha: 0.8),
         child: Column(
           children: [
-            Icon(icon, color: color, size: 18),
+            icon is FaIconData
+                ? FaIcon(icon, color: color, size: 18)
+                : Icon(icon, color: color, size: 18),
             const SizedBox(height: 8),
             Text(
               label,
               maxLines: 1,
               overflow: TextOverflow.ellipsis,
-              style: const TextStyle(
-                color: Color(0xE2FFFFFF),
+              style: TextStyle(
+                color: context.colors.onSurface,
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
               ),
@@ -623,32 +679,32 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
+                    children: [
                       Text(
                         'Ahorros y Bolsillos',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: context.colors.onSurface,
                           fontSize: 14,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Icon(FontAwesomeIcons.piggyBank, color: Color(0xFFFFB74D), size: 16),
+                      const FaIcon(FontAwesomeIcons.piggyBank, color: Color(0xFFFFB74D), size: 16),
                     ],
                   ),
                   const SizedBox(height: 2),
-                  const Text(
+                  Text(
                     'Organiza tus metas y cajitas',
-                    style: TextStyle(color: Colors.white38, fontSize: 11),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.5), fontSize: 11),
                   ),
                   const SizedBox(height: 24),
-                  const Text(
+                  Text(
                     'No tienes metas activas aún',
-                    style: TextStyle(color: Colors.white70, fontSize: 12, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.7), fontSize: 12, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 4),
-                  const Text(
+                  Text(
                     'Toca aquí para separar tu primer ahorro.',
-                    style: TextStyle(color: Colors.white38, fontSize: 10),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.45), fontSize: 10),
                   ),
                 ],
               );
@@ -662,22 +718,22 @@ class HomeScreen extends ConsumerWidget {
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
+                  children: [
                     Text(
                       'Ahorros y Bolsillos',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: context.colors.onSurface,
                         fontSize: 14,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Icon(FontAwesomeIcons.piggyBank, color: Color(0xFFFFB74D), size: 16),
+                    const FaIcon(FontAwesomeIcons.piggyBank, color: Color(0xFFFFB74D), size: 16),
                   ],
                 ),
                 const SizedBox(height: 2),
-                const Text(
+                Text(
                   'Progreso de tu meta activa principal',
-                  style: TextStyle(color: Colors.white38, fontSize: 11),
+                  style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.5), fontSize: 11),
                 ),
                 const SizedBox(height: 20),
                 Row(
@@ -685,8 +741,8 @@ class HomeScreen extends ConsumerWidget {
                   children: [
                     Text(
                       principalMeta.nombre,
-                      style: const TextStyle(
-                          color: Colors.white70, fontSize: 13, fontWeight: FontWeight.bold),
+                      style: TextStyle(
+                          color: context.colors.onSurface.withValues(alpha: 0.75), fontSize: 13, fontWeight: FontWeight.bold),
                     ),
                     Text(
                       '${principalMeta.progreso.toStringAsFixed(0)}% completado',
@@ -701,14 +757,14 @@ class HomeScreen extends ConsumerWidget {
                   child: LinearProgressIndicator(
                     value: progresoPercent,
                     minHeight: 5,
-                    backgroundColor: Colors.white10,
+                    backgroundColor: context.colors.onSurface.withValues(alpha: 0.1),
                     valueColor: const AlwaysStoppedAnimation<Color>(Color(0xFFFFB74D)),
                   ),
                 ),
                 const SizedBox(height: 4),
                 Text(
                   '${UIHelpers.formatCurrency(principalMeta.montoActual)} de ${UIHelpers.formatCurrency(principalMeta.montoObjetivo)}',
-                  style: const TextStyle(color: Colors.white38, fontSize: 10),
+                  style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.5), fontSize: 10),
                 ),
               ],
             );
@@ -718,9 +774,9 @@ class HomeScreen extends ConsumerWidget {
                   width: 20,
                   height: 20,
                   child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFFFB74D)))),
-          error: (err, _) => const Text(
+          error: (err, _) => Text(
             'Error al cargar metas',
-            style: TextStyle(color: Colors.white38, fontSize: 11),
+            style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.45), fontSize: 11),
           ),
         ),
       ),
@@ -746,31 +802,31 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
+                    children: [
                       Text(
                         'Mis Bancos',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: context.colors.onSurface,
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Icon(FontAwesomeIcons.buildingColumns, color: Color(0xFF64B5F6), size: 14),
+                      const FaIcon(FontAwesomeIcons.buildingColumns, color: Color(0xFF64B5F6), size: 14),
                     ],
                   ),
                   const SizedBox(height: 2),
-                  const Text(
+                  Text(
                     'Datos para cobrar',
-                    style: TextStyle(color: Colors.white38, fontSize: 10),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.5), fontSize: 10),
                   ),
                   const Spacer(),
-                  const Text(
+                  Text(
                     'Sin cuentas',
-                    style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.6), fontSize: 10, fontWeight: FontWeight.bold),
                   ),
-                  const Text(
+                  Text(
                     'Toca para agregar',
-                    style: TextStyle(color: Colors.white30, fontSize: 8),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.4), fontSize: 8),
                   ),
                 ],
               );
@@ -792,20 +848,20 @@ class HomeScreen extends ConsumerWidget {
                         primerBanco.nombre,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
-                        style: const TextStyle(
-                          color: Colors.white,
+                        style: TextStyle(
+                          color: context.colors.onSurface,
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
                     ),
-                    const Icon(FontAwesomeIcons.buildingColumns, color: Color(0xFF64B5F6), size: 14),
+                    const FaIcon(FontAwesomeIcons.buildingColumns, color: Color(0xFF64B5F6), size: 14),
                   ],
                 ),
                 const SizedBox(height: 25),
-                const Text(
+                Text(
                   'Datos para cobrar',
-                  style: TextStyle(color: Colors.white38, fontSize: 10),
+                  style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.5), fontSize: 10),
                 ),
                 const Spacer(),
                 Row(
@@ -821,17 +877,17 @@ class HomeScreen extends ConsumerWidget {
                       child: Container(
                         padding: const EdgeInsets.all(4),
                         decoration: BoxDecoration(
-                          color: Colors.white10,
+                          color: context.colors.onSurface.withValues(alpha: 0.08),
                           borderRadius: BorderRadius.circular(4),
                         ),
-                        child: const Icon(Icons.copy_rounded, color: Colors.white70, size: 10),
+                        child: Icon(Icons.copy_rounded, color: context.colors.onSurface.withValues(alpha: 0.7), size: 10),
                       ),
                     ),
                     const SizedBox(width: 6),
                     Expanded(
                       child: Text(
                         identificador,
-                        style: const TextStyle(color: Colors.white70, fontSize: 11, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.75), fontSize: 11, fontWeight: FontWeight.bold),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -846,9 +902,9 @@ class HomeScreen extends ConsumerWidget {
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF64B5F6)))),
-          error: (_, __) => const Text(
+          error: (_, __) => Text(
             'Error',
-            style: TextStyle(color: Colors.white30, fontSize: 10),
+            style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.4), fontSize: 10),
           ),
         ),
       ),
@@ -876,31 +932,31 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
+                    children: [
                       Text(
                         'Portafolio',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: context.colors.onSurface,
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Icon(FontAwesomeIcons.chartLine, color: Color(0xFF66BB6A), size: 14),
+                      const FaIcon(FontAwesomeIcons.chartLine, color: Color(0xFF66BB6A), size: 14),
                     ],
                   ),
                   const SizedBox(height: 2),
-                  const Text(
+                  Text(
                     'Tus inversiones',
-                    style: TextStyle(color: Colors.white38, fontSize: 10),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.5), fontSize: 10),
                   ),
                   const Spacer(),
-                  const Text(
+                  Text(
                     'Sin inversiones',
-                    style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.6), fontSize: 10, fontWeight: FontWeight.bold),
                   ),
-                  const Text(
+                  Text(
                     'Toca para agregar',
-                    style: TextStyle(color: Colors.white30, fontSize: 8),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.4), fontSize: 8),
                   ),
                 ],
               );
@@ -911,28 +967,28 @@ class HomeScreen extends ConsumerWidget {
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
+                  children: [
                     Text(
                       'Portafolio',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: context.colors.onSurface,
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Icon(FontAwesomeIcons.chartLine, color: Color(0xFF66BB6A), size: 14),
+                    const FaIcon(FontAwesomeIcons.chartLine, color: Color(0xFF66BB6A), size: 14),
                   ],
                 ),
                 const SizedBox(height: 2),
-                const Text(
+                Text(
                   'Total valorizado',
-                  style: TextStyle(color: Colors.white38, fontSize: 10),
+                  style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.5), fontSize: 10),
                 ),
                 const Spacer(),
                 Text(
                   UIHelpers.formatCurrency(dashboardState.totalPortfolioValueCOP),
-                  style: const TextStyle(
-                    color: Colors.white,
+                  style: TextStyle(
+                    color: context.colors.onSurface,
                     fontSize: 12,
                     fontWeight: FontWeight.bold,
                   ),
@@ -942,7 +998,7 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: 2),
                 Text(
                   '${dashboardState.numberOfAssets} activos',
-                  style: const TextStyle(color: Colors.white60, fontSize: 9),
+                  style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.65), fontSize: 9),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -956,9 +1012,9 @@ class HomeScreen extends ConsumerWidget {
               child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF66BB6A)),
             ),
           ),
-          error: (_, __) => const Text(
+          error: (_, __) => Text(
             'Error',
-            style: TextStyle(color: Colors.white30, fontSize: 10),
+            style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.4), fontSize: 10),
           ),
         ),
       ),
@@ -987,31 +1043,31 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
+                    children: [
                       Text(
                         '¿En qué gasté?',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: context.colors.onSurface,
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Icon(FontAwesomeIcons.chartPie, color: Color(0xFFAB47BC), size: 14),
+                      const FaIcon(FontAwesomeIcons.chartPie, color: Color(0xFFAB47BC), size: 14),
                     ],
                   ),
                   const SizedBox(height: 2),
-                  const Text(
+                  Text(
                     'Categorías del mes',
-                    style: TextStyle(color: Colors.white38, fontSize: 10),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.5), fontSize: 10),
                   ),
                   const Spacer(),
-                  const Text(
+                  Text(
                     'Sin gastos aún',
-                    style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.6), fontSize: 10, fontWeight: FontWeight.bold),
                   ),
-                  const Text(
+                  Text(
                     'Toca para registrar',
-                    style: TextStyle(color: Colors.white30, fontSize: 8),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.4), fontSize: 8),
                   ),
                 ],
               );
@@ -1033,22 +1089,22 @@ class HomeScreen extends ConsumerWidget {
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
+                  children: [
                     Text(
                       '¿En qué gasté?',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: context.colors.onSurface,
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Icon(FontAwesomeIcons.chartPie, color: Color(0xFFAB47BC), size: 14),
+                    const FaIcon(FontAwesomeIcons.chartPie, color: Color(0xFFAB47BC), size: 14),
                   ],
                 ),
                 const SizedBox(height: 2),
-                const Text(
+                Text(
                   'Categorías del mes',
-                  style: TextStyle(color: Colors.white38, fontSize: 10),
+                  style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.5), fontSize: 10),
                 ),
                 const Spacer(),
                 ...List.generate(topCategories.length, (index) {
@@ -1072,7 +1128,7 @@ class HomeScreen extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             '${cat.key} ${percent.toStringAsFixed(0)}%',
-                            style: const TextStyle(color: Colors.white60, fontSize: 9),
+                            style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.65), fontSize: 9),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -1091,9 +1147,9 @@ class HomeScreen extends ConsumerWidget {
               child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFAB47BC)),
             ),
           ),
-          error: (_, __) => const Text(
+          error: (_, __) => Text(
             'Error',
-            style: TextStyle(color: Colors.white30, fontSize: 10),
+            style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.4), fontSize: 10),
           ),
         ),
       ),
@@ -1123,31 +1179,31 @@ class HomeScreen extends ConsumerWidget {
                 children: [
                   Row(
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: const [
+                    children: [
                       Text(
                         'Pagos',
                         style: TextStyle(
-                          color: Colors.white,
+                          color: context.colors.onSurface,
                           fontSize: 13,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
-                      Icon(FontAwesomeIcons.calendarCheck, color: Color(0xFFE57373), size: 14),
+                      const FaIcon(FontAwesomeIcons.calendarCheck, color: Color(0xFFE57373), size: 14),
                     ],
                   ),
                   const SizedBox(height: 2),
-                  const Text(
+                  Text(
                     'Próximos cobros',
-                    style: TextStyle(color: Colors.white38, fontSize: 10),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.5), fontSize: 10),
                   ),
                   const Spacer(),
-                  const Text(
+                  Text(
                     'Sin cobros',
-                    style: TextStyle(color: Colors.white54, fontSize: 10, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.6), fontSize: 10, fontWeight: FontWeight.bold),
                   ),
-                  const Text(
+                  Text(
                     'Toca para agregar',
-                    style: TextStyle(color: Colors.white30, fontSize: 8),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.4), fontSize: 8),
                   ),
                 ],
               );
@@ -1165,27 +1221,27 @@ class HomeScreen extends ConsumerWidget {
               children: [
                 Row(
                   mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                  children: const [
+                  children: [
                     Text(
                       'Pagos',
                       style: TextStyle(
-                        color: Colors.white,
+                        color: context.colors.onSurface,
                         fontSize: 13,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
-                    Icon(FontAwesomeIcons.calendarCheck, color: Color(0xFFE57373), size: 14),
+                    const FaIcon(FontAwesomeIcons.calendarCheck, color: Color(0xFFE57373), size: 14),
                   ],
                 ),
                 const SizedBox(height: 2),
-                const Text(
+                Text(
                   'Próximo vencimiento',
-                  style: TextStyle(color: Colors.white38, fontSize: 10),
+                  style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.5), fontSize: 10),
                 ),
                 const Spacer(),
                 Text(
                   proximoPago.title.isNotEmpty ? proximoPago.title : proximoPago.description,
-                  style: const TextStyle(color: Colors.white, fontSize: 12, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: context.colors.onSurface, fontSize: 12, fontWeight: FontWeight.bold),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1197,7 +1253,7 @@ class HomeScreen extends ConsumerWidget {
                 ),
                 Text(
                   vencimientoText,
-                  style: const TextStyle(color: Colors.white38, fontSize: 9),
+                  style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.5), fontSize: 9),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1209,9 +1265,9 @@ class HomeScreen extends ConsumerWidget {
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFE57373)))),
-          error: (_, __) => const Text(
+          error: (_, __) => Text(
             'Error al cargar',
-            style: TextStyle(color: Colors.white38, fontSize: 10),
+            style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.4), fontSize: 10),
           ),
         ),
       ),
@@ -1225,7 +1281,7 @@ class _GlassmorphicCard extends StatelessWidget {
   final double borderRadius;
   final double blur;
   final double borderOpacity;
-  final Color backgroundColor;
+  final Color? backgroundColor;
   final EdgeInsetsGeometry padding;
   final double? height;
 
@@ -1234,21 +1290,32 @@ class _GlassmorphicCard extends StatelessWidget {
     this.borderRadius = 24.0,
     this.blur = 20.0,
     this.borderOpacity = 0.1,
-    this.backgroundColor = const Color(0x0DFFFFFF),
+    this.backgroundColor,
     this.padding = const EdgeInsets.all(20.0),
     this.height,
   });
 
   @override
   Widget build(BuildContext context) {
+    final isDark = context.isDarkMode;
+    final defaultBg = isDark
+        ? const Color(0x0DFFFFFF)
+        : Colors.white.withValues(alpha: 0.9);
+    final cardBg = backgroundColor ?? defaultBg;
+    final borderColor = isDark
+        ? Colors.white.withValues(alpha: borderOpacity)
+        : Colors.black.withValues(alpha: 0.08);
+
     return Container(
       height: height,
       decoration: BoxDecoration(
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.12),
-            blurRadius: 30,
-            offset: const Offset(0, 10),
+            color: isDark
+                ? Colors.black.withValues(alpha: 0.12)
+                : Colors.black.withValues(alpha: 0.06),
+            blurRadius: isDark ? 30 : 16,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
@@ -1260,10 +1327,10 @@ class _GlassmorphicCard extends StatelessWidget {
             height: height,
             padding: padding,
             decoration: BoxDecoration(
-              color: backgroundColor,
+              color: cardBg,
               borderRadius: BorderRadius.circular(borderRadius),
               border: Border.all(
-                color: Colors.white.withValues(alpha: borderOpacity),
+                color: borderColor,
                 width: 1.5,
               ),
             ),
