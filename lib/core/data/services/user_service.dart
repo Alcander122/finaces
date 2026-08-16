@@ -100,8 +100,9 @@ class UserService {
     for (final provider in user.providerData) {
       if (provider.providerId == 'password') return AuthProviderType.email;
       if (provider.providerId == 'google.com') return AuthProviderType.google;
-      if (provider.providerId == 'facebook.com')
+      if (provider.providerId == 'facebook.com') {
         return AuthProviderType.facebook;
+      }
     }
 
     return AuthProviderType.unknown;
@@ -132,11 +133,63 @@ class UserService {
         await user.getIdToken(true);
       }
 
-      await _firestore.collection('users').doc(user.uid).delete();
+      // 1. Eliminar todas las subcolecciones y datos de Firestore del usuario
+      await _deleteAllUserData(user.uid);
+
+      // 2. Eliminar la cuenta de Firebase Auth
       await user.delete();
     } catch (e) {
       rethrow;
     }
+  }
+
+  /// Elimina recursivamente todas las subcolecciones, documentos anidados
+  /// y el documento raíz del usuario en Firestore.
+  Future<void> _deleteAllUserData(String uid) async {
+    final userRef = _firestore.collection('users').doc(uid);
+    final subcollections = [
+      'ahorro',
+      'bancos',
+      'egreso',
+      'ingresos',
+      'pagos',
+      'portafolios',
+    ];
+
+    WriteBatch batch = _firestore.batch();
+    int count = 0;
+
+    for (final subcol in subcollections) {
+      final snapshot = await userRef.collection(subcol).get();
+      for (final doc in snapshot.docs) {
+        // Si es portafolios, eliminar primero la subcolección anidada investments
+        if (subcol == 'portafolios') {
+          final investmentsSnap =
+              await doc.reference.collection('investments').get();
+          for (final invDoc in investmentsSnap.docs) {
+            batch.delete(invDoc.reference);
+            count++;
+            if (count >= 400) {
+              await batch.commit();
+              batch = _firestore.batch();
+              count = 0;
+            }
+          }
+        }
+
+        batch.delete(doc.reference);
+        count++;
+        if (count >= 400) {
+          await batch.commit();
+          batch = _firestore.batch();
+          count = 0;
+        }
+      }
+    }
+
+    // Finalmente borramos el documento raíz del usuario
+    batch.delete(userRef);
+    await batch.commit();
   }
 
   /// Verifica si un correo ya está registrado en FirebaseAuth
@@ -157,43 +210,139 @@ class UserService {
   /// Verifica si el documento del usuario existe en Firestore
   Future<bool> userExists(String uid) async {
     final userDoc = await _firestore.collection('users').doc(uid).get();
-    return userDoc.exists;
+    return userDoc.exists && userDoc.data() != null && userDoc.data()!.isNotEmpty;
+  }
+
+  /// Sincroniza o actualiza la información del usuario de Google en Firestore.
+  /// Si el documento no existe o le faltan campos esenciales (como nombre, correo, etc.),
+  /// los agrega usando `merge: true` sin sobreescribir ni borrar otros datos existentes (subcolecciones, tutorialSeen, etc.).
+  Future<void> syncGoogleUser({required User user}) async {
+    try {
+      final userRef = _firestore.collection('users').doc(user.uid);
+      final doc = await userRef.get();
+
+      final String name = (user.displayName != null && user.displayName!.trim().isNotEmpty)
+          ? user.displayName!.trim()
+          : (user.email?.split('@').first ?? 'Usuario');
+      final String displayName = name;
+      final String email = user.email ?? '';
+
+      if (!doc.exists || doc.data() == null || doc.data()!.isEmpty) {
+        // El documento no existe o es un contenedor vacío
+        await userRef.set({
+          'uid': user.uid,
+          'name': name,
+          'displayName': displayName,
+          'email': email,
+          'createdAt': FieldValue.serverTimestamp(),
+          'acceptedTerms': true,
+          'tutorialSeen': false,
+        }, SetOptions(merge: true));
+      } else {
+        // El documento existe pero verificamos si faltan campos
+        final data = doc.data()!;
+        final Map<String, dynamic> updates = {};
+
+        if (data['uid'] == null || (data['uid'] is String && (data['uid'] as String).isEmpty)) {
+          updates['uid'] = user.uid;
+        }
+        if (data['name'] == null || (data['name'] is String && (data['name'] as String).isEmpty)) {
+          updates['name'] = name;
+        }
+        if (data['displayName'] == null || (data['displayName'] is String && (data['displayName'] as String).isEmpty)) {
+          updates['displayName'] = displayName;
+        }
+        if (data['email'] == null || (data['email'] is String && (data['email'] as String).isEmpty)) {
+          updates['email'] = email;
+        }
+        if (data['createdAt'] == null) {
+          updates['createdAt'] = FieldValue.serverTimestamp();
+        }
+        if (data['acceptedTerms'] == null) {
+          updates['acceptedTerms'] = true;
+        }
+        if (data['tutorialSeen'] == null) {
+          updates['tutorialSeen'] = false;
+        }
+
+        if (updates.isNotEmpty) {
+          await userRef.set(updates, SetOptions(merge: true));
+        }
+      }
+    } catch (e) {
+      rethrow;
+    }
   }
 
   /// Guarda el usuario de Google manualmente en Firestore después del registro
   Future<void> saveGoogleUser(User user, String name) async {
-    await _firestore.collection('users').doc(user.uid).set({
+    final userRef = _firestore.collection('users').doc(user.uid);
+    await userRef.set({
       'uid': user.uid,
       'name': name,
       'displayName': user.displayName ?? name,
       'email': user.email ?? '',
       'createdAt': FieldValue.serverTimestamp(),
       'acceptedTerms': true,
-    });
+      'tutorialSeen': false,
+    }, SetOptions(merge: true));
 
     // Actualiza el displayName en FirebaseAuth
     await user.updateDisplayName(name);
   }
 
   /// Registra manualmente un usuario autenticado con Google en Firestore.
-  /// Este método **solo se debe llamar si ya se autenticó con Google**
-  /// y se confirmó que aún no existe su documento en Firestore.
   Future<void> registerGoogleUser({
     required String uid,
     required String name,
     required String email,
+    String? displayName,
   }) async {
     final userRef = _firestore.collection('users').doc(uid);
+    final actualName = name.trim().isNotEmpty ? name.trim() : (email.split('@').first);
+    final actualDisplayName = (displayName != null && displayName.trim().isNotEmpty)
+        ? displayName.trim()
+        : actualName;
 
     final doc = await userRef.get();
-    if (!doc.exists) {
+    if (!doc.exists || doc.data() == null || doc.data()!.isEmpty) {
       await userRef.set({
         'uid': uid,
-        'name': name,
+        'name': actualName,
+        'displayName': actualDisplayName,
         'email': email,
-        'acceptedTerms': false,
+        'acceptedTerms': true,
+        'tutorialSeen': false,
         'createdAt': FieldValue.serverTimestamp(),
-      });
+      }, SetOptions(merge: true));
+    } else {
+      final data = doc.data()!;
+      final Map<String, dynamic> updates = {};
+      if (data['uid'] == null || (data['uid'] is String && (data['uid'] as String).isEmpty)) {
+        updates['uid'] = uid;
+      }
+      if (data['name'] == null || (data['name'] is String && (data['name'] as String).isEmpty)) {
+        updates['name'] = actualName;
+      }
+      if (data['displayName'] == null || (data['displayName'] is String && (data['displayName'] as String).isEmpty)) {
+        updates['displayName'] = actualDisplayName;
+      }
+      if (data['email'] == null || (data['email'] is String && (data['email'] as String).isEmpty)) {
+        updates['email'] = email;
+      }
+      if (data['createdAt'] == null) {
+        updates['createdAt'] = FieldValue.serverTimestamp();
+      }
+      if (data['acceptedTerms'] == null) {
+        updates['acceptedTerms'] = true;
+      }
+      if (data['tutorialSeen'] == null) {
+        updates['tutorialSeen'] = false;
+      }
+
+      if (updates.isNotEmpty) {
+        await userRef.set(updates, SetOptions(merge: true));
+      }
     }
   }
 }

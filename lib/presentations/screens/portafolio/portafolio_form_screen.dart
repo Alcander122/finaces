@@ -8,6 +8,7 @@ import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:finances/presentations/widgets/custom_form_container.dart';
 import 'package:finances/presentations/widgets/app_input_style.dart';
 import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/core/errors/handlers/db_error_handler.dart';
 
@@ -95,9 +96,9 @@ class PortafolioFormScreenState extends ConsumerState<PortafolioFormScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Themes.light,
+      backgroundColor: context.scaffoldBgColor,
       appBar: AppBar(
-        backgroundColor: Themes.primary,
+        backgroundColor: context.isDarkMode ? context.colors.surface : Themes.primary,
         foregroundColor: Colors.white,
         title: Text(
           widget.portafolio == null ? "Nuevo Portafolio" : "Editar Portafolio",
@@ -118,10 +119,10 @@ class PortafolioFormScreenState extends ConsumerState<PortafolioFormScreen> {
               widget.portafolio == null
                   ? "Crear Portafolio"
                   : "Editar Portafolio",
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Themes.primary,
+                color: context.titleColor,
               ),
               textAlign: TextAlign.center,
             ),

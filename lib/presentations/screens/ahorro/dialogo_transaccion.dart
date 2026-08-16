@@ -192,9 +192,14 @@ class _DialogoTransaccionState extends ConsumerState<DialogoTransaccion> {
                           margin: const EdgeInsets.only(bottom: 16),
                           padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                           decoration: BoxDecoration(
-                            color: Colors.grey.shade50,
+                            color: context.isDarkMode
+                                ? context.colors.surfaceContainerLow
+                                : Colors.grey.shade50,
                             borderRadius: BorderRadius.circular(8),
-                            border: Border.all(color: Colors.grey.shade200),
+                            border: Border.all(
+                                color: context.isDarkMode
+                                    ? Colors.white12
+                                    : Colors.grey.shade200),
                           ),
                           child: Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -202,15 +207,19 @@ class _DialogoTransaccionState extends ConsumerState<DialogoTransaccion> {
                               Text(
                                 esRetiro ? 'Monto disponible:' : 'Monto restante:',
                                 style: TextStyle(
-                                  color: Colors.grey.shade600,
+                                  color: context.isDarkMode
+                                      ? context.colors.onSurfaceVariant
+                                      : Colors.grey.shade600,
                                   fontSize: 12,
                                   fontWeight: FontWeight.w500,
                                 ),
                               ),
                               Text(
                                 UIHelpers.formatCurrency(widget.maxMonto!),
-                                style: const TextStyle(
-                                  color: Themes.primary,
+                                style: TextStyle(
+                                  color: context.isDarkMode
+                                      ? context.colors.primary
+                                      : Themes.primary,
                                   fontSize: 13,
                                   fontWeight: FontWeight.bold,
                                 ),
@@ -232,10 +241,22 @@ class _DialogoTransaccionState extends ConsumerState<DialogoTransaccion> {
                           hintText: '0',
                           prefixIcon: const Icon(Icons.attach_money, color: Themes.primary),
                           filled: true,
-                          fillColor: Colors.grey.shade50,
+                          fillColor: context.isDarkMode
+                              ? context.colors.surfaceContainerLow
+                              : Colors.grey.shade50,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
+                            borderSide: BorderSide(
+                                color: context.isDarkMode
+                                    ? Colors.white12
+                                    : Colors.grey.shade300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                                color: context.isDarkMode
+                                    ? Colors.white12
+                                    : Colors.grey.shade300),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -262,10 +283,22 @@ class _DialogoTransaccionState extends ConsumerState<DialogoTransaccion> {
                           hintText: 'Ej. Ahorro de la semana',
                           prefixIcon: const Icon(Icons.description_outlined, color: Themes.primary),
                           filled: true,
-                          fillColor: Colors.grey.shade50,
+                          fillColor: context.isDarkMode
+                              ? context.colors.surfaceContainerLow
+                              : Colors.grey.shade50,
                           border: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
-                            borderSide: BorderSide(color: Colors.grey.shade300),
+                            borderSide: BorderSide(
+                                color: context.isDarkMode
+                                    ? Colors.white12
+                                    : Colors.grey.shade300),
+                          ),
+                          enabledBorder: OutlineInputBorder(
+                            borderRadius: BorderRadius.circular(12),
+                            borderSide: BorderSide(
+                                color: context.isDarkMode
+                                    ? Colors.white12
+                                    : Colors.grey.shade300),
                           ),
                           focusedBorder: OutlineInputBorder(
                             borderRadius: BorderRadius.circular(12),
@@ -283,13 +316,18 @@ class _DialogoTransaccionState extends ConsumerState<DialogoTransaccion> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: context.isDarkMode
+                      ? context.colors.surfaceContainer
+                      : Colors.grey.shade50,
                   borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(24),
                     bottomRight: Radius.circular(24),
                   ),
                   border: Border(
-                    top: BorderSide(color: Colors.grey.shade200),
+                    top: BorderSide(
+                        color: context.isDarkMode
+                            ? Colors.white10
+                            : Colors.grey.shade200),
                   ),
                 ),
                 child: Row(
@@ -303,7 +341,9 @@ class _DialogoTransaccionState extends ConsumerState<DialogoTransaccion> {
                       child: Text(
                         'Cancelar',
                         style: TextStyle(
-                          color: Colors.grey.shade600,
+                          color: context.isDarkMode
+                              ? context.colors.onSurfaceVariant
+                              : Colors.grey.shade600,
                           fontWeight: FontWeight.w600,
                         ),
                       ),

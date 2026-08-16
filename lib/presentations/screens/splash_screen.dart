@@ -30,7 +30,7 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
 
   /// Verifica autenticación y decide la ruta inicial
   Future<void> _checkAuth() async {
-    await Future.delayed(const Duration(milliseconds: 800)); // pequeña pausa
+    await Future.delayed(const Duration(milliseconds: 1000)); // pequeña pausa
     final user = FirebaseAuth.instance.currentUser;
     if (user == null) {
       // 1️⃣ No hay usuario logueado → ir a Welcome
@@ -49,12 +49,13 @@ class _SplashScreenState extends ConsumerState<SplashScreen> {
     // 3️⃣ Usuario logueado y vio tutorial → revisar biometría
     final biometricEnabled = await BiometricAuthService().isBiometricEnabled();
     if (!biometricEnabled) {
-      // ℹ️ Si biometría no está activada → ir al Home directamente
-      _goTo(AppRoutes.home);
+      // ℹ️ Si biometría no está activada → ir a la pantalla de bloqueo
+      _goTo(AppRoutes.appBlocked);
       return;
     }
 
     // 3️⃣ Si biometría está activada → pedir autenticación biométrica
+    if (!mounted) return;
     final success = await BiometricAuthService().authenticate(context);
     if (success) {
       // ✅ Huella correcta → ir al Home

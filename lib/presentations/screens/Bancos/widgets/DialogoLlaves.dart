@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:finances/core/data/models/bank_model.dart';
 import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/presentations/theme/theme.dart';
 
 class DialogoLlaves extends StatefulWidget {
   final BancoModelo banco;
@@ -82,7 +83,7 @@ class _DialogoLlavesState extends State<DialogoLlaves> {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       elevation: 10,
-      backgroundColor: Colors.white,
+      backgroundColor: context.dialogBgColor,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 420),
         child: AbsorbPointer(
@@ -163,13 +164,18 @@ class _DialogoLlavesState extends State<DialogoLlaves> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: context.isDarkMode
+                      ? context.colors.surfaceContainer
+                      : Colors.grey.shade50,
                   borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(24),
                     bottomRight: Radius.circular(24),
                   ),
                   border: Border(
-                    top: BorderSide(color: Colors.grey.shade200),
+                    top: BorderSide(
+                        color: context.isDarkMode
+                            ? Colors.white10
+                            : Colors.grey.shade200),
                   ),
                 ),
                 child: Row(
@@ -180,7 +186,9 @@ class _DialogoLlavesState extends State<DialogoLlaves> {
                       child: Text(
                         'Cancelar',
                         style: TextStyle(
-                          color: Colors.grey.shade600,
+                          color: context.isDarkMode
+                              ? context.colors.onSurfaceVariant
+                              : Colors.grey.shade600,
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -234,7 +242,9 @@ class _DialogoLlavesState extends State<DialogoLlaves> {
           msg,
           style: TextStyle(
             fontSize: 11,
-            color: Colors.grey.shade600,
+            color: context.isDarkMode
+                ? context.colors.onSurfaceVariant
+                : Colors.grey.shade600,
             fontStyle: FontStyle.italic,
           ),
         ),
@@ -242,18 +252,30 @@ class _DialogoLlavesState extends State<DialogoLlaves> {
         Container(
           padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
           decoration: BoxDecoration(
-            color: (_numeroLlaves == MAX_LLAVES
-                ? Colors.green.shade50
-                : _numeroLlaves >= 2
-                    ? Colors.orange.shade50
-                    : Colors.red.shade50),
+            color: context.isDarkMode
+                ? (_numeroLlaves == MAX_LLAVES
+                    ? Colors.green.withValues(alpha: 0.15)
+                    : _numeroLlaves >= 2
+                        ? Colors.orange.withValues(alpha: 0.15)
+                        : Colors.red.withValues(alpha: 0.15))
+                : (_numeroLlaves == MAX_LLAVES
+                    ? Colors.green.shade50
+                    : _numeroLlaves >= 2
+                        ? Colors.orange.shade50
+                        : Colors.red.shade50),
             borderRadius: BorderRadius.circular(8),
             border: Border.all(
-              color: (_numeroLlaves == MAX_LLAVES
-                  ? Colors.green.shade200
-                  : _numeroLlaves >= 2
-                      ? Colors.orange.shade200
-                      : Colors.red.shade200),
+              color: context.isDarkMode
+                  ? (_numeroLlaves == MAX_LLAVES
+                      ? Colors.green.withValues(alpha: 0.3)
+                      : _numeroLlaves >= 2
+                          ? Colors.orange.withValues(alpha: 0.3)
+                          : Colors.red.withValues(alpha: 0.3))
+                  : (_numeroLlaves == MAX_LLAVES
+                      ? Colors.green.shade200
+                      : _numeroLlaves >= 2
+                          ? Colors.orange.shade200
+                          : Colors.red.shade200),
             ),
           ),
           child: Text(
@@ -261,11 +283,17 @@ class _DialogoLlavesState extends State<DialogoLlaves> {
             style: TextStyle(
               fontSize: 11,
               fontWeight: FontWeight.bold,
-              color: _numeroLlaves == MAX_LLAVES
-                  ? Colors.green.shade800
-                  : _numeroLlaves >= 2
-                      ? Colors.orange.shade800
-                      : Colors.red.shade800,
+              color: context.isDarkMode
+                  ? (_numeroLlaves == MAX_LLAVES
+                      ? Colors.greenAccent
+                      : _numeroLlaves >= 2
+                          ? Colors.orangeAccent
+                          : Colors.redAccent)
+                  : (_numeroLlaves == MAX_LLAVES
+                      ? Colors.green.shade800
+                      : _numeroLlaves >= 2
+                          ? Colors.orange.shade800
+                          : Colors.red.shade800),
             ),
           ),
         ),
@@ -288,16 +316,30 @@ class _DialogoLlavesState extends State<DialogoLlaves> {
     return TextFormField(
       controller: widget.controladores[index],
       enabled: !_isSaving,
+      style: TextStyle(
+        color: context.isDarkMode ? context.colors.onSurface : Colors.black87,
+      ),
       decoration: InputDecoration(
         labelText: 'Llave ${index + 1}',
+        labelStyle: TextStyle(
+          color: context.isDarkMode ? context.colors.onSurfaceVariant : Colors.grey.shade600,
+        ),
         hintText: 'Ingrese llave ${index + 1}',
         errorText: _errores[index].isNotEmpty ? _errores[index] : null,
         prefixIcon: const Icon(Icons.vpn_key_outlined, size: 18, color: Themes.primary),
         filled: true,
-        fillColor: Colors.grey.shade50,
+        fillColor: context.isDarkMode
+            ? context.colors.surfaceContainerLow
+            : Colors.grey.shade50,
         border: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.grey.shade300),
+          borderSide: BorderSide(
+              color: context.isDarkMode ? Colors.white12 : Colors.grey.shade300),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(
+              color: context.isDarkMode ? Colors.white12 : Colors.grey.shade300),
         ),
         focusedBorder: OutlineInputBorder(
           borderRadius: BorderRadius.circular(12),
@@ -305,7 +347,9 @@ class _DialogoLlavesState extends State<DialogoLlaves> {
         ),
         suffixIcon: _numeroLlaves > MIN_LLAVES && !_isSaving
             ? IconButton(
-                icon: const Icon(Icons.close, size: 16, color: Colors.grey),
+                icon: Icon(Icons.close,
+                    size: 16,
+                    color: context.isDarkMode ? Colors.white38 : Colors.grey),
                 onPressed: () => _eliminarLlave(index),
                 tooltip: 'Eliminar esta llave',
               )

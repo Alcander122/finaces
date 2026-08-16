@@ -211,10 +211,22 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
                             hintText: 'Ej. Fondo de Emergencias',
                             prefixIcon: const Icon(Icons.flag_outlined, color: Themes.primary),
                             filled: true,
-                            fillColor: Colors.grey.shade50,
+                            fillColor: context.isDarkMode
+                                ? context.colors.surfaceContainerLow
+                                : Colors.grey.shade50,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
+                              borderSide: BorderSide(
+                                  color: context.isDarkMode
+                                      ? Colors.white12
+                                      : Colors.grey.shade300),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                  color: context.isDarkMode
+                                      ? Colors.white12
+                                      : Colors.grey.shade300),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -238,10 +250,22 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
                             hintText: '0',
                             prefixIcon: const Icon(Icons.attach_money, color: Themes.primary),
                             filled: true,
-                            fillColor: Colors.grey.shade50,
+                            fillColor: context.isDarkMode
+                                ? context.colors.surfaceContainerLow
+                                : Colors.grey.shade50,
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: BorderSide(color: Colors.grey.shade300),
+                              borderSide: BorderSide(
+                                  color: context.isDarkMode
+                                      ? Colors.white12
+                                      : Colors.grey.shade300),
+                            ),
+                            enabledBorder: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(12),
+                              borderSide: BorderSide(
+                                  color: context.isDarkMode
+                                      ? Colors.white12
+                                      : Colors.grey.shade300),
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
@@ -261,9 +285,14 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
                             padding: const EdgeInsets.symmetric(
                                 horizontal: 16, vertical: 16),
                             decoration: BoxDecoration(
-                              color: Colors.grey.shade50,
+                              color: context.isDarkMode
+                                  ? context.colors.surfaceContainerLow
+                                  : Colors.grey.shade50,
                               borderRadius: BorderRadius.circular(12),
-                              border: Border.all(color: Colors.grey.shade300),
+                              border: Border.all(
+                                  color: context.isDarkMode
+                                      ? Colors.white12
+                                      : Colors.grey.shade300),
                             ),
                             child: Row(
                               mainAxisAlignment: MainAxisAlignment.spaceBetween,
@@ -274,7 +303,9 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
                                     Text(
                                       'Fecha Objetivo',
                                       style: TextStyle(
-                                        color: Colors.grey.shade600,
+                                        color: context.isDarkMode
+                                            ? context.colors.onSurfaceVariant
+                                            : Colors.grey.shade600,
                                         fontSize: 12,
                                         fontWeight: FontWeight.w500,
                                       ),
@@ -289,7 +320,9 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
                                         fontSize: 14,
                                         color: _fechaObjetivo != null
                                             ? Themes.primary
-                                            : Colors.grey.shade500,
+                                            : (context.isDarkMode
+                                                ? Colors.white38
+                                                : Colors.grey.shade500),
                                         fontWeight: _fechaObjetivo != null
                                             ? FontWeight.bold
                                             : FontWeight.normal,
@@ -311,12 +344,16 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
                               : const SizedBox.shrink(),
                           secondChild: _montoController.text.isNotEmpty &&
                                   _fechaObjetivo != null
-                              ? const Padding(
-                                  padding: EdgeInsets.symmetric(vertical: 8),
+                              ? Padding(
+                                  padding: const EdgeInsets.symmetric(vertical: 8),
                                   child: Text(
                                     'Ingresa un monto válido para ver el plan',
                                     textAlign: TextAlign.center,
-                                    style: TextStyle(color: Colors.grey, fontSize: 12),
+                                    style: TextStyle(
+                                        color: context.isDarkMode
+                                            ? context.colors.onSurfaceVariant
+                                            : Colors.grey,
+                                        fontSize: 12),
                                   ),
                                 )
                               : const SizedBox.shrink(),
@@ -335,13 +372,18 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: context.isDarkMode
+                      ? context.colors.surfaceContainer
+                      : Colors.grey.shade50,
                   borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(24),
                     bottomRight: Radius.circular(24),
                   ),
                   border: Border(
-                    top: BorderSide(color: Colors.grey.shade200),
+                    top: BorderSide(
+                        color: context.isDarkMode
+                            ? Colors.white10
+                            : Colors.grey.shade200),
                   ),
                 ),
                 child: Row(
@@ -355,7 +397,9 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
                       child: Text(
                         'Cancelar',
                         style: TextStyle(
-                          color: Colors.grey.shade600,
+                          color: context.isDarkMode
+                              ? context.colors.onSurfaceVariant
+                              : Colors.grey.shade600,
                           fontWeight: FontWeight.w600,
                         ),
                       ),
@@ -455,20 +499,27 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
           Container(
             padding: const EdgeInsets.all(10),
             decoration: BoxDecoration(
-              color: Colors.green.shade50,
+              color: context.isDarkMode
+                  ? Colors.green.withValues(alpha: 0.15)
+                  : Colors.green.shade50,
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: Colors.green.shade100),
+              border: Border.all(
+                  color: context.isDarkMode
+                      ? Colors.green.withValues(alpha: 0.3)
+                      : Colors.green.shade100),
             ),
             child: Row(
               children: [
-                Icon(Icons.stars, color: Colors.green.shade700, size: 18),
+                Icon(Icons.stars,
+                    color: context.isDarkMode ? Colors.greenAccent : Colors.green.shade700,
+                    size: 18),
                 const SizedBox(width: 8),
                 Expanded(
                   child: Text(
                     'Recomendado: ${_periodoTexto(d.periodoRecomendado)}',
                     style: TextStyle(
                       fontSize: 11,
-                      color: Colors.green.shade800,
+                      color: context.isDarkMode ? Colors.greenAccent : Colors.green.shade800,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -485,11 +536,13 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
     return Container(
       padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.isDarkMode
+            ? context.colors.surfaceContainerHigh
+            : Colors.white,
         borderRadius: BorderRadius.circular(8),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.02),
+            color: Colors.black.withValues(alpha: 0.04),
             blurRadius: 4,
             offset: const Offset(0, 2),
           ),
@@ -504,9 +557,10 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
               const SizedBox(width: 8),
               Text(
                 periodo,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
                   fontWeight: FontWeight.w500,
+                  color: context.isDarkMode ? context.colors.onSurface : Colors.black87,
                 ),
               )
             ],
@@ -515,10 +569,10 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
             fit: BoxFit.scaleDown,
             child: Text(
               UIHelpers.formatCurrency(monto),
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 12,
                 fontWeight: FontWeight.bold,
-                color: Colors.green,
+                color: context.isDarkMode ? Colors.greenAccent : Colors.green,
               ),
             ),
           ),

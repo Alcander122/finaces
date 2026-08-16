@@ -9,6 +9,7 @@ import 'package:finances/core/data/models/bank_catalog_model.dart';
 import 'package:finances/core/data/providers/bank_provider.dart';
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/presentations/theme/theme.dart';
 
 class DialogoSeleccionarBanco extends ConsumerStatefulWidget {
   final Function(String) onSeleccionar; // Devuelve el nombre del banco
@@ -61,7 +62,7 @@ class _DialogoSeleccionarBancoState extends ConsumerState<DialogoSeleccionarBanc
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       elevation: 10,
-      backgroundColor: Colors.white,
+      backgroundColor: context.dialogBgColor,
       child: ConstrainedBox(
         constraints: BoxConstraints(
           maxHeight: MediaQuery.of(context).size.height * 0.8,
@@ -102,8 +103,14 @@ class _DialogoSeleccionarBancoState extends ConsumerState<DialogoSeleccionarBanc
               padding: const EdgeInsets.fromLTRB(20, 16, 20, 8),
               child: TextField(
                 controller: _searchController,
+                style: TextStyle(
+                  color: context.isDarkMode ? context.colors.onSurface : Colors.black87,
+                ),
                 decoration: InputDecoration(
                   labelText: 'Buscar por nombre o alias...',
+                  labelStyle: TextStyle(
+                    color: context.isDarkMode ? context.colors.onSurfaceVariant : Colors.grey.shade600,
+                  ),
                   prefixIcon: const Icon(Icons.search, color: Themes.primary),
                   suffixIcon: query.isNotEmpty
                       ? IconButton(
@@ -115,10 +122,18 @@ class _DialogoSeleccionarBancoState extends ConsumerState<DialogoSeleccionarBanc
                         )
                       : null,
                   filled: true,
-                  fillColor: Colors.grey.shade50,
+                  fillColor: context.isDarkMode
+                      ? context.colors.surfaceContainerLow
+                      : Colors.grey.shade50,
                   border: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
-                    borderSide: BorderSide(color: Colors.grey.shade300),
+                    borderSide: BorderSide(
+                        color: context.isDarkMode ? Colors.white12 : Colors.grey.shade300),
+                  ),
+                  enabledBorder: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(12),
+                    borderSide: BorderSide(
+                        color: context.isDarkMode ? Colors.white12 : Colors.grey.shade300),
                   ),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(12),
@@ -235,10 +250,12 @@ class _DialogoSeleccionarBancoState extends ConsumerState<DialogoSeleccionarBanc
                                           maxLines: 1,
                                           overflow: TextOverflow.ellipsis,
                                           textAlign: TextAlign.center,
-                                          style: const TextStyle(
+                                          style: TextStyle(
                                             fontSize: 10,
                                             fontWeight: FontWeight.w600,
-                                            color: Colors.black87,
+                                            color: context.isDarkMode
+                                                ? context.colors.onSurface
+                                                : Colors.black87,
                                           ),
                                         ),
                                       ],
@@ -248,17 +265,24 @@ class _DialogoSeleccionarBancoState extends ConsumerState<DialogoSeleccionarBanc
                               },
                             ),
                           ),
-                          const Divider(height: 24, indent: 20, endIndent: 20),
+                          Divider(
+                              height: 24,
+                              indent: 20,
+                              endIndent: 20,
+                              color: context.isDarkMode ? Colors.white12 : Colors.grey.shade200),
                         ],
 
                         // 3. Catálogo Principal
                         if (filtrados.isEmpty)
-                          const Padding(
-                            padding: EdgeInsets.all(24),
+                          Padding(
+                            padding: const EdgeInsets.all(24),
                             child: Center(
                               child: Text(
                                 'No se encontraron entidades.',
-                                style: TextStyle(color: Colors.grey),
+                                style: TextStyle(
+                                    color: context.isDarkMode
+                                        ? context.colors.onSurfaceVariant
+                                        : Colors.grey),
                               ),
                             ),
                           )
@@ -299,20 +323,29 @@ class _DialogoSeleccionarBancoState extends ConsumerState<DialogoSeleccionarBanc
                                 ),
                                 title: Text(
                                   b.nombre,
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.bold,
                                     fontSize: 14,
+                                    color: context.isDarkMode
+                                        ? context.colors.onSurface
+                                        : Colors.black87,
                                   ),
                                 ),
                                 subtitle: Text(
                                   tagText,
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: Colors.grey.shade500,
+                                    color: context.isDarkMode
+                                        ? context.colors.onSurfaceVariant
+                                        : Colors.grey.shade500,
                                     fontWeight: FontWeight.w500,
                                   ),
                                 ),
-                                trailing: const Icon(Icons.chevron_right, size: 16, color: Colors.grey),
+                                trailing: Icon(Icons.chevron_right,
+                                    size: 16,
+                                    color: context.isDarkMode
+                                        ? Colors.white38
+                                        : Colors.grey),
                                 onTap: () {
                                   Navigator.pop(context);
                                   widget.onSeleccionar(b.nombre);
@@ -345,13 +378,18 @@ class _DialogoSeleccionarBancoState extends ConsumerState<DialogoSeleccionarBanc
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
+                color: context.isDarkMode
+                    ? context.colors.surfaceContainer
+                    : Colors.grey.shade50,
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(24),
                   bottomRight: Radius.circular(24),
                 ),
                 border: Border(
-                  top: BorderSide(color: Colors.grey.shade200),
+                  top: BorderSide(
+                      color: context.isDarkMode
+                          ? Colors.white10
+                          : Colors.grey.shade200),
                 ),
               ),
               child: Row(
@@ -362,7 +400,9 @@ class _DialogoSeleccionarBancoState extends ConsumerState<DialogoSeleccionarBanc
                     child: Text(
                       'Cancelar',
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        color: context.isDarkMode
+                            ? context.colors.onSurfaceVariant
+                            : Colors.grey.shade600,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -388,15 +428,22 @@ class _DialogoSeleccionarBancoState extends ConsumerState<DialogoSeleccionarBanc
           });
         }
       },
-      selectedColor: Themes.primary.withOpacity(0.15),
-      backgroundColor: Colors.grey.shade100,
+      selectedColor: context.isDarkMode
+          ? context.colors.primary.withValues(alpha: 0.25)
+          : Themes.primary.withValues(alpha: 0.15),
+      backgroundColor: context.isDarkMode
+          ? context.colors.surfaceContainerHigh
+          : Colors.grey.shade100,
       labelStyle: TextStyle(
-        color: isSelected ? Themes.primary : Colors.grey.shade700,
+        color: isSelected
+            ? (context.isDarkMode ? context.colors.primary : Themes.primary)
+            : (context.isDarkMode ? context.colors.onSurfaceVariant : Colors.grey.shade700),
         fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
         fontSize: 12,
       ),
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(20)),
-      side: BorderSide.none,
+      side: BorderSide(
+          color: context.isDarkMode ? Colors.white12 : Colors.transparent),
       showCheckmark: false,
     );
   }

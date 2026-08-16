@@ -318,13 +318,17 @@ class AuthNotifier extends StateNotifier<AuthState> {
       final user = userCredential.user;
       if (user == null) throw Exception("Usuario no encontrado");
 
+      final exists = await _userService.userExists(user.uid);
+
+      // 🔄 Sincronizar o crear documento de Firestore con los datos de Google
+      await _userService.syncGoogleUser(user: user);
+
       state = AuthState.authenticated(user);
 
       // 💾 GUARDAR CORREO DE GOOGLE
       final prefs = await SharedPreferences.getInstance();
       await prefs.setString('last_email', user.email ?? '');
 
-      final exists = await _userService.userExists(user.uid);
       return !exists;
     } on TimeoutException {
       state = AuthState.error('Tiempo de espera agotado');

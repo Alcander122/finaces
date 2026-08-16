@@ -13,6 +13,7 @@ import 'package:finances/core/errors/handlers/db_error_handler.dart';
 import 'package:finances/presentations/widgets/custom_form_container.dart';
 import 'package:finances/presentations/widgets/app_input_style.dart';
 import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/presentations/theme/theme.dart';
 
 class InvestmentFormScreen extends ConsumerStatefulWidget {
   final String userId;
@@ -252,9 +253,9 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
     final assetCatalogAsync = ref.watch(assetCatalogProvider);
 
     return Scaffold(
-      backgroundColor: Themes.light,
+      backgroundColor: context.scaffoldBgColor,
       appBar: AppBar(
-        backgroundColor: Themes.primary,
+        backgroundColor: context.isDarkMode ? context.colors.surface : Themes.primary,
         foregroundColor: Colors.white,
         title: Text(
             widget.investment == null ? "Nueva Inversión" : "Editar Inversión"),
@@ -273,10 +274,10 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
               widget.investment == null
                   ? "Registrar Inversión"
                   : "Editar Inversión",
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Themes.primary,
+                color: context.titleColor,
               ),
               textAlign: TextAlign.center,
             ),
@@ -290,7 +291,11 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
                 suffixIcon: const Icon(Icons.monetization_on_outlined),
               ).copyWith(
                 prefixText: _selectedMoneda == 'COP' ? '\$ ' : (_selectedMoneda == 'USD' ? 'US\$ ' : '€ '),
-                prefixStyle: const TextStyle(fontWeight: FontWeight.bold, color: Colors.black87),
+                prefixStyle: TextStyle(
+                    fontWeight: FontWeight.bold,
+                    color: context.isDarkMode
+                        ? context.colors.onSurface
+                        : Colors.black87),
                 hintText: '0',
               ),
               keyboardType: TextInputType.number,

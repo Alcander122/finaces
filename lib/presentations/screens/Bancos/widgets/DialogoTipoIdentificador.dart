@@ -6,6 +6,7 @@
 import 'package:flutter/material.dart';
 import 'package:finances/core/data/models/bank_model.dart';
 import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/presentations/theme/theme.dart';
 
 class DialogoTipoIdentificador extends StatelessWidget {
   final BancoModelo banco;
@@ -22,7 +23,7 @@ class DialogoTipoIdentificador extends StatelessWidget {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       elevation: 10,
-      backgroundColor: Colors.white,
+      backgroundColor: context.dialogBgColor,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 400),
         child: Column(
@@ -37,8 +38,8 @@ class DialogoTipoIdentificador extends StatelessWidget {
                 borderRadius: BorderRadius.only(
                   topLeft: Radius.circular(24),
                   topRight: Radius.circular(24),
-                  ),
                 ),
+              ),
               child: Row(
                 children: [
                   const Icon(Icons.security, color: Colors.white, size: 24),
@@ -63,7 +64,9 @@ class DialogoTipoIdentificador extends StatelessWidget {
               child: Text(
                 'Selecciona el formato de vinculación para tu cuenta de "${banco.nombre}":',
                 style: TextStyle(
-                  color: Colors.grey.shade600,
+                  color: context.isDarkMode
+                      ? context.colors.onSurfaceVariant
+                      : Colors.grey.shade600,
                   fontSize: 13,
                   fontWeight: FontWeight.w500,
                 ),
@@ -78,13 +81,19 @@ class DialogoTipoIdentificador extends StatelessWidget {
                   // Opción 1: Número de Cuenta
                   Card(
                     elevation: 0,
-                    color: Colors.grey.shade50,
+                    color: context.isDarkMode
+                        ? context.colors.surfaceContainerLow
+                        : Colors.grey.shade50,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(color: Colors.grey.shade200),
+                      side: BorderSide(
+                          color: context.isDarkMode
+                              ? Colors.white12
+                              : Colors.grey.shade200),
                     ),
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
@@ -93,13 +102,24 @@ class DialogoTipoIdentificador extends StatelessWidget {
                         ),
                         child: const Icon(Icons.tag, color: Themes.primary, size: 20),
                       ),
-                      title: const Text(
+                      title: Text(
                         'Número de Cuenta',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: context.isDarkMode
+                              ? context.colors.onSurface
+                              : Colors.black87,
+                        ),
                       ),
-                      subtitle: const Text(
+                      subtitle: Text(
                         'Ej: 10-20 dígitos numéricos tradicionales.',
-                        style: TextStyle(fontSize: 11),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: context.isDarkMode
+                              ? context.colors.onSurfaceVariant
+                              : Colors.grey.shade600,
+                        ),
                       ),
                       onTap: () {
                         Navigator.pop(context);
@@ -112,28 +132,46 @@ class DialogoTipoIdentificador extends StatelessWidget {
                   // Opción 2: Llave Bancaria
                   Card(
                     elevation: 0,
-                    color: Colors.grey.shade50,
+                    color: context.isDarkMode
+                        ? context.colors.surfaceContainerLow
+                        : Colors.grey.shade50,
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(16),
-                      side: BorderSide(color: Colors.grey.shade200),
+                      side: BorderSide(
+                          color: context.isDarkMode
+                              ? Colors.white12
+                              : Colors.grey.shade200),
                     ),
                     child: ListTile(
-                      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
                       leading: Container(
                         padding: const EdgeInsets.all(8),
                         decoration: BoxDecoration(
                           color: Themes.primary.withOpacity(0.08),
                           shape: BoxShape.circle,
                         ),
-                        child: const Icon(Icons.vpn_key_outlined, color: Themes.primary, size: 20),
+                        child: const Icon(Icons.vpn_key_outlined,
+                            color: Themes.primary, size: 20),
                       ),
-                      title: const Text(
+                      title: Text(
                         'Llave Bancaria',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
+                        style: TextStyle(
+                          fontWeight: FontWeight.bold,
+                          fontSize: 14,
+                          color: context.isDarkMode
+                              ? context.colors.onSurface
+                              : Colors.black87,
+                        ),
                       ),
-                      subtitle: const Text(
+                      subtitle: Text(
                         'Entre 1 y 3 llaves seguras de caracteres alfanuméricos.',
-                        style: TextStyle(fontSize: 11),
+                        style: TextStyle(
+                          fontSize: 11,
+                          color: context.isDarkMode
+                              ? context.colors.onSurfaceVariant
+                              : Colors.grey.shade600,
+                        ),
                       ),
                       onTap: () {
                         Navigator.pop(context);
@@ -150,13 +188,18 @@ class DialogoTipoIdentificador extends StatelessWidget {
             Container(
               padding: const EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.grey.shade50,
+                color: context.isDarkMode
+                    ? context.colors.surfaceContainer
+                    : Colors.grey.shade50,
                 borderRadius: const BorderRadius.only(
                   bottomLeft: Radius.circular(24),
                   bottomRight: Radius.circular(24),
                 ),
                 border: Border(
-                  top: BorderSide(color: Colors.grey.shade200),
+                  top: BorderSide(
+                      color: context.isDarkMode
+                          ? Colors.white10
+                          : Colors.grey.shade200),
                 ),
               ),
               child: Row(
@@ -167,7 +210,9 @@ class DialogoTipoIdentificador extends StatelessWidget {
                     child: Text(
                       'Cancelar',
                       style: TextStyle(
-                        color: Colors.grey.shade600,
+                        color: context.isDarkMode
+                            ? context.colors.onSurfaceVariant
+                            : Colors.grey.shade600,
                         fontWeight: FontWeight.bold,
                       ),
                     ),

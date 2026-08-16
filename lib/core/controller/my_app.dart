@@ -1,14 +1,11 @@
 import 'dart:async';
-import 'package:finances/core/data/providers/tutorial_provider.dart';
 import 'package:finances/core/data/providers/theme_provider.dart'; // Provider del tema claro/oscuro
-import 'package:finances/presentations/screens/Tutorial/TutorialScreen.dart';
 import 'package:finances/presentations/theme/theme.dart'; // ThemeData lightMode / darkMode
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/routes/app_routes.dart';
-import 'package:finances/core/data/services/BiometricAuthService.dart';
 import 'package:finances/presentations/screens/splash_screen.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 
@@ -130,13 +127,12 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
 
     // 2. Si pasaron los 2 minutos, verificamos biometría y primer login
     final uid = authState.user!.uid;
-    final biometricEnabled = await BiometricAuthService().isBiometricEnabled();
     final isFirstLogin = await _isFirstLogin(uid);
 
-    // Solo bloqueamos si TIENE huella activa y NO es su primer inicio
-    if (!isFirstLogin && biometricEnabled) {
+    // Bloqueamos tras exceder 2 min si no es su primer inicio
+    if (!isFirstLogin) {
       debugPrint(
-          '🔐 Bloqueando: Se excedieron los 2 min y la biometría está activa.');
+          '🔐 Bloqueando: Se excedieron los 2 min de inactividad.');
       _goToBlockedScreen();
     }
 
@@ -213,7 +209,6 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
     });
 
     final authState = ref.watch(authProvider);
-    final hasSeenTutorial = ref.watch(tutorialProvider);
     // Escucha el tema elegido por el usuario (claro u oscuro)
     final themeMode = ref.watch(themeProvider);
 
@@ -221,35 +216,7 @@ class _MyAppState extends ConsumerState<MyApp> with WidgetsBindingObserver {
       return _buildLoadingScreen(themeMode);
     }
 
-    return hasSeenTutorial.when(
-      data: (hasSeen) {
-        if (authState.isAuthenticated && !hasSeen) {
-          return MaterialApp(
-            debugShowCheckedModeBanner: false,
-            // Aplica el tema seleccionado también en la pantalla de tutorial
-            theme: lightMode,
-            darkTheme: darkMode,
-            themeMode: themeMode,
-            localizationsDelegates: const [
-              GlobalMaterialLocalizations.delegate,
-              GlobalWidgetsLocalizations.delegate,
-              GlobalCupertinoLocalizations.delegate,
-            ],
-            supportedLocales: const [
-              Locale('es', 'CO'), // Español de Colombia
-              Locale('es', ''),   // Español genérico
-              Locale('en', ''),   // Inglés
-            ],
-            home: const TutorialScreen(),
-            routes: AppRoutes.getRoutes(authState),
-            navigatorKey: _navigatorKey,
-          );
-        }
-        return _buildNormalApp(authState, themeMode);
-      },
-      loading: () => _buildLoadingScreen(themeMode, 'Cargando...'),
-      error: (error, _) => _buildNormalApp(authState, themeMode),
-    );
+    return _buildNormalApp(authState, themeMode);
   }
 
   Widget _buildLoadingScreen([ThemeMode themeMode = ThemeMode.dark, String message = 'Inicializando...']) {

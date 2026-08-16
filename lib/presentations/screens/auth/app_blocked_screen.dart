@@ -85,23 +85,33 @@ class _AppBlockedScreenState extends ConsumerState<AppBlockedScreen> {
               const SizedBox(height: 20),
               const Text(
                 "Tu sesión está protegida",
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              const SizedBox(height: 10),
-              const Text(
-                "Confirma tu identidad con huella digital o inicia con tu contraseña.",
-                style: TextStyle(fontSize: 16, color: Colors.grey),
+                style: TextStyle(
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                  color: Themes.primary,
+                ),
                 textAlign: TextAlign.center,
               ),
-              const SizedBox(height: 30),
+              const SizedBox(height: 12),
+              const Text(
+                "Confirma tu identidad con huella digital o inicia con tu contraseña.",
+                style: TextStyle(
+                  fontSize: 16,
+                  color: Color(0xFF334155),
+                  height: 1.4,
+                ),
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 32),
               ElevatedButton.icon(
                 style: ElevatedButton.styleFrom(
                   backgroundColor: Themes.primary,
                   padding:
-                      const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                      const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                   shape: RoundedRectangleBorder(
                     borderRadius: BorderRadius.circular(12),
                   ),
+                  elevation: 2,
                 ),
                 onPressed: _isAuthenticating ? null : _authenticate,
                 icon: const Icon(Icons.fingerprint, color: Colors.white),
@@ -118,14 +128,26 @@ class _AppBlockedScreenState extends ConsumerState<AppBlockedScreen> {
                       )
                     : const Text(
                         "Usar huella digital",
-                        style: TextStyle(color: Colors.white, fontSize: 16),
+                        style: TextStyle(
+                          color: Colors.white,
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
               ),
-              const SizedBox(height: 15),
+              const SizedBox(height: 16),
               // 🔑 BOTÓN CORREGIDO: Ya NO llama a signOut()
               TextButton(
+                style: TextButton.styleFrom(
+                  foregroundColor: Themes.primary,
+                  textStyle: const TextStyle(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w600,
+                  ),
+                ),
                 onPressed: () async {
                   await ref.read(authProvider.notifier).signOut();
+                  if (!context.mounted) return;
                   Navigator.pushNamedAndRemoveUntil(
                     context,
                     AppRoutes.login,

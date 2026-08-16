@@ -26,9 +26,7 @@ class BiometricAuthService {
 
   /// Inicializa SharedPreferences de forma segura
   Future<void> _initPrefs() async {
-    if (_prefs == null) {
-      _prefs = await SharedPreferences.getInstance();
-    }
+    _prefs ??= await SharedPreferences.getInstance();
   }
 
   /// Genera una clave única por usuario para guardar si tiene biometría activada.
@@ -113,8 +111,8 @@ class BiometricAuthService {
         localizedReason: 'Autentícate para acceder a BillNance',
         options: const AuthenticationOptions(
           biometricOnly: true,
-          stickyAuth: false,
-          useErrorDialogs: false,
+          stickyAuth: true,
+          useErrorDialogs: true,
         ),
       );
       if (didAuthenticate) {
@@ -157,13 +155,15 @@ class BiometricAuthService {
       return true;
     }
     // Mostrar mensaje de error/cancelación
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Autenticación cancelada o fallida'),
-        backgroundColor: Colors.red,
-        behavior: SnackBarBehavior.floating,
-      ),
-    );
+    if (context.mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('Autenticación cancelada o fallida'),
+          backgroundColor: Colors.red,
+          behavior: SnackBarBehavior.floating,
+        ),
+      );
+    }
     return false;
   }
 }

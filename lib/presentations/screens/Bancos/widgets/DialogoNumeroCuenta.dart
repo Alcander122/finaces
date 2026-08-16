@@ -7,6 +7,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:finances/core/data/models/bank_model.dart';
 import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/presentations/theme/theme.dart';
 
 class DialogoNumeroCuenta extends StatefulWidget {
   final BancoModelo banco;
@@ -49,7 +50,7 @@ class _DialogoNumeroCuentaState extends State<DialogoNumeroCuenta> {
     return Dialog(
       shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(24)),
       elevation: 10,
-      backgroundColor: Colors.white,
+      backgroundColor: context.dialogBgColor,
       child: ConstrainedBox(
         constraints: const BoxConstraints(maxWidth: 400),
         child: AbsorbPointer(
@@ -105,18 +106,32 @@ class _DialogoNumeroCuentaState extends State<DialogoNumeroCuenta> {
                     controller: widget.controladorCuenta,
                     keyboardType: TextInputType.number,
                     enabled: !_isSaving,
+                    style: TextStyle(
+                      color: context.isDarkMode ? context.colors.onSurface : Colors.black87,
+                    ),
                     inputFormatters: [
                       FilteringTextInputFormatter.digitsOnly, // Solo números
                     ],
                     decoration: InputDecoration(
                       labelText: 'Número de cuenta',
+                      labelStyle: TextStyle(
+                        color: context.isDarkMode ? context.colors.onSurfaceVariant : Colors.grey.shade600,
+                      ),
                       hintText: 'Ej. 1234567890',
                       prefixIcon: const Icon(Icons.tag, color: Themes.primary),
                       filled: true,
-                      fillColor: Colors.grey.shade50,
+                      fillColor: context.isDarkMode
+                          ? context.colors.surfaceContainerLow
+                          : Colors.grey.shade50,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
-                        borderSide: BorderSide(color: Colors.grey.shade300),
+                        borderSide: BorderSide(
+                            color: context.isDarkMode ? Colors.white12 : Colors.grey.shade300),
+                      ),
+                      enabledBorder: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(12),
+                        borderSide: BorderSide(
+                            color: context.isDarkMode ? Colors.white12 : Colors.grey.shade300),
                       ),
                       focusedBorder: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(12),
@@ -140,13 +155,18 @@ class _DialogoNumeroCuentaState extends State<DialogoNumeroCuenta> {
               Container(
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: Colors.grey.shade50,
+                  color: context.isDarkMode
+                      ? context.colors.surfaceContainer
+                      : Colors.grey.shade50,
                   borderRadius: const BorderRadius.only(
                     bottomLeft: Radius.circular(24),
                     bottomRight: Radius.circular(24),
                   ),
                   border: Border(
-                    top: BorderSide(color: Colors.grey.shade200),
+                    top: BorderSide(
+                        color: context.isDarkMode
+                            ? Colors.white10
+                            : Colors.grey.shade200),
                   ),
                 ),
                 child: Row(
@@ -157,7 +177,9 @@ class _DialogoNumeroCuentaState extends State<DialogoNumeroCuenta> {
                       child: Text(
                         'Cancelar',
                         style: TextStyle(
-                          color: Colors.grey.shade600,
+                          color: context.isDarkMode
+                              ? context.colors.onSurfaceVariant
+                              : Colors.grey.shade600,
                           fontWeight: FontWeight.bold,
                         ),
                       ),

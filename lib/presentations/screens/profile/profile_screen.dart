@@ -15,6 +15,8 @@ import 'widgets/profile_header.dart';
 import 'widgets/profile_name_field.dart';
 import 'widgets/profile_biometric_settings.dart';
 import 'widgets/delete_account_dialog.dart';
+import 'widgets/about_app_dialog.dart';
+import 'package:share_plus/share_plus.dart';
 
 class ProfileScreen extends ConsumerStatefulWidget {
   const ProfileScreen({super.key});
@@ -212,7 +214,32 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
                         ),
                         const SizedBox(height: 16),
 
-                        // Card 4: Acciones de Cuenta
+                        // Card 4: Información y Comunidad
+                        _GlassmorphicCard(
+                          borderRadius: 20.0,
+                          padding: const EdgeInsets.all(16.0),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              const Text(
+                                'MÁS INFORMACIÓN Y COMUNIDAD',
+                                style: TextStyle(
+                                  color: Colors.white60,
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.bold,
+                                  letterSpacing: 1.5,
+                                ),
+                              ),
+                              const SizedBox(height: 16),
+                              _buildShareAppButton(),
+                              const SizedBox(height: 12),
+                              _buildAboutAppButton(),
+                            ],
+                          ),
+                        ),
+                        const SizedBox(height: 16),
+
+                        // Card 5: Acciones de Cuenta
                         _GlassmorphicCard(
                           borderRadius: 20.0,
                           padding: const EdgeInsets.all(16.0),
@@ -403,6 +430,74 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
     );
   }
 
+  /// Botón: Compartir App con enlace a la Play Store
+  Widget _buildShareAppButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: Container(
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF00897B), Color(0xFF26A69A)],
+            begin: Alignment.topLeft,
+            end: Alignment.bottomRight,
+          ),
+          borderRadius: BorderRadius.circular(16),
+          boxShadow: [
+            BoxShadow(
+              color: const Color(0xFF26A69A).withValues(alpha: 0.3),
+              blurRadius: 10,
+              offset: const Offset(0, 4),
+            ),
+          ],
+        ),
+        child: ElevatedButton.icon(
+          icon: const Icon(Icons.share_rounded, color: Colors.white, size: 20),
+          label: const Text(
+            'Compartir la App',
+            style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15),
+          ),
+          onPressed: () {
+            Share.share(
+              '¡Hola! Te recomiendo BillNance, la mejor aplicación para gestionar tus finanzas, presupuestos y metas de ahorro de manera organizada y segura. Descárgala gratis en Google Play Store:\nhttps://play.google.com/store/apps/details?id=com.billnance.app',
+              subject: 'Descarga BillNance - Finanzas Personales',
+            );
+          },
+          style: ElevatedButton.styleFrom(
+            backgroundColor: Colors.transparent,
+            shadowColor: Colors.transparent,
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Botón: Acerca de la App / Creadores
+  Widget _buildAboutAppButton() {
+    return SizedBox(
+      width: double.infinity,
+      child: OutlinedButton.icon(
+        icon: const Icon(Icons.info_outline_rounded, color: Colors.white70, size: 20),
+        label: const Text(
+          'Acerca de BillNance',
+          style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 14),
+        ),
+        onPressed: () {
+          showDialog(
+            context: context,
+            builder: (_) => const AboutAppDialog(),
+          );
+        },
+        style: OutlinedButton.styleFrom(
+          padding: const EdgeInsets.symmetric(vertical: 16),
+          side: BorderSide(color: Colors.white.withValues(alpha: 0.2), width: 1.2),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+        ),
+      ),
+    );
+  }
+
   /// Botón: Ver tutorial de nuevo
   Widget _buildTutorialButton() {
     return TextButton.icon(
@@ -478,17 +573,11 @@ class ProfileScreenState extends ConsumerState<ProfileScreen> {
 class _GlassmorphicCard extends StatelessWidget {
   final Widget child;
   final double borderRadius;
-  final double blur;
-  final double borderOpacity;
-  final Color backgroundColor;
   final EdgeInsetsGeometry padding;
 
   const _GlassmorphicCard({
     required this.child,
     this.borderRadius = 24.0,
-    this.blur = 20.0,
-    this.borderOpacity = 0.1,
-    this.backgroundColor = const Color(0x0DFFFFFF),
     this.padding = const EdgeInsets.all(20.0),
   });
 
@@ -507,14 +596,14 @@ class _GlassmorphicCard extends StatelessWidget {
       child: ClipRRect(
         borderRadius: BorderRadius.circular(borderRadius),
         child: BackdropFilter(
-          filter: ImageFilter.blur(sigmaX: blur, sigmaY: blur),
+          filter: ImageFilter.blur(sigmaX: 20.0, sigmaY: 20.0),
           child: Container(
             padding: padding,
             decoration: BoxDecoration(
-              color: backgroundColor,
+              color: const Color(0x0DFFFFFF),
               borderRadius: BorderRadius.circular(borderRadius),
               border: Border.all(
-                color: Colors.white.withValues(alpha: borderOpacity),
+                color: Colors.white.withValues(alpha: 0.1),
                 width: 1.5,
               ),
             ),

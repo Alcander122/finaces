@@ -51,16 +51,10 @@ class _TermsAcceptanceScreenState extends ConsumerState<TermsAcceptanceScreen> {
 
       final userService = UserService();
 
-      if (widget.isNewUser) {
-        // Crear el documento desde cero usando tu método de UserService
-        await userService.registerGoogleUser(
-          uid: user.uid,
-          email: user.email ?? '',
-          name: user.displayName ?? '',
-        );
-      }
+      // Sincronizar o crear el documento con todos los campos necesarios
+      await userService.syncGoogleUser(user: user);
 
-      // Asegurar que el documento esté creado (por si es usuario antiguo sin campos)
+      // Asegurar que el documento registre la aceptación de términos
       final userRef =
           FirebaseFirestore.instance.collection('users').doc(user.uid);
 
@@ -91,13 +85,15 @@ class _TermsAcceptanceScreenState extends ConsumerState<TermsAcceptanceScreen> {
         );
       }
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text("Error al guardar aceptación de términos"),
-          backgroundColor: Colors.red,
-        ),
-      );
-      setState(() => _isLoading = false);
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text("Error al guardar aceptación de términos"),
+            backgroundColor: Colors.red,
+          ),
+        );
+        setState(() => _isLoading = false);
+      }
     }
   }
 
