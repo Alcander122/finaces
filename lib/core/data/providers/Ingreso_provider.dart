@@ -1,10 +1,7 @@
-// lib/core/data/providers/ingreso_provider.dart
-import 'package:finances/core/data/models/filter.dart';
 import 'package:finances/core/data/models/ingreso.model.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/core/data/providers/filter_provider.dart';
 import 'package:finances/core/data/services/ingresos_service.dart';
-import 'package:finances/core/data/utils/date_utils.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 /// Proveedor singleton del servicio de ingresos
@@ -77,6 +74,19 @@ final totalIngresosMesActualProvider =
     return service.streamTotalIngresosMesActual(authState.user!.uid);
   } catch (e) {
     return Stream.value(0.0); // Valor predeterminado en caso de error
+  }
+});
+
+/// Proveedor para ingresos del mes anterior (usado en comparativas)
+final totalIngresosMesAnteriorProvider =
+    StreamProvider.autoDispose<double>((ref) {
+  final authState = ref.watch(authProvider);
+  if (authState.user == null) return Stream.value(0.0);
+  final service = ref.watch(ingresosServiceProvider);
+  try {
+    return service.streamTotalIngresosMesAnterior(authState.user!.uid);
+  } catch (e) {
+    return Stream.value(0.0);
   }
 });
 

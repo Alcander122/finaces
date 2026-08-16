@@ -18,6 +18,9 @@ class NotificationOffsetSelector extends ConsumerWidget {
 
     final options = [0, 1, 3, 7, 15];
 
+    final isDark = Theme.of(context).brightness == Brightness.dark;
+    final primaryColor = Theme.of(context).colorScheme.primary;
+
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -37,13 +40,15 @@ class NotificationOffsetSelector extends ConsumerWidget {
                     .read(paymentFormProvider.notifier)
                     .toggleNotificationOffset(offset);
               },
-              selectedColor:
-                  Theme.of(context).primaryColor.withValues(alpha: 0.2),
-              checkmarkColor: Theme.of(context).primaryColor,
+              selectedColor: isDark
+                  ? primaryColor.withValues(alpha: 0.35)
+                  : primaryColor.withValues(alpha: 0.15),
+              checkmarkColor: isDark ? Colors.white : primaryColor,
               labelStyle: TextStyle(
                 color: isSelected
-                    ? Theme.of(context).primaryColor
-                    : Colors.black87,
+                    ? (isDark ? Colors.white : primaryColor)
+                    : (isDark ? Colors.white70 : Colors.black87),
+                fontWeight: isSelected ? FontWeight.bold : FontWeight.normal,
               ),
             );
           }).toList(),

@@ -50,6 +50,39 @@ final saldoDisponibleProvider = Provider<AsyncValue<double>>((ref) {
   );
 });
 
+// Provider que calcula la variación porcentual con respecto al mes anterior
+final variacionSaldoMesAnteriorProvider = Provider<AsyncValue<double?>>((ref) {
+  final ingresosActualAsync = ref.watch(totalIngresosMesActualProvider);
+  final egresosActualAsync = ref.watch(totalEgresoMesActualProvider);
+  final ingresosAnteriorAsync = ref.watch(totalIngresosMesAnteriorProvider);
+  final egresosAnteriorAsync = ref.watch(totalEgresoMesAnteriorProvider);
+
+  if (ingresosActualAsync.isLoading ||
+      egresosActualAsync.isLoading ||
+      ingresosAnteriorAsync.isLoading ||
+      egresosAnteriorAsync.isLoading) {
+    return const AsyncValue.loading();
+  }
+
+  final ingresosActual = ingresosActualAsync.value ?? 0.0;
+  final egresosActual = egresosActualAsync.value ?? 0.0;
+  final saldoActual = ingresosActual - egresosActual;
+
+  final ingresosAnterior = ingresosAnteriorAsync.value ?? 0.0;
+  final egresosAnterior = egresosAnteriorAsync.value ?? 0.0;
+  final saldoAnterior = ingresosAnterior - egresosAnterior;
+
+  // Si en el mes actual no hay movimientos registrados (0 ingresos y 0 gastos),
+  // o si no hubo saldo en el mes anterior, no aplica porcentaje de variación.
+  if ((ingresosActual == 0.0 && egresosActual == 0.0) || saldoAnterior == 0.0) {
+    return const AsyncValue.data(null);
+  }
+
+  final variacion =
+      ((saldoActual - saldoAnterior) / saldoAnterior.abs()) * 100.0;
+  return AsyncValue.data(variacion);
+});
+
 class HomeScreen extends ConsumerWidget {
   const HomeScreen({super.key});
 
@@ -78,6 +111,7 @@ class HomeScreen extends ConsumerWidget {
     final totalIngresosAsync = ref.watch(totalIngresosMesActualProvider);
     final totalGastosAsync = ref.watch(totalEgresoMesActualProvider);
     final saldoAsync = ref.watch(saldoDisponibleProvider);
+    final variacionAsync = ref.watch(variacionSaldoMesAnteriorProvider);
     final isPrivate = ref.watch(isBalancePrivateProvider);
     final userId = authState.user?.uid ?? '';
     // Lee el modo de tema activo (claro u oscuro)
@@ -309,27 +343,55 @@ class HomeScreen extends ConsumerWidget {
                           Row(
                             mainAxisAlignment: MainAxisAlignment.spaceBetween,
                             children: [
-                              Text(
-                                'PLATA DISPONIBLE',
-                                style: TextStyle(
-                                  color: context.colors.onSurface.withValues(alpha: 0.6),
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.bold,
-                                  letterSpacing: 1.5,
+                              Row(
+                                children: [
+                                  Icon(
+                                    Icons.account_balance_wallet_outlined,
+                                    color: context.colors.onSurface.withValues(alpha: 0.5),
+                                    size: 15,
+                                  ),
+                                  const SizedBox(width: 6),
+                                  Text(
+                                    'PLATA DISPONIBLE',
+                                    style: TextStyle(
+                                      color: context.colors.onSurface.withValues(alpha: 0.65),
+                                      fontSize: 11,
+                                      fontWeight: FontWeight.bold,
+                                      letterSpacing: 1.4,
+                                    ),
+                                  ),
+                                ],
+                              ),
+                              // Botón de privacidad interactivo integrado en la tarjeta
+                              InkWell(
+                                borderRadius: BorderRadius.circular(16),
+                                onTap: () {
+                                  HapticFeedback.lightImpact();
+                                  ref.read(isBalancePrivateProvider.notifier).state = !isPrivate;
+                                },
+                                child: Padding(
+                                  padding: const EdgeInsets.all(4.0),
+                                  child: Icon(
+                                    isPrivate
+                                        ? Icons.visibility_off_outlined
+                                        : Icons.visibility_outlined,
+                                    color: context.colors.onSurface.withValues(alpha: 0.5),
+                                    size: 18,
+                                  ),
                                 ),
                               ),
-                              Icon(Icons.account_balance_wallet_outlined,
-                                  color: context.colors.onSurface.withValues(alpha: 0.4), size: 16),
                             ],
                           ),
-                          const SizedBox(height: 8),
+                          const SizedBox(height: 10),
                           saldoAsync.when(
                             data: (saldo) => Text(
                               isPrivate ? '••••••••' : UIHelpers.formatCurrency(saldo),
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                color: context.colors.onSurface,
+                                color: (saldo < 0 && !isPrivate)
+                                    ? const Color(0xFFEF5350)
+                                    : context.colors.onSurface,
                                 fontSize: 34,
                                 fontWeight: FontWeight.bold,
                                 letterSpacing: -0.5,
@@ -338,29 +400,31 @@ class HomeScreen extends ConsumerWidget {
                             loading: () => const SizedBox(
                               height: 40,
                               child: Center(
-                                  child: CircularProgressIndicator(
-                                      strokeWidth: 2.5, color: Color(0xFF26A69A))),
+                                child: CircularProgressIndicator(
+                                  strokeWidth: 2.5,
+                                  color: Color(0xFF26A69A),
+                                ),
+                              ),
                             ),
                             error: (e, _) => Text(
                               r'$-',
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: TextStyle(
-                                  color: context.colors.onSurface,
-                                  fontSize: 34,
-                                  fontWeight: FontWeight.bold),
+                                color: context.colors.onSurface,
+                                fontSize: 34,
+                                fontWeight: FontWeight.bold,
+                              ),
                             ),
                           ),
-                          const SizedBox(height: 4),
-                          const Text(
-                            '↑ +12% respecto al mes anterior',
-                            style: TextStyle(
-                              color: Color(0xFF26A69A),
-                              fontSize: 11,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          const SizedBox(height: 8),
+                          _buildVariationBadge(context, variacionAsync, saldoAsync),
+                          const SizedBox(height: 20),
+                          Container(
+                            height: 1,
+                            color: context.colors.onSurface.withValues(alpha: 0.08),
                           ),
-                          const SizedBox(height: 24),
+                          const SizedBox(height: 16),
                           Row(
                             children: [
                               Expanded(
@@ -372,7 +436,11 @@ class HomeScreen extends ConsumerWidget {
                                   isPrivate: isPrivate,
                                 ),
                               ),
-                              Container(width: 1, height: 35, color: context.colors.onSurface.withValues(alpha: 0.1)),
+                              Container(
+                                width: 1,
+                                height: 38,
+                                color: context.colors.onSurface.withValues(alpha: 0.08),
+                              ),
                               Expanded(
                                 child: _buildMiniStat(
                                   context: context,
@@ -483,19 +551,25 @@ class HomeScreen extends ConsumerWidget {
                         final String consejoText;
                         final Color bulbColor;
 
-                        if (gastos == 0) {
+                        if (gastos == 0 && ingresos == 0) {
                           consejoText = '¡Bienvenido a tu panel de control! Registra tus primeros movimientos con los botones de arriba para activar tus métricas y consejos personalizados.';
                           bulbColor = const Color(0xFFFFB74D);
-                        } else if (ingresos == 0) {
-                          consejoText = 'Has registrado ${UIHelpers.formatCurrency(gastos)} en gastos, pero aún no tienes ingresos este mes. ¡Agrega un ingreso para ver tu balance real!';
+                        } else if (gastos == 0 && ingresos > 0) {
+                          consejoText = '¡Excelente inicio! Has registrado ${UIHelpers.formatCurrency(ingresos)} en ingresos y aún no tienes gastos este mes. ¡Sigue así!';
+                          bulbColor = const Color(0xFF26A69A);
+                        } else if (ingresos == 0 && gastos > 0) {
+                          consejoText = 'Has registrado ${UIHelpers.formatCurrency(gastos)} en gastos, pero aún no registras ingresos este mes. ¡Agrega tus ingresos para ver tu balance real!';
                           bulbColor = const Color(0xFFEF5350);
                         } else {
                           final ratio = (gastos / ingresos) * 100;
-                          if (ratio > 80) {
-                            consejoText = 'Alerta: Has consumido el ${ratio.toStringAsFixed(0)}% de tus ingresos este mes. Te recomendamos pausar gastos no esenciales.';
+                          if (ratio > 100) {
+                            consejoText = 'Alerta de déficit: Tus gastos superan tus ingresos en un ${ratio.toStringAsFixed(0)}% este mes. Te sugerimos moderar egresos no esenciales.';
                             bulbColor = const Color(0xFFEF5350);
+                          } else if (ratio > 80) {
+                            consejoText = 'Atención: Has consumido el ${ratio.toStringAsFixed(0)}% de tus ingresos este mes. Te recomendamos pausar gastos no esenciales.';
+                            bulbColor = const Color(0xFFFF7043);
                           } else if (ratio > 50) {
-                            consejoText = 'Atención: Has consumido el ${ratio.toStringAsFixed(0)}% de tus ingresos este mes. Procura vigilar tus egresos diarios.';
+                            consejoText = 'Moderado: Has consumido el ${ratio.toStringAsFixed(0)}% de tus ingresos este mes. Procura vigilar tus egresos diarios.';
                             bulbColor = const Color(0xFFFFB74D);
                           } else {
                             consejoText = '¡Excelente ritmo! Has consumido solo el ${ratio.toStringAsFixed(0)}% de tus ingresos. Mantienes un control financiero impecable.';
@@ -569,6 +643,87 @@ class HomeScreen extends ConsumerWidget {
     return '${weekdays[now.weekday % 7]}, ${now.day} de ${months[now.month - 1]}';
   }
 
+  Widget _buildVariationBadge(
+    BuildContext context,
+    AsyncValue<double?> variacionAsync,
+    AsyncValue<double> saldoAsync,
+  ) {
+    return saldoAsync.when(
+      data: (saldo) {
+        return variacionAsync.when(
+          data: (variacion) {
+            if (variacion != null) {
+              final isPositive = variacion >= 0;
+              final color = isPositive
+                  ? const Color(0xFF26A69A)
+                  : const Color(0xFFEF5350);
+              final icon = isPositive
+                  ? Icons.trending_up_rounded
+                  : Icons.trending_down_rounded;
+              final sign = isPositive ? '+' : '';
+              return Container(
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+                decoration: BoxDecoration(
+                  color: color.withValues(alpha: 0.12),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(
+                      color: color.withValues(alpha: 0.25), width: 1),
+                ),
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  children: [
+                    Icon(icon, color: color, size: 14),
+                    const SizedBox(width: 4),
+                    Text(
+                      '$sign${variacion.toStringAsFixed(1)}% respecto al mes anterior',
+                      style: TextStyle(
+                        color: color,
+                        fontSize: 11,
+                        fontWeight: FontWeight.bold,
+                      ),
+                    ),
+                  ],
+                ),
+              );
+            }
+
+            // Si no hay variación calculable o es mes inicial
+            final isZero = saldo == 0;
+            final badgeColor = isZero
+                ? context.colors.onSurface.withValues(alpha: 0.45)
+                : const Color(0xFF26A69A);
+            final badgeText = isZero
+                ? '● Sin movimientos este mes'
+                : '● Balance del mes activo';
+
+            return Container(
+              padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
+              decoration: BoxDecoration(
+                color: badgeColor.withValues(alpha: 0.1),
+                borderRadius: BorderRadius.circular(20),
+                border: Border.all(
+                    color: badgeColor.withValues(alpha: 0.2), width: 1),
+              ),
+              child: Text(
+                badgeText,
+                style: TextStyle(
+                  color: badgeColor,
+                  fontSize: 11,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            );
+          },
+          loading: () => const SizedBox.shrink(),
+          error: (_, __) => const SizedBox.shrink(),
+        );
+      },
+      loading: () => const SizedBox.shrink(),
+      error: (_, __) => const SizedBox.shrink(),
+    );
+  }
+
   Widget _buildMiniStat({
     required BuildContext context,
     required String label,
@@ -576,47 +731,75 @@ class HomeScreen extends ConsumerWidget {
     required bool isIncome,
     required bool isPrivate,
   }) {
+    final themeColor =
+        isIncome ? const Color(0xFF26A69A) : const Color(0xFFEF5350);
+
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16.0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: const EdgeInsets.symmetric(horizontal: 12.0),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
-          Row(
-            children: [
-              Icon(
-                isIncome ? Icons.arrow_downward_rounded : Icons.arrow_upward_rounded,
-                color: isIncome ? const Color(0xFF26A69A) : const Color(0xFFEF5350),
-                size: 14,
-              ),
-              const SizedBox(width: 4),
-              Text(
-                label,
-                style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.6), fontSize: 11),
-              ),
-            ],
+          // Micro-contenedor circular translúcido
+          Container(
+            padding: const EdgeInsets.all(7),
+            decoration: BoxDecoration(
+              color: themeColor.withValues(alpha: 0.12),
+              shape: BoxShape.circle,
+            ),
+            child: Icon(
+              isIncome
+                  ? Icons.arrow_downward_rounded
+                  : Icons.arrow_upward_rounded,
+              color: themeColor,
+              size: 15,
+            ),
           ),
-          const SizedBox(height: 4),
-          amountAsync.when(
-            data: (amount) => Text(
-              isPrivate ? '••••' : UIHelpers.formatCurrency(amount),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: TextStyle(
-                color: context.colors.onSurface,
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-              ),
+          const SizedBox(width: 10),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  label,
+                  style: TextStyle(
+                    color: context.colors.onSurface.withValues(alpha: 0.6),
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                amountAsync.when(
+                  data: (amount) => Text(
+                    isPrivate ? '••••' : UIHelpers.formatCurrency(amount),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: context.colors.onSurface,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  loading: () => SizedBox(
+                    width: 12,
+                    height: 12,
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: context.colors.onSurface.withValues(alpha: 0.3),
+                    ),
+                  ),
+                  error: (_, __) => Text(
+                    r'$-',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: TextStyle(
+                      color: context.colors.onSurface,
+                      fontSize: 16,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ],
             ),
-            loading: () => SizedBox(
-              width: 12,
-              height: 12,
-              child: CircularProgressIndicator(strokeWidth: 2, color: context.colors.onSurface.withValues(alpha: 0.3)),
-            ),
-            error: (_, __) => Text(r'$-',
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
-                style: TextStyle(
-                    color: context.colors.onSurface, fontSize: 16, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -858,10 +1041,10 @@ class HomeScreen extends ConsumerWidget {
                     const FaIcon(FontAwesomeIcons.buildingColumns, color: Color(0xFF64B5F6), size: 14),
                   ],
                 ),
-                const SizedBox(height: 25),
+                const SizedBox(height: 2),
                 Text(
                   'Datos para cobrar',
-                  style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.5), fontSize: 10),
+                  style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.7), fontSize: 10),
                 ),
                 const Spacer(),
                 Row(
@@ -887,7 +1070,7 @@ class HomeScreen extends ConsumerWidget {
                     Expanded(
                       child: Text(
                         identificador,
-                        style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.75), fontSize: 11, fontWeight: FontWeight.bold),
+                        style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.85), fontSize: 11, fontWeight: FontWeight.bold),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                       ),
@@ -902,9 +1085,38 @@ class HomeScreen extends ConsumerWidget {
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF64B5F6)))),
-          error: (_, __) => Text(
-            'Error',
-            style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.4), fontSize: 10),
+          error: (_, __) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Mis Bancos',
+                    style: TextStyle(
+                      color: context.colors.onSurface,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const FaIcon(FontAwesomeIcons.buildingColumns, color: Color(0xFF64B5F6), size: 14),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Datos para cobrar',
+                style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.7), fontSize: 10),
+              ),
+              const Spacer(),
+              Text(
+                'Sin cuentas',
+                style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.75), fontSize: 10, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                'Toca para agregar',
+                style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.6), fontSize: 8),
+              ),
+            ],
           ),
         ),
       ),
@@ -947,16 +1159,16 @@ class HomeScreen extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     'Tus inversiones',
-                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.5), fontSize: 10),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.7), fontSize: 10),
                   ),
                   const Spacer(),
                   Text(
                     'Sin inversiones',
-                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.6), fontSize: 10, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.75), fontSize: 10, fontWeight: FontWeight.bold),
                   ),
                   Text(
                     'Toca para agregar',
-                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.4), fontSize: 8),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.6), fontSize: 8),
                   ),
                 ],
               );
@@ -982,7 +1194,7 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: 2),
                 Text(
                   'Total valorizado',
-                  style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.5), fontSize: 10),
+                  style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.7), fontSize: 10),
                 ),
                 const Spacer(),
                 Text(
@@ -998,7 +1210,7 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: 2),
                 Text(
                   '${dashboardState.numberOfAssets} activos',
-                  style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.65), fontSize: 9),
+                  style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.75), fontSize: 9.5),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1012,9 +1224,38 @@ class HomeScreen extends ConsumerWidget {
               child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFF66BB6A)),
             ),
           ),
-          error: (_, __) => Text(
-            'Error',
-            style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.4), fontSize: 10),
+          error: (_, __) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Portafolio',
+                    style: TextStyle(
+                      color: context.colors.onSurface,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const FaIcon(FontAwesomeIcons.chartLine, color: Color(0xFF66BB6A), size: 14),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Tus inversiones',
+                style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.7), fontSize: 10),
+              ),
+              const Spacer(),
+              Text(
+                'Sin inversiones',
+                style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.75), fontSize: 10, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                'Toca para agregar',
+                style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.6), fontSize: 8),
+              ),
+            ],
           ),
         ),
       ),
@@ -1058,22 +1299,22 @@ class HomeScreen extends ConsumerWidget {
                   const SizedBox(height: 2),
                   Text(
                     'Categorías del mes',
-                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.5), fontSize: 10),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.7), fontSize: 10),
                   ),
                   const Spacer(),
                   Text(
                     'Sin gastos aún',
-                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.6), fontSize: 10, fontWeight: FontWeight.bold),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.75), fontSize: 10, fontWeight: FontWeight.bold),
                   ),
                   Text(
                     'Toca para registrar',
-                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.4), fontSize: 8),
+                    style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.6), fontSize: 8),
                   ),
                 ],
               );
             }
 
-            final totalGastos = egresosMesActual.fold(0.0, (sum, e) => sum + e.valor);
+            final totalGastos = egresosMesActual.fold(0.0, (total, e) => total + e.valor);
             final Map<String, double> gastosPorCategoria = {};
             for (var e in egresosMesActual) {
               gastosPorCategoria[e.categoria] = (gastosPorCategoria[e.categoria] ?? 0.0) + e.valor;
@@ -1104,7 +1345,7 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: 2),
                 Text(
                   'Categorías del mes',
-                  style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.5), fontSize: 10),
+                  style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.7), fontSize: 10),
                 ),
                 const Spacer(),
                 ...List.generate(topCategories.length, (index) {
@@ -1128,7 +1369,7 @@ class HomeScreen extends ConsumerWidget {
                         Expanded(
                           child: Text(
                             '${cat.key} ${percent.toStringAsFixed(0)}%',
-                            style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.65), fontSize: 9),
+                            style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.75), fontSize: 9.5),
                             maxLines: 1,
                             overflow: TextOverflow.ellipsis,
                           ),
@@ -1211,10 +1452,17 @@ class HomeScreen extends ConsumerWidget {
 
             activePagos.sort((a, b) => a.nextDueDate!.compareTo(b.nextDueDate!));
             final proximoPago = activePagos.first;
-            final diasFaltantes = proximoPago.nextDueDate!.difference(DateTime.now()).inDays;
-            final vencimientoText = diasFaltantes == 0
-                ? 'Vence hoy'
-                : (diasFaltantes == 1 ? 'Vence mañana' : 'Vence en $diasFaltantes días');
+            final now = DateTime.now();
+            final today = DateTime(now.year, now.month, now.day);
+            final dueDate = proximoPago.nextDueDate!;
+            final due = DateTime(dueDate.year, dueDate.month, dueDate.day);
+            final diasFaltantes = due.difference(today).inDays;
+
+            final vencimientoText = diasFaltantes < 0
+                ? 'Vencido'
+                : diasFaltantes == 0
+                    ? 'Vence hoy'
+                    : (diasFaltantes == 1 ? 'Vence mañana' : 'Vence en $diasFaltantes días');
 
             return Column(
               crossAxisAlignment: CrossAxisAlignment.start,
@@ -1236,24 +1484,30 @@ class HomeScreen extends ConsumerWidget {
                 const SizedBox(height: 2),
                 Text(
                   'Próximo vencimiento',
-                  style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.5), fontSize: 10),
+                  style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.7), fontSize: 10),
                 ),
                 const Spacer(),
                 Text(
                   proximoPago.title.isNotEmpty ? proximoPago.title : proximoPago.description,
-                  style: TextStyle(color: context.colors.onSurface, fontSize: 12, fontWeight: FontWeight.bold),
+                  style: TextStyle(color: context.colors.onSurface, fontSize: 12.5, fontWeight: FontWeight.bold),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 1),
                 Text(
                   UIHelpers.formatCurrency(proximoPago.totalAmount),
-                  style: const TextStyle(color: Color(0xFFE57373), fontSize: 11, fontWeight: FontWeight.bold),
+                  style: const TextStyle(color: Color(0xFFE57373), fontSize: 12, fontWeight: FontWeight.bold),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
+                const SizedBox(height: 1),
                 Text(
                   vencimientoText,
-                  style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.5), fontSize: 9),
+                  style: TextStyle(
+                    color: context.colors.onSurface.withValues(alpha: 0.75),
+                    fontSize: 10,
+                    fontWeight: FontWeight.w600,
+                  ),
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                 ),
@@ -1265,9 +1519,38 @@ class HomeScreen extends ConsumerWidget {
                   width: 16,
                   height: 16,
                   child: CircularProgressIndicator(strokeWidth: 2, color: Color(0xFFE57373)))),
-          error: (_, __) => Text(
-            'Error al cargar',
-            style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.4), fontSize: 10),
+          error: (_, __) => Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    'Pagos',
+                    style: TextStyle(
+                      color: context.colors.onSurface,
+                      fontSize: 13,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  const FaIcon(FontAwesomeIcons.calendarCheck, color: Color(0xFFE57373), size: 14),
+                ],
+              ),
+              const SizedBox(height: 2),
+              Text(
+                'Próximos cobros',
+                style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.7), fontSize: 10),
+              ),
+              const Spacer(),
+              Text(
+                'Sin cobros',
+                style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.75), fontSize: 10, fontWeight: FontWeight.bold),
+              ),
+              Text(
+                'Toca para agregar',
+                style: TextStyle(color: context.colors.onSurface.withValues(alpha: 0.6), fontSize: 8),
+              ),
+            ],
           ),
         ),
       ),

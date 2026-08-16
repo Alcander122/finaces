@@ -14,13 +14,15 @@ class DynamicPreviewCard extends ConsumerWidget {
 
     final dateFormat = DateFormat('dd MMM yyyy');
     final timeFormat = DateFormat('hh:mm a');
+    final isDark = Theme.of(context).brightness == Brightness.dark;
 
     return Card(
       elevation: 0,
-      color: Colors.blue.withValues(alpha: 0.05),
+      color: Colors.blue.withValues(alpha: isDark ? 0.12 : 0.05),
       shape: RoundedRectangleBorder(
         borderRadius: BorderRadius.circular(16),
-        side: BorderSide(color: Colors.blue.withValues(alpha: 0.2)),
+        side: BorderSide(
+            color: Colors.blue.withValues(alpha: isDark ? 0.35 : 0.2)),
       ),
       child: Padding(
         padding: const EdgeInsets.all(16.0),
@@ -29,11 +31,14 @@ class DynamicPreviewCard extends ConsumerWidget {
           children: [
             Row(
               children: [
-                const Icon(Icons.auto_awesome, color: Colors.blue, size: 20),
+                Icon(Icons.auto_awesome,
+                    color: isDark ? Colors.blue[300] : Colors.blue, size: 20),
                 const SizedBox(width: 8),
                 Text('Previsualización',
                     style: Theme.of(context).textTheme.titleMedium?.copyWith(
-                        fontWeight: FontWeight.bold, color: Colors.blue[800])),
+                        fontWeight: FontWeight.bold,
+                        color:
+                            isDark ? Colors.blue[300] : Colors.blue[800])),
               ],
             ),
             const Divider(),

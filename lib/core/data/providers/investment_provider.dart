@@ -10,10 +10,13 @@ final investmentServiceProvider = Provider((ref) => InvestmentService());
 
 /// StreamProvider: inversiones de un portafolio en tiempo real
 final investmentsProvider =
-    StreamProvider.family<List<Investment>, Tuple2<String, String>>(
+    StreamProvider.autoDispose.family<List<Investment>, Tuple2<String, String>>(
   (ref, params) {
     final userId = params.item1;
     final portafolioId = params.item2;
+    if (userId.isEmpty || portafolioId.isEmpty) {
+      return Stream.value([]);
+    }
     return ref
         .watch(investmentServiceProvider)
         .obtenerInversionesEnTiempoReal(userId, portafolioId);
@@ -21,8 +24,11 @@ final investmentsProvider =
 );
 
 /// StreamProvider: todas las inversiones del usuario
-final allInvestmentsProvider = StreamProvider.family<List<Investment>, String>(
+final allInvestmentsProvider = StreamProvider.autoDispose.family<List<Investment>, String>(
   (ref, userId) {
+    if (userId.isEmpty) {
+      return Stream.value([]);
+    }
     return ref.watch(investmentServiceProvider).obtenerTodosInvestments(userId);
   },
 );
@@ -40,7 +46,7 @@ class InvestmentItemState {
 
 /// Provider unificado para el detalle de un portafolio.
 /// Combina las inversiones y las tasas de cambio de divisas reactivas.
-final portfolioDetailProvider = Provider.family<AsyncValue<List<InvestmentItemState>>, Tuple2<String, String>>((ref, params) {
+final portfolioDetailProvider = Provider.autoDispose.family<AsyncValue<List<InvestmentItemState>>, Tuple2<String, String>>((ref, params) {
   final userId = params.item1;
   final portafolioId = params.item2;
 

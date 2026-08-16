@@ -66,7 +66,7 @@ final filteredCatalogProvider = Provider<AsyncValue<List<BankCatalogModel>>>((re
 /// Observa las cuentas bancarias configuradas por el usuario en tiempo real
 /// y les inyecta automáticamente los metadatos de marca (colores, logos)
 /// correspondientes del catálogo de bancos local.
-final userBanksProvider = StreamProvider.family<List<BancoModelo>, String>((ref, userId) {
+final userBanksProvider = StreamProvider.autoDispose.family<List<BancoModelo>, String>((ref, userId) {
   if (userId.isEmpty) {
     return Stream.value([]);
   }

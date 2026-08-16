@@ -134,6 +134,16 @@ class EgresoService {
     return streamTotalGastosInRange(userId, inicioMes, finMes);
   }
   
+  /// Obtiene el total de gastos del mes anterior para comparativas
+  Stream<double> streamTotalGastosMesAnterior(String userId) {
+    final now = DateTime.now();
+    final inicioMesAnterior = DateTime(now.year, now.month - 1, 1);
+    final finMesAnterior = DateTime(now.year, now.month, 1)
+        .subtract(const Duration(microseconds: 1));
+
+    return streamTotalGastosInRange(userId, inicioMesAnterior, finMesAnterior);
+  }
+
   /// Método OBSOLETO
   Stream<double> streamTotalGastos(String uid) {
     return _firestore
@@ -156,6 +166,6 @@ class EgresoService {
   }
   
   double calcularTotalEgresos(List<Egreso> egresos) {
-      return egresos.fold(0.0, (sum, item) => sum + item.valor);
+    return egresos.fold(0.0, (total, item) => total + item.valor);
   }
 }

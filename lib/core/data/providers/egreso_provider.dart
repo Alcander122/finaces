@@ -6,7 +6,6 @@ import 'package:finances/core/data/providers/filter_provider.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:finances/core/data/models/egreso_model.dart';
 import 'package:finances/core/data/services/egreso_service.dart';
-import 'package:finances/core/data/models/filter.dart';
 import 'package:flutter/foundation.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/core/errors/handlers/db_error_handler.dart';
@@ -99,6 +98,22 @@ final totalEgresoMesActualProvider = StreamProvider.autoDispose<double>((ref) {
       .handleError((error, stackTrace) {
     debugPrint('Error al obtener gastos: $error');
     throw DbErrorHandler.handle(error);
+  });
+});
+
+/// Proveedor para gastos del mes anterior (usado en comparativas)
+final totalEgresoMesAnteriorProvider = StreamProvider.autoDispose<double>((ref) {
+  final authState = ref.watch(authProvider);
+
+  if (authState.user == null) return Stream.value(0.0);
+
+  final service = ref.watch(egresoServiceProvider);
+
+  return service
+      .streamTotalGastosMesAnterior(authState.user!.uid)
+      .handleError((error, stackTrace) {
+    debugPrint('Error al obtener gastos mes anterior: $error');
+    return Stream.value(0.0);
   });
 });
 

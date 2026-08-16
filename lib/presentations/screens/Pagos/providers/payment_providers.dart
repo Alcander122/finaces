@@ -18,7 +18,10 @@ final paymentRepositoryProvider = Provider<PaymentRepository>((ref) {
 
 // Stream de pagos
 final paymentsStreamProvider =
-    StreamProvider.family<List<Payment>, String>((ref, userId) {
+    StreamProvider.autoDispose.family<List<Payment>, String>((ref, userId) {
+  if (userId.isEmpty) {
+    return Stream.value([]);
+  }
   final repository = ref.watch(paymentRepositoryProvider);
   return repository.streamPayments(userId);
 });

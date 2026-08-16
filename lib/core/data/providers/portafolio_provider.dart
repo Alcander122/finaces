@@ -2,7 +2,6 @@
 
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../models/portafolio_model.dart';
-import '../models/investment_model.dart';
 import '../models/asset_catalog_model.dart';
 import '../repositories/asset_catalog_repository.dart';
 import '../services/portafolio_service.dart';
@@ -20,7 +19,10 @@ final assetCatalogProvider = FutureProvider<List<AssetCatalogModel>>((ref) {
 });
 
 final portafoliosProvider =
-    StreamProvider.family<List<Portafolio>, String>((ref, userId) {
+    StreamProvider.autoDispose.family<List<Portafolio>, String>((ref, userId) {
+  if (userId.isEmpty) {
+    return Stream.value([]);
+  }
   return ref
       .watch(portafolioServiceProvider)
       .obtenerPortafoliosEnTiempoReal(userId);
@@ -75,7 +77,15 @@ class PortafolioItemState {
 
 /// Provider unificado que actúa como ÚNICA FUENTE DE VERDAD para el tablero de portafolio.
 /// Combina portafolios, inversiones y tipos de cambio, eliminando cálculos de la UI.
-final portfolioDashboardProvider = Provider.family<AsyncValue<PortfolioDashboardState>, String>((ref, userId) {
+final portfolioDashboardProvider = Provider.autoDispose.family<AsyncValue<PortfolioDashboardState>, String>((ref, userId) {
+  if (userId.isEmpty) {
+    return AsyncValue.data(PortfolioDashboardState(
+      totalPortfolioValueCOP: 0.0,
+      portfolioItems: [],
+      categoryDistribution: {},
+      numberOfAssets: 0,
+    ));
+  }
   final portafoliosAsync = ref.watch(portafoliosProvider(userId));
   final allInvestmentsAsync = ref.watch(allInvestmentsProvider(userId));
   final ratesAsync = ref.watch(exchangeRatesProvider);

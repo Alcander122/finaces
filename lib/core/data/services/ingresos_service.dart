@@ -58,6 +58,21 @@ class IngresosService {
     }
   }
 
+  /// Obtiene el total de ingresos del mes anterior para comparativas
+  Stream<double> streamTotalIngresosMesAnterior(String userId) {
+    try {
+      final now = DateTime.now();
+      final inicioMesAnterior = DateTime(now.year, now.month - 1, 1);
+      final finMesAnterior = DateTime(now.year, now.month, 1)
+          .subtract(const Duration(microseconds: 1));
+
+      return streamTotalIngresosInRange(
+          userId, inicioMesAnterior, finMesAnterior);
+    } catch (e) {
+      throw Exception("Error en streamTotalIngresosMesAnterior: $e");
+    }
+  }
+
   /// Obtiene todos los ingresos del usuario
   Future<List<Ingreso>> obtenerIngresos(String userId) async {
     try {
@@ -180,7 +195,7 @@ class IngresosService {
   /// Calcula el total de una lista de ingresos
   double calcularTotalIngresos(List<Ingreso> ingresos) {
     try {
-      return ingresos.fold(0.0, (sum, ingreso) => sum + ingreso.valor);
+      return ingresos.fold(0.0, (total, ingreso) => total + ingreso.valor);
     } catch (e) {
       throw Exception("Error al calcular el total de ingresos: $e");
     }
