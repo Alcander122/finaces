@@ -1,5 +1,6 @@
 import 'dart:developer' as developer;
 import 'package:timezone/timezone.dart' as tz;
+import 'package:finances/core/data/utils/ui_helpers.dart';
 import '../models/payment.dart';
 import '../models/payment_enums.dart';
 import '../utils/notification_id_generator.dart';
@@ -41,7 +42,7 @@ class PaymentSchedulerManager {
 
       final int notificationId = NotificationIdGenerator.generateDeterministicId(payment.id, offset);
       
-      String body = 'Tu pago "${payment.title}" de \$${payment.totalAmount.toStringAsFixed(2)} vence ';
+      String body = 'Tu pago "${payment.title}" de ${UIHelpers.formatCurrency(payment.totalAmount)} vence ';
       if (offset == 0) {
         body += 'hoy.';
       } else if (offset == 1) {
