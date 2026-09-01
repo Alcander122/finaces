@@ -1,15 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import '../providers/payment_form_provider.dart';
 import 'frequency_selector_chips.dart';
 import 'notification_offset_selector.dart';
 import 'notification_time_selector.dart';
 import 'dynamic_preview_card.dart';
 
 class PaymentConfigBottomSheet extends ConsumerWidget {
-  const PaymentConfigBottomSheet({super.key});
+  final bool onlyNotifications;
 
-  static Future<void> show(BuildContext context) {
+  const PaymentConfigBottomSheet({super.key, this.onlyNotifications = false});
+
+  static Future<void> show(BuildContext context, {bool onlyNotifications = false}) {
     return showModalBottomSheet(
       context: context,
       isScrollControlled: true,
@@ -17,7 +18,7 @@ class PaymentConfigBottomSheet extends ConsumerWidget {
       shape: const RoundedRectangleBorder(
         borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
       ),
-      builder: (context) => const PaymentConfigBottomSheet(),
+      builder: (context) => PaymentConfigBottomSheet(onlyNotifications: onlyNotifications),
     );
   }
 
@@ -38,11 +39,15 @@ class PaymentConfigBottomSheet extends ConsumerWidget {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                Text('Configurar Recurrencia',
-                    style: Theme.of(context)
-                        .textTheme
-                        .titleLarge
-                        ?.copyWith(fontWeight: FontWeight.bold)),
+                Text(
+                  onlyNotifications
+                      ? 'Configurar Recordatorios'
+                      : 'Configurar Pago Programado',
+                  style: Theme.of(context)
+                      .textTheme
+                      .titleLarge
+                      ?.copyWith(fontWeight: FontWeight.bold),
+                ),
                 IconButton(
                   icon: const Icon(Icons.close),
                   onPressed: () => Navigator.of(context).pop(),
@@ -50,8 +55,10 @@ class PaymentConfigBottomSheet extends ConsumerWidget {
               ],
             ),
             const SizedBox(height: 24),
-            const FrequencySelectorChips(),
-            const SizedBox(height: 24),
+            if (!onlyNotifications) ...[
+              const FrequencySelectorChips(),
+              const SizedBox(height: 24),
+            ],
             const NotificationOffsetSelector(),
             const SizedBox(height: 24),
             const NotificationTimeSelector(),
@@ -71,8 +78,13 @@ class PaymentConfigBottomSheet extends ConsumerWidget {
                   Navigator.of(context).pop();
                 }
               },
-              child: const Text('Guardar Configuración',
-                  style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
+              child: Text(
+                onlyNotifications
+                    ? 'Guardar Recordatorios'
+                    : 'Guardar Configuración',
+                style:
+                    const TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+              ),
             ),
             const SizedBox(height: 24),
           ],

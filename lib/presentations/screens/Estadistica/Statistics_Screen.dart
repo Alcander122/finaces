@@ -5,6 +5,7 @@ import 'package:finances/core/data/providers/egreso_provider.dart';
 import 'package:finances/core/data/providers/filter_provider.dart';
 import 'package:finances/presentations/screens/Estadistica/widgets/activity_chart.dart';
 import 'package:finances/presentations/screens/Estadistica/widgets/category_summary.dart';
+import 'package:finances/presentations/screens/Estadistica/widgets/payment_commitment_card.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:finances/routes/app_routes.dart';
 import 'package:flutter/material.dart';
@@ -57,6 +58,8 @@ class StatisticsScreenState extends ConsumerState<StatisticScreen> {
                 _buildFilterRow(),
                 const SizedBox(height: 12),
                 _buildFinancialCards(ingresosAsync, egresosAsync),
+                const SizedBox(height: 12),
+                const PaymentCommitmentCard(),
                 const SizedBox(height: 16),
                 _buildCategorySection(theme),
               ],

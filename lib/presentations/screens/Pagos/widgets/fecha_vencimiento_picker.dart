@@ -22,10 +22,16 @@ class FechaVencimientoPicker extends StatelessWidget {
       trailing: IconButton(
         icon: const Icon(Icons.calendar_today),
         onPressed: () async {
+          final initial = (fechaMostrada.isBefore(DateTime(1990)))
+              ? DateTime(1990)
+              : (fechaMostrada.isAfter(DateTime(2100))
+                  ? DateTime(2100)
+                  : fechaMostrada);
+
           final date = await showDatePicker(
             context: context,
-            initialDate: fechaMostrada,
-            firstDate: DateTime.now(),
+            initialDate: initial,
+            firstDate: DateTime(1990),
             lastDate: DateTime(2100),
           );
           if (date != null) onChanged(date);

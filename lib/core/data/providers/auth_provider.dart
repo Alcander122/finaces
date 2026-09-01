@@ -14,6 +14,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'dart:async';
 import 'package:finances/core/data/services/BiometricAuthService.dart';
+import 'package:finances/core/data/services/secure_storage_service.dart';
 
 /// 🚀 Maneja almacenamiento local (estado de logout y tutorial)
 class AuthStorage {
@@ -184,9 +185,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       // ✅ ACTUALIZACIÓN DE ESTADO: Evita el preload infinito
       state = AuthState.authenticated(userCredential.user!);
 
-      // 💾 GUARDAR CORREO: Para pre-rellenar en futuros logins
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('last_email', email);
+      // 💾 GUARDAR CORREO: De forma cifrada para pre-rellenar en futuros logins
+      await SecureStorageService().saveLastEmail(email);
     } on TimeoutException {
       state = AuthState.error('Tiempo de espera agotado');
       throw 'Tiempo de espera agotado';
@@ -222,9 +222,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
       await _auth.signOut();
       state = const AuthState.unauthenticated();
 
-      // 💾 Guardar correo para pre-rellenar
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('last_email', email);
+      // 💾 Guardar correo cifrado para pre-rellenar
+      await SecureStorageService().saveLastEmail(email);
     } on FirebaseAuthException catch (e) {
       final message = AuthErrorHandler.handle(e);
       state = AuthState.error(message);
@@ -325,9 +324,8 @@ class AuthNotifier extends StateNotifier<AuthState> {
 
       state = AuthState.authenticated(user);
 
-      // 💾 GUARDAR CORREO DE GOOGLE
-      final prefs = await SharedPreferences.getInstance();
-      await prefs.setString('last_email', user.email ?? '');
+      // 💾 GUARDAR CORREO DE GOOGLE CIFRADO
+      await SecureStorageService().saveLastEmail(user.email ?? '');
 
       return !exists;
     } on TimeoutException {

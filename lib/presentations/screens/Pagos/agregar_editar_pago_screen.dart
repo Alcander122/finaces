@@ -199,7 +199,7 @@ class _AgregarEditarPagoScreenState
             ),
             const SizedBox(height: 12),
 
-            // Fecha
+            // 1. Fecha de vencimiento
             FechaVencimientoPicker(
               fecha: draft.nextDueDate,
               onChanged: (date) {
@@ -209,85 +209,166 @@ class _AgregarEditarPagoScreenState
             ),
             const SizedBox(height: 12),
 
+            // 2. Sección de Recordatorio / Notificaciones (Aplica a Pendientes y Programados)
             Container(
               decoration: BoxDecoration(
-                color: context.isDarkMode ? context.colors.surfaceContainerHigh : Colors.white,
+                color: context.isDarkMode
+                    ? context.colors.surfaceContainerHigh
+                    : Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: context.isDarkMode ? Colors.white12 : Colors.grey.shade300),
+                border: Border.all(
+                    color: context.isDarkMode
+                        ? Colors.white12
+                        : Colors.grey.shade300),
               ),
-              child: SwitchListTile.adaptive(
-                title: Text(
-                  "Pago programado / recurrente",
-                  style: TextStyle(
-                    fontWeight: FontWeight.w600,
-                    color: context.isDarkMode ? context.colors.onSurface : Colors.black87,
+              child: Column(
+                children: [
+                  SwitchListTile.adaptive(
+                    title: Text(
+                      "Recordatorio de pago",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: context.isDarkMode
+                            ? context.colors.onSurface
+                            : Colors.black87,
+                      ),
+                    ),
+                    subtitle: Text(
+                      draft.status == PaymentStatus.pending &&
+                              draft.notifyDaysBefore.isNotEmpty
+                          ? 'Avisar: ${draft.notifyDaysBefore.map((d) => d == 0 ? "el mismo día" : "$d día${d > 1 ? "s" : ""} antes").join(", ")} a las ${draft.notificationTimeOfDay?.hour.toString().padLeft(2, '0') ?? "09"}:${draft.notificationTimeOfDay?.minute.toString().padLeft(2, '0') ?? "00"}'
+                          : 'Las notificaciones de este pago están desactivadas.',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.isDarkMode
+                            ? context.colors.onSurfaceVariant
+                            : Colors.grey.shade600,
+                      ),
+                    ),
+                    value: draft.status == PaymentStatus.pending &&
+                        draft.notifyDaysBefore.isNotEmpty,
+                    onChanged: (value) {
+                      if (value) {
+                        ref
+                            .read(paymentFormProvider.notifier)
+                            .setStatus(PaymentStatus.pending);
+                        if (draft.notifyDaysBefore.isEmpty) {
+                          ref
+                              .read(paymentFormProvider.notifier)
+                              .toggleNotificationOffset(1);
+                        }
+                      } else {
+                        ref
+                            .read(paymentFormProvider.notifier)
+                            .setStatus(PaymentStatus.paused);
+                      }
+                    },
+                    activeTrackColor: context.colors.primary,
+                    activeThumbColor: Colors.white,
                   ),
-                ),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 16),
-                value: isProgramado,
-                onChanged: (value) {
-                  if (value) {
-                    ref
-                        .read(paymentFormProvider.notifier)
-                        .updateFrequency(FrequencyUnit.months);
-                    PaymentConfigBottomSheet.show(context);
-                  } else {
-                    ref
-                        .read(paymentFormProvider.notifier)
-                        .updateFrequency(FrequencyUnit.none);
-                  }
-                },
-                activeColor: context.colors.primary,
+                  if (draft.status == PaymentStatus.pending &&
+                      draft.notifyDaysBefore.isNotEmpty) ...[
+                    const Divider(height: 1),
+                    ListTile(
+                      dense: true,
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16),
+                      leading: Icon(Icons.notifications_active_outlined,
+                          color: context.colors.primary, size: 20),
+                      title: const Text(
+                        "Personalizar días y hora de aviso",
+                        style: TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w500),
+                      ),
+                      trailing: Icon(Icons.chevron_right,
+                          color: context.colors.primary),
+                      onTap: () => PaymentConfigBottomSheet.show(
+                        context,
+                        onlyNotifications: !isProgramado,
+                      ),
+                    ),
+                  ],
+                ],
               ),
             ),
+            const SizedBox(height: 12),
 
-            if (isProgramado) ...[
-              const SizedBox(height: 8),
-              Container(
-                decoration: BoxDecoration(
-                  color: context.isDarkMode ? context.colors.surfaceContainerHigh : Themes.primary.withValues(alpha: 0.05),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(
-                      color: context.isDarkMode ? Colors.white12 : Themes.primary.withValues(alpha: 0.2)),
-                ),
-                child: ListTile(
-                  contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-                  leading: CircleAvatar(
-                    backgroundColor: context.colors.primary.withValues(alpha: 0.1),
-                    child: Icon(Icons.repeat, color: context.colors.primary, size: 20),
-                  ),
-                  title: Text(
-                    "Frecuencia: ${draft.recurrence.unit.name.toUpperCase()}",
-                    style: TextStyle(fontWeight: FontWeight.bold, color: context.isDarkMode ? context.colors.onSurface : Themes.primary),
-                  ),
-                  subtitle: Text(
-                    "Avisar: ${draft.notifyDaysBefore.join(', ')} días antes a las ${draft.notificationTimeOfDay?.hour.toString().padLeft(2, '0')}:${draft.notificationTimeOfDay?.minute.toString().padLeft(2, '0')}",
-                    style: TextStyle(color: context.isDarkMode ? context.colors.onSurfaceVariant : Colors.grey.shade700, fontSize: 12),
-                  ),
-                  trailing: IconButton(
-                    icon: Icon(Icons.edit_calendar, color: context.colors.primary),
-                    onPressed: () => PaymentConfigBottomSheet.show(context),
-                  ),
-                ),
+            // 3. Sección de Pago Recurrente / Programado
+            Container(
+              decoration: BoxDecoration(
+                color: context.isDarkMode
+                    ? context.colors.surfaceContainerHigh
+                    : Colors.white,
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(
+                    color: context.isDarkMode
+                        ? Colors.white12
+                        : Colors.grey.shade300),
               ),
-              const SizedBox(height: 12),
-              SwitchListTile.adaptive(
-                title: const Text('Notificaciones activas', style: TextStyle(fontWeight: FontWeight.w600)),
-                contentPadding: const EdgeInsets.symmetric(horizontal: 4),
-                subtitle: Text(
-                  draft.status == PaymentStatus.pending
-                      ? 'Recibirás recordatorios según esta configuración.'
-                      : 'Las notificaciones de este pago están pausadas.',
-                  style: const TextStyle(fontSize: 12),
-                ),
-                value: draft.status == PaymentStatus.pending,
-                onChanged: (value) {
-                  ref.read(paymentFormProvider.notifier).setStatus(
-                      value ? PaymentStatus.pending : PaymentStatus.paused);
-                },
-                activeColor: Themes.primary,
+              child: Column(
+                children: [
+                  SwitchListTile.adaptive(
+                    title: Text(
+                      "Pago programado / recurrente",
+                      style: TextStyle(
+                        fontWeight: FontWeight.w600,
+                        color: context.isDarkMode
+                            ? context.colors.onSurface
+                            : Colors.black87,
+                      ),
+                    ),
+                    subtitle: Text(
+                      isProgramado
+                          ? 'Se repetirá (${draft.recurrence.unit.name.toUpperCase()}) en la pestaña Programados.'
+                          : 'Pago único (se guardará en la pestaña Pendientes).',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: context.isDarkMode
+                            ? context.colors.onSurfaceVariant
+                            : Colors.grey.shade600,
+                      ),
+                    ),
+                    value: isProgramado,
+                    onChanged: (value) {
+                      if (value) {
+                        ref
+                            .read(paymentFormProvider.notifier)
+                            .updateFrequency(FrequencyUnit.months);
+                        PaymentConfigBottomSheet.show(context,
+                            onlyNotifications: false);
+                      } else {
+                        ref
+                            .read(paymentFormProvider.notifier)
+                            .updateFrequency(FrequencyUnit.none);
+                      }
+                    },
+                    activeTrackColor: context.colors.primary,
+                    activeThumbColor: Colors.white,
+                  ),
+                  if (isProgramado) ...[
+                    const Divider(height: 1),
+                    ListTile(
+                      dense: true,
+                      contentPadding:
+                          const EdgeInsets.symmetric(horizontal: 16),
+                      leading: Icon(Icons.repeat,
+                          color: context.colors.primary, size: 20),
+                      title: Text(
+                        "Frecuencia: ${draft.recurrence.unit.name.toUpperCase()}",
+                        style: const TextStyle(
+                            fontSize: 13, fontWeight: FontWeight.w500),
+                      ),
+                      trailing: Icon(Icons.edit_calendar,
+                          color: context.colors.primary),
+                      onTap: () => PaymentConfigBottomSheet.show(
+                        context,
+                        onlyNotifications: false,
+                      ),
+                    ),
+                  ],
+                ],
               ),
-            ],
+            ),
           ],
         ),
       ),

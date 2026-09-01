@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Permite tráfico HTTP para desarrollo -->
+<!-- Bloquea tráfico HTTP en texto claro y fuerza HTTPS para máxima seguridad -->
 <network-security-config>
-    <base-config cleartextTrafficPermitted="true">
+    <base-config cleartextTrafficPermitted="false">
         <trust-anchors>
             <certificates src="system" />
         </trust-anchors>

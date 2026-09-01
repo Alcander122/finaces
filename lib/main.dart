@@ -8,6 +8,9 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/date_symbol_data_local.dart';
 import 'package:google_mobile_ads/google_mobile_ads.dart'; // 🚀 Importación necesaria para anuncios
 
+import 'package:firebase_app_check/firebase_app_check.dart';
+import 'package:flutter/foundation.dart';
+
 void main() async {
   // Asegurar la inicialización de Flutter antes de llamar a servicios externos
   WidgetsFlutterBinding.ensureInitialized();
@@ -16,13 +19,22 @@ void main() async {
   await initializeDateFormatting('es', null);
   debugPrint('Datos de localización para español inicializados correctamente');
 
-  // 1. Inicializar Firebase
+  // 1. Inicializar Firebase y App Check
   try {
     await Firebase.initializeApp();
     FirebaseAuth.instance.setLanguageCode("es");
     debugPrint('Firebase inicializado correctamente');
+
+    // 🛡️ Activar Firebase App Check (Play Integrity en Producción / Debug Provider en Desarrollo)
+    await FirebaseAppCheck.instance.activate(
+      androidProvider:
+          kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+      appleProvider:
+          kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
+    );
+    debugPrint('Firebase App Check activado correctamente');
   } catch (e) {
-    debugPrint('Error inicializando Firebase: $e');
+    debugPrint('Error inicializando Firebase / App Check: $e');
   }
 
   // 2. 📢 INICIALIZAR ADMOB

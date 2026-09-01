@@ -12,13 +12,13 @@ import 'package:finances/presentations/screens/auth/widgets/forgot_password_dial
 import 'package:finances/presentations/screens/auth/widgets/login_divider.dart';
 import 'package:finances/presentations/screens/auth/widgets/register_link.dart';
 import 'package:finances/presentations/theme/themes.dart';
+import 'package:finances/core/data/services/secure_storage_service.dart';
 import 'package:finances/presentations/widgets/custom_scaffold.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:font_awesome_flutter/font_awesome_flutter.dart';
 import 'package:finances/routes/app_routes.dart';
-import 'package:shared_preferences/shared_preferences.dart'; // 🔥 Necesario para last_email
 
 class LoginScreen extends ConsumerStatefulWidget {
   const LoginScreen({super.key});
@@ -41,7 +41,7 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
   @override
   void initState() {
     super.initState();
-    _loadLastEmail(); // 🔥 Cargar último correo al iniciar
+    _loadLastEmail(); // 🔥 Cargar último correo al iniciar de forma segura
     _checkBiometricStatus();
   }
 
@@ -52,10 +52,9 @@ class LoginScreenState extends ConsumerState<LoginScreen> {
     super.dispose();
   }
 
-  /// 🔥 Carga el último correo usado desde SharedPreferences
+  /// 🔐 Carga el último correo usado desde SecureStorageService
   Future<void> _loadLastEmail() async {
-    final prefs = await SharedPreferences.getInstance();
-    final lastEmail = prefs.getString('last_email');
+    final lastEmail = await SecureStorageService().getLastEmail();
 
     // Si existe un último correo, lo pre-rellenamos
     if (lastEmail != null && lastEmail.isNotEmpty) {

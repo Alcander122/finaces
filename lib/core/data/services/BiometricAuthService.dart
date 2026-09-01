@@ -1,5 +1,5 @@
 // BiometricAuthService.dart (solución definitiva)
-import 'package:shared_preferences/shared_preferences.dart';
+import 'package:finances/core/data/services/secure_storage_service.dart';
 import 'package:local_auth/local_auth.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:flutter/material.dart';
@@ -22,23 +22,17 @@ class BiometricAuthService {
   BiometricAuthService._internal();
 
   final LocalAuthentication _localAuth = LocalAuthentication();
-  SharedPreferences? _prefs; // Almacenamos la instancia de SharedPreferences
+  final SecureStorageService _secureStorage = SecureStorageService();
 
-  /// Inicializa SharedPreferences de forma segura
-  Future<void> _initPrefs() async {
-    _prefs ??= await SharedPreferences.getInstance();
-  }
-
-  /// Genera una clave única por usuario para guardar si tiene biometría activada.
-  String _getUserKey() {
+  /// Obtiene el UID actual del usuario
+  String _getUserId() {
     final user = FirebaseAuth.instance.currentUser;
-    return 'biometric_enabled_${user?.uid ?? 'no_user'}';
+    return user?.uid ?? 'no_user';
   }
 
   /// Verifica si el dispositivo soporta biometría y tiene al menos un método disponible.
   Future<bool> isBiometricAvailable() async {
     try {
-      await _initPrefs(); // Asegurar que SharedPreferences está inicializado
       final deviceSupported = await _localAuth.isDeviceSupported();
       final available = await _localAuth.getAvailableBiometrics();
       return deviceSupported && available.isNotEmpty;
@@ -48,29 +42,22 @@ class BiometricAuthService {
     }
   }
 
-  /// Verifica si el usuario actual tiene activada la biometría en la app (persistido en storage).
+  /// Verifica si el usuario actual tiene activada la biometría en la app (cifrado en Keystore/Keychain).
   Future<bool> isBiometricEnabled() async {
     try {
-      await _initPrefs(); // Asegurar que SharedPreferences está inicializado
-      final key = _getUserKey();
-      debugPrint('Leyendo estado de biometría para clave: $key');
-      final enabled = _prefs?.getBool(key) ?? false;
-      debugPrint('Valor almacenado: $enabled');
-      return enabled;
+      final userId = _getUserId();
+      return await _secureStorage.isBiometricEnabled(userId);
     } catch (e) {
       debugPrint('Error leyendo estado de biometría: $e');
       return false;
     }
   }
 
-  /// Activa o desactiva la biometría para el usuario actual (persiste en storage).
+  /// Activa o desactiva la biometría para el usuario actual (cifrado en Keystore/Keychain).
   Future<void> setBiometricEnabled(bool enabled) async {
     try {
-      await _initPrefs(); // Asegurar que SharedPreferences está inicializado
-      final key = _getUserKey();
-      debugPrint(
-          'Guardando estado de biometría para clave: $key, valor: $enabled');
-      await _prefs?.setBool(key, enabled);
+      final userId = _getUserId();
+      await _secureStorage.setBiometricEnabled(userId, enabled);
     } catch (e) {
       debugPrint('Error guardando estado de biometría: $e');
       rethrow;
@@ -80,10 +67,9 @@ class BiometricAuthService {
   /// Limpia la configuración de biometría del usuario actual (útil al cerrar sesión).
   Future<void> clearBiometricSetting() async {
     try {
-      await _initPrefs(); // Asegurar que SharedPreferences está inicializado
-      final key = _getUserKey();
-      await _prefs?.setBool(key, false);
-      debugPrint('Configuración biométrica eliminada para clave: $key');
+      final userId = _getUserId();
+      await _secureStorage.clearBiometricSetting(userId);
+      debugPrint('Configuración biométrica eliminada para usuario: $userId');
     } catch (e) {
       debugPrint('Error limpiando configuración biométrica: $e');
     }
@@ -92,7 +78,6 @@ class BiometricAuthService {
   /// Método robusto que intenta autenticar y devuelve un estado detallado.
   Future<BiometricAuthStatus> authenticateWithStatus() async {
     try {
-      await _initPrefs(); // Asegurar que SharedPreferences está inicializado
       final deviceSupported = await _localAuth.isDeviceSupported();
       final availableBiometrics = await _localAuth.getAvailableBiometrics();
       final enabled = await isBiometricEnabled();

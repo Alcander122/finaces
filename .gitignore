@@ -119,9 +119,13 @@ macos/Flutter/ephemeral/
 # ==================================
 # Security / Sensitive files
 *.keystore
+*.jks
+**/key.properties
+android/key.properties
 **/google-services.json
 **/GoogleService-Info.plist
 firebase-debug.log
+.env*
 
 # ==================================
 # CI/CD temporales
