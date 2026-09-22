@@ -3,6 +3,7 @@
 // DIÁLOGO: Crear nueva meta con vista previa del plan y prevención de doble submit
 // ============================================================================
 
+import 'package:finances/core/data/models/objetivo_ahorro.dart';
 import 'package:finances/core/data/utils/ahorro_calculator.dart';
 import 'package:finances/core/data/utils/ahorro_validator.dart';
 import 'package:finances/core/data/utils/thousands_formatter.dart';
@@ -11,11 +12,14 @@ import 'package:finances/core/data/providers/ahorro_provider.dart';
 import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 
 class DialogoNuevaMetaMejorado extends ConsumerStatefulWidget {
-  const DialogoNuevaMetaMejorado({super.key});
+  final ObjetivoAhorro? metaExistente;
+
+  const DialogoNuevaMetaMejorado({this.metaExistente, super.key});
 
   @override
   ConsumerState<DialogoNuevaMetaMejorado> createState() =>
@@ -38,6 +42,17 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
   @override
   void initState() {
     super.initState();
+    if (widget.metaExistente != null) {
+      _nombreController.text = widget.metaExistente!.nombre;
+      _montoController.text = NumberFormat.decimalPattern('es_CO')
+          .format(widget.metaExistente!.montoObjetivo.toInt());
+      _fechaObjetivo = widget.metaExistente!.fechaObjetivo;
+      _desglose = AhorroCalculator.calcularDesglose(
+        montoObjetivo: widget.metaExistente!.montoObjetivo,
+        fechaObjetivo: widget.metaExistente!.fechaObjetivo,
+        montoActual: widget.metaExistente!.montoActual,
+      );
+    }
     WidgetsBinding.instance
         .addPostFrameCallback((_) => _nombreFocusNode.requestFocus());
   }
@@ -59,7 +74,7 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
         _desglose = AhorroCalculator.calcularDesglose(
           montoObjetivo: monto,
           fechaObjetivo: _fechaObjetivo!,
-          montoActual: 0.0, // Nueva meta → nada ahorrado aún
+          montoActual: widget.metaExistente?.montoActual ?? 0.0,
         );
       });
     } else {
@@ -69,20 +84,24 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
 
   Future<void> _seleccionarFecha() async {
     if (_isSaving) return;
+
+    final ahora = DateTime.now();
+    final fechaBase = (_fechaObjetivo != null && _fechaObjetivo!.isAfter(ahora))
+        ? _fechaObjetivo!
+        : ahora.add(const Duration(days: 30));
     
     final fecha = await showDatePicker(
       context: context,
-      initialDate:
-          _fechaObjetivo ?? DateTime.now().add(const Duration(days: 30)),
-      firstDate: DateTime.now(),
-      lastDate: DateTime.now().add(const Duration(days: 3650)),
-      builder: (context, child) {
+      initialDate: fechaBase,
+      firstDate: ahora,
+      lastDate: ahora.add(const Duration(days: 3650)),
+      builder: (dialogCtx, child) {
         return Theme(
-          data: Theme.of(context).copyWith(
-            colorScheme: const ColorScheme.light(
-              primary: Themes.primary,
+          data: Theme.of(dialogCtx).copyWith(
+            colorScheme: ColorScheme.light(
+              primary: context.isDarkMode ? context.colors.primary : Themes.primary,
               onPrimary: Colors.white,
-              onSurface: Themes.primary,
+              onSurface: context.colors.onSurface,
             ),
           ),
           child: child!,
@@ -111,21 +130,52 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
     final monto = double.tryParse(_montoController.text.replaceAll('.', ''));
     if (monto == null || monto <= 0) return;
 
+    final esEdicion = widget.metaExistente != null;
+
+    // Validación UX: no permitir meta menor a lo ya ahorrado
+    if (esEdicion && monto < widget.metaExistente!.montoActual) {
+      UIHelpers.showErrorSnackBar(
+        context: context,
+        message:
+            'El monto objetivo no puede ser menor a lo ya ahorrado (${UIHelpers.formatCurrency(widget.metaExistente!.montoActual)}).',
+      );
+      return;
+    }
+
     setState(() => _isSaving = true);
 
     try {
-      await ref.read(ahorroControllerProvider.notifier).crearMeta(
-            nombre: _nombreController.text.trim(),
-            montoObjetivo: monto,
-            fechaObjetivo: _fechaObjetivo!,
+      if (esEdicion) {
+        await ref.read(ahorroControllerProvider.notifier).actualizarMeta(
+              metaId: widget.metaExistente!.id!,
+              nombre: _nombreController.text.trim(),
+              montoObjetivo: monto,
+              fechaObjetivo: _fechaObjetivo!,
+            );
+        
+        if (mounted) {
+          HapticFeedback.mediumImpact();
+          Navigator.pop(context);
+          UIHelpers.showSuccessSnackBar(
+            context: context,
+            message: 'Meta "${_nombreController.text.trim()}" actualizada exitosamente.',
           );
-      
-      if (mounted) {
-        Navigator.pop(context);
-        UIHelpers.showSuccessSnackBar(
-          context: context,
-          message: 'Meta "${_nombreController.text.trim()}" creada exitosamente.',
-        );
+        }
+      } else {
+        await ref.read(ahorroControllerProvider.notifier).crearMeta(
+              nombre: _nombreController.text.trim(),
+              montoObjetivo: monto,
+              fechaObjetivo: _fechaObjetivo!,
+            );
+        
+        if (mounted) {
+          HapticFeedback.mediumImpact();
+          Navigator.pop(context);
+          UIHelpers.showSuccessSnackBar(
+            context: context,
+            message: 'Meta "${_nombreController.text.trim()}" creada exitosamente.',
+          );
+        }
       }
     } catch (e) {
       setState(() => _isSaving = false);
@@ -140,6 +190,9 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
 
   @override
   Widget build(BuildContext context) {
+    final esEdicion = widget.metaExistente != null;
+    final primaryColor = context.isDarkMode ? context.colors.primary : Themes.primary;
+
     return Dialog(
       elevation: 10,
       backgroundColor: context.dialogBgColor,
@@ -157,34 +210,38 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
               // Encabezado Premium
               Container(
                 padding: const EdgeInsets.symmetric(vertical: 20, horizontal: 24),
-                decoration: const BoxDecoration(
-                  color: Themes.primary,
-                  borderRadius: BorderRadius.only(
+                decoration: BoxDecoration(
+                  color: primaryColor,
+                  borderRadius: const BorderRadius.only(
                     topLeft: Radius.circular(24),
                     topRight: Radius.circular(24),
                   ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.savings, color: Colors.white, size: 28),
+                    Icon(
+                      esEdicion ? Icons.edit_note_rounded : Icons.savings,
+                      color: context.isDarkMode ? const Color(0xFF003366) : Colors.white,
+                      size: 28,
+                    ),
                     const SizedBox(width: 12),
                     Expanded(
                       child: Text(
-                        'Nueva Meta de Ahorro',
+                        esEdicion ? 'Editar Meta de Ahorro' : 'Nueva Meta de Ahorro',
                         style: Theme.of(context).textTheme.titleLarge?.copyWith(
-                              color: Colors.white,
+                              color: context.isDarkMode ? const Color(0xFF003366) : Colors.white,
                               fontWeight: FontWeight.bold,
                               fontSize: 20,
                             ),
                       ),
                     ),
                     if (_isSaving)
-                      const SizedBox(
+                      SizedBox(
                         width: 20,
                         height: 20,
                         child: CircularProgressIndicator(
                           strokeWidth: 2,
-                          color: Colors.white,
+                          color: context.isDarkMode ? const Color(0xFF003366) : Colors.white,
                         ),
                       )
                   ],
@@ -193,9 +250,12 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
 
               // Cuerpo
               Flexible(
-                child: SingleChildScrollView(
-                  padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
-                  child: Form(
+                child: GestureDetector(
+                  onTap: () => FocusScope.of(context).unfocus(),
+                  behavior: HitTestBehavior.opaque,
+                  child: SingleChildScrollView(
+                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 20),
+                    child: Form(
                     key: _formKey,
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -209,7 +269,7 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
                           decoration: InputDecoration(
                             labelText: 'Nombre de la Meta',
                             hintText: 'Ej. Fondo de Emergencias',
-                            prefixIcon: const Icon(Icons.flag_outlined, color: Themes.primary),
+                            prefixIcon: Icon(Icons.flag_outlined, color: primaryColor),
                             filled: true,
                             fillColor: context.isDarkMode
                                 ? context.colors.surfaceContainerLow
@@ -230,7 +290,7 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Themes.primary, width: 2),
+                              borderSide: BorderSide(color: primaryColor, width: 2),
                             ),
                           ),
                           onChanged: (_) => _actualizarDesglose(),
@@ -248,7 +308,7 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
                           decoration: InputDecoration(
                             labelText: 'Monto Objetivo',
                             hintText: '0',
-                            prefixIcon: const Icon(Icons.attach_money, color: Themes.primary),
+                            prefixIcon: Icon(Icons.attach_money, color: primaryColor),
                             filled: true,
                             fillColor: context.isDarkMode
                                 ? context.colors.surfaceContainerLow
@@ -269,7 +329,7 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
                             ),
                             focusedBorder: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(12),
-                              borderSide: const BorderSide(color: Themes.primary, width: 2),
+                              borderSide: BorderSide(color: primaryColor, width: 2),
                             ),
                           ),
                           onChanged: (_) => _actualizarDesglose(),
@@ -319,7 +379,7 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
                                       style: TextStyle(
                                         fontSize: 14,
                                         color: _fechaObjetivo != null
-                                            ? Themes.primary
+                                            ? primaryColor
                                             : (context.isDarkMode
                                                 ? Colors.white38
                                                 : Colors.grey.shade500),
@@ -330,7 +390,7 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
                                     ),
                                   ],
                                 ),
-                                const Icon(Icons.calendar_month, color: Themes.primary),
+                                Icon(Icons.calendar_month, color: primaryColor),
                               ],
                             ),
                           ),
@@ -366,6 +426,7 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
                     ),
                   ),
                 ),
+              ),
               ),
 
               // Botones de Acción
@@ -408,9 +469,9 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
                     ElevatedButton(
                       onPressed: _isSaving ? null : _guardarMeta,
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Themes.primary,
-                        foregroundColor: Colors.white,
-                        shadowColor: Themes.primary.withOpacity(0.4),
+                        backgroundColor: primaryColor,
+                        foregroundColor: context.isDarkMode ? const Color(0xFF003366) : Colors.white,
+                        shadowColor: primaryColor.withValues(alpha: 0.4),
                         elevation: 4,
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
                         shape: RoundedRectangleBorder(
@@ -418,17 +479,17 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
                         ),
                       ),
                       child: _isSaving
-                          ? const SizedBox(
+                          ? SizedBox(
                               width: 20,
                               height: 20,
                               child: CircularProgressIndicator(
                                 strokeWidth: 2,
-                                color: Colors.white,
+                                color: context.isDarkMode ? const Color(0xFF003366) : Colors.white,
                               ),
                             )
-                          : const Text(
-                              'Crear Meta',
-                              style: TextStyle(
+                          : Text(
+                              esEdicion ? 'Guardar Cambios' : 'Crear Meta',
+                              style: const TextStyle(
                                 fontWeight: FontWeight.bold,
                               ),
                             ),
@@ -444,42 +505,50 @@ class _DialogoNuevaMetaMejoradoState extends ConsumerState<DialogoNuevaMetaMejor
   }
 
   Widget _desgloseCompacto(AhorroDesglose d) {
+    final primaryColor = context.isDarkMode ? context.colors.primary : Themes.primary;
+
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Themes.infoBlue.withOpacity(0.4),
+        color: context.isDarkMode
+            ? context.colors.surfaceContainerHigh
+            : Themes.infoBlue.withOpacity(0.4),
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Themes.primary.withOpacity(0.1)),
+        border: Border.all(
+          color: context.isDarkMode
+              ? Colors.white12
+              : Themes.primary.withOpacity(0.1),
+        ),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
             children: [
-              const Icon(Icons.insights, color: Themes.primary, size: 20),
+              Icon(Icons.insights, color: primaryColor, size: 20),
               const SizedBox(width: 8),
-              const Expanded(
+              Expanded(
                 child: Text(
                   'Plan de Ahorro',
                   style: TextStyle(
                     fontWeight: FontWeight.bold,
                     fontSize: 14,
-                    color: Themes.primary,
+                    color: primaryColor,
                   ),
                 ),
               ),
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Themes.primary.withOpacity(0.1),
+                  color: primaryColor.withValues(alpha: context.isDarkMode ? 0.2 : 0.1),
                   borderRadius: BorderRadius.circular(20),
                 ),
                 child: Text(
                   d.mensajeTiempoRestante,
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
-                    color: Themes.primary,
+                    color: primaryColor,
                   ),
                 ),
               ),

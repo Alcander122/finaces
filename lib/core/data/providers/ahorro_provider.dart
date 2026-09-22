@@ -88,6 +88,29 @@ class AhorroController extends AsyncNotifier<void> {
       throw DbErrorHandler.handle(result.error);
     }
   }
+
+  /// Actualiza una meta de ahorro existente
+  Future<void> actualizarMeta({
+    required String metaId,
+    required String nombre,
+    required double montoObjetivo,
+    required DateTime fechaObjetivo,
+  }) async {
+    state = const AsyncValue.loading();
+    final result = await AsyncValue.guard(() async {
+      final service = ref.read(ahorroServiceProvider);
+      await service.actualizarMeta(
+        metaId: metaId,
+        nombre: nombre,
+        montoObjetivo: montoObjetivo,
+        fechaObjetivo: fechaObjetivo,
+      );
+    });
+    state = result;
+    if (result.hasError) {
+      throw DbErrorHandler.handle(result.error);
+    }
+  }
 }
 
 /// Proveedor global para el controlador de ahorros

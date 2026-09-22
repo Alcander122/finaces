@@ -18,6 +18,7 @@ import 'package:finances/presentations/screens/Home/home_screen.dart';
 import 'package:finances/core/data/providers/auth_provider.dart';
 import 'package:finances/presentations/screens/Estadistica/category_details.dart';
 import 'package:finances/core/data/models/filter.dart';
+import 'package:finances/presentations/screens/movimientos/movimientos_screen.dart';
 
 class AppRoutes {
   // Ruta exclusiva para la pantalla de bienvenida.
@@ -38,6 +39,8 @@ class AppRoutes {
   static const String agregarPago = '/agregar-pago';
   static const String editarPago = '/editar-pago';
   static const String estadistica = '/Estadistica';
+  // Nueva ruta unificada para Movimientos (Gastos e Ingresos con Tabs)
+  static const String movimientos = '/movimientos';
   // Nueva ruta para detalles de categoría
   static const String categoryDetails = '/category-details';
 
@@ -78,6 +81,14 @@ class AppRoutes {
 
       // estadistica siempre debe mostrar StatisticScreen
       estadistica: (context) => const StatisticScreen(),
+
+      // movimientos siempre debe mostrar la pantalla unificada con Tabs
+      movimientos: (context) {
+        final args =
+            ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+        final initialTab = args?['initialTab'] as int? ?? 0;
+        return MovimientosScreen(initialTab: initialTab);
+      },
 
       // categoryDetails siempre debe mostrar CategoryDetailsScreen
       categoryDetails: (context) {

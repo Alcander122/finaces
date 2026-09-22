@@ -1,20 +1,4 @@
 // Archivo de configuración de nivel superior para todas las subproyectos/modules
-buildscript {
-    repositories {
-        google()        // Repositorio de Google
-        mavenCentral()  // Repositorio central de Maven
-    }
-    dependencies {
-        // Plugin de Google Services para Firebase
-        classpath 'com.google.gms:google-services:4.3.15'
-
-        // Plugin de Kotlin Gradle (versión compatible con AGP 8.2)
-        classpath 'org.jetbrains.kotlin:kotlin-gradle-plugin:2.1.0'
-
-        // Plugin de Android Gradle (compatible con Gradle 8.4)
-        classpath 'com.android.tools.build:gradle:8.6.0'
-    }
-}
 
 allprojects {
     repositories {

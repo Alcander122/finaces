@@ -1,6 +1,5 @@
 import 'package:finances/core/data/models/objetivo_ahorro.dart';
 import 'package:finances/presentations/theme/theme.dart';
-import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';

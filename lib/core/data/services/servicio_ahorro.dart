@@ -84,6 +84,27 @@ class AhorroService {
         .delete();
   }
 
+  /// 🔹 Actualiza los datos editables de una meta (nombre, montoObjetivo, fechaObjetivo).
+  /// No modifica el montoActual ni el historial de transacciones para salvaguardar la contabilidad.
+  Future<void> actualizarMeta({
+    required String metaId,
+    required String nombre,
+    required double montoObjetivo,
+    required DateTime fechaObjetivo,
+  }) async {
+    await _firestore
+        .collection('users')
+        .doc(_usuario?.uid)
+        .collection('ahorro')
+        .doc(metaId)
+        .update({
+      'nombre': nombre,
+      'montoObjetivo': montoObjetivo,
+      'fechaObjetivo': fechaObjetivo,
+      'fechaActualizacion': FieldValue.serverTimestamp(),
+    });
+  }
+
   /// 🔹 Obtiene una meta de ahorro por su ID.
   /// Esto se usa, por ejemplo, para calcular el maxMonto en el diálogo.
   Future<ObjetivoAhorro> obtenerMetaPorId(String metaId) async {

@@ -85,8 +85,8 @@ class AhorroScreenState extends ConsumerState<AhorroScreen> {
                       icon: const Icon(Icons.add),
                       label: const Text('Crear mi primera meta'),
                       style: ElevatedButton.styleFrom(
-                        backgroundColor: Themes.primary,
-                        foregroundColor: Colors.white,
+                        backgroundColor: context.isDarkMode ? context.colors.primary : Themes.primary,
+                        foregroundColor: context.isDarkMode ? const Color(0xFF003366) : Colors.white,
                         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 14),
                         shape: RoundedRectangleBorder(
                           borderRadius: BorderRadius.circular(12),
@@ -107,13 +107,14 @@ class AhorroScreenState extends ConsumerState<AhorroScreen> {
               onTransaccion: (tipo) =>
                   _mostrarDialogoTransaccion(metas[i].id!, tipo),
               onVerDetalles: () => _mostrarDetallesTransacciones(metas[i]),
+              onEditar: () => _mostrarDialogoEditarMeta(metas[i]),
               onEliminar: () => _eliminarMeta(metas[i]),
             ),
           );
         },
-        loading: () => const Center(
+        loading: () => Center(
           child: CircularProgressIndicator(
-            color: Themes.primary,
+            color: context.colors.primary,
           ),
         ),
         error: (error, _) => Center(
@@ -140,8 +141,9 @@ class AhorroScreenState extends ConsumerState<AhorroScreen> {
       ),
       floatingActionButton: FloatingActionButton(
         onPressed: _mostrarDialogoNuevaMeta,
-        backgroundColor: Themes.primary,
-        child: const Icon(Icons.add, color: Colors.white),
+        backgroundColor: context.isDarkMode ? context.colors.primary : Themes.primary,
+        foregroundColor: context.isDarkMode ? const Color(0xFF003366) : Colors.white,
+        child: const Icon(Icons.add),
       ),
     );
   }
@@ -154,6 +156,17 @@ class AhorroScreenState extends ConsumerState<AhorroScreen> {
       context: context,
       barrierDismissible: false, // Forzar uso de Cancelar para evitar estados inconsistentes
       builder: (dialogContext) => const DialogoNuevaMetaMejorado(),
+    );
+  }
+
+  // ============================================================================
+  // MOSTRAR DIÁLOGO EDITAR META EXISTENTE
+  // ============================================================================
+  void _mostrarDialogoEditarMeta(ObjetivoAhorro meta) {
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => DialogoNuevaMetaMejorado(metaExistente: meta),
     );
   }
 

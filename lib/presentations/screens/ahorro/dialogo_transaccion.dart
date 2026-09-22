@@ -10,6 +10,7 @@ import 'package:finances/core/data/providers/ahorro_provider.dart';
 import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 
 class DialogoTransaccion extends ConsumerStatefulWidget {
@@ -101,6 +102,7 @@ class _DialogoTransaccionState extends ConsumerState<DialogoTransaccion> {
           );
 
       if (mounted) {
+        HapticFeedback.mediumImpact();
         Navigator.pop(context);
         UIHelpers.showSuccessSnackBar(
           context: context,
@@ -180,9 +182,12 @@ class _DialogoTransaccionState extends ConsumerState<DialogoTransaccion> {
               ),
 
               // Cuerpo
-              Padding(
-                padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
-                child: Form(
+              GestureDetector(
+                onTap: () => FocusScope.of(context).unfocus(),
+                behavior: HitTestBehavior.opaque,
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(24, 20, 24, 8),
+                  child: Form(
                   key: _formKey,
                   child: Column(
                     children: [
@@ -310,6 +315,7 @@ class _DialogoTransaccionState extends ConsumerState<DialogoTransaccion> {
                     ],
                   ),
                 ),
+              ),
               ),
 
               // Botones

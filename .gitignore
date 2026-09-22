@@ -34,6 +34,7 @@ app.*.map.json
 /android/.gradle/
 /android/.idea/
 /android/local.properties
+/local.properties
 /android/*.iml
 **/android/captures/
 /android/gradle-wrapper.jar

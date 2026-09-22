@@ -9,6 +9,7 @@ import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/presentations/theme/themes.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:intl/intl.dart';
 
 class ElementoObjetivoAhorroMejorado extends StatelessWidget {
@@ -16,6 +17,7 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
   final Function(String) onTransaccion;
   final Function() onVerDetalles;
   final Function() onEliminar;
+  final VoidCallback? onEditar;
   final bool mostrarDesglose;
 
   const ElementoObjetivoAhorroMejorado({
@@ -24,6 +26,7 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
     required this.onTransaccion,
     required this.onVerDetalles,
     required this.onEliminar,
+    this.onEditar,
     this.mostrarDesglose = true,
   });
 
@@ -104,13 +107,17 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
                           Icon(
                             Icons.calendar_month_outlined,
                             size: 14,
-                            color: Colors.grey.shade500,
+                            color: context.isDarkMode
+                                ? context.colors.onSurfaceVariant
+                                : Colors.grey.shade500,
                           ),
                           const SizedBox(width: 4),
                           Text(
                             'Finaliza: ${DateFormat('dd/MM/yyyy').format(meta.fechaObjetivo)}',
                             style: TextStyle(
-                              color: Colors.grey.shade600,
+                              color: context.isDarkMode
+                                  ? context.colors.onSurfaceVariant
+                                  : Colors.grey.shade600,
                               fontSize: 12,
                             ),
                           ),
@@ -125,7 +132,7 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                   decoration: BoxDecoration(
-                    color: getProgressColor().withOpacity(0.1),
+                    color: getProgressColor().withValues(alpha: context.isDarkMode ? 0.2 : 0.1),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Text(
@@ -147,19 +154,28 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
                 margin: const EdgeInsets.only(bottom: 16),
                 padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
-                  color: Colors.red.shade50,
+                  color: context.isDarkMode
+                      ? const Color(0xFFEF5350).withValues(alpha: 0.12)
+                      : Colors.red.shade50,
                   borderRadius: BorderRadius.circular(8),
-                  border: Border.all(color: Colors.red.shade100),
+                  border: Border.all(
+                    color: context.isDarkMode
+                        ? const Color(0xFFEF5350).withValues(alpha: 0.3)
+                        : Colors.red.shade100,
+                  ),
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.timer_off_outlined, color: Themes.red, size: 16),
+                    const Icon(Icons.timer_off_outlined,
+                        color: Color(0xFFEF5350), size: 16),
                     const SizedBox(width: 8),
                     Expanded(
                       child: Text(
                         'Esta meta ha superado su fecha límite.',
                         style: TextStyle(
-                          color: Colors.red.shade800,
+                          color: context.isDarkMode
+                              ? const Color(0xFFFF8A80)
+                              : Colors.red.shade800,
                           fontSize: 11,
                           fontWeight: FontWeight.w600,
                         ),
@@ -181,7 +197,9 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
                     value: value,
                     minHeight: 14,
                     color: getProgressColor(),
-                    backgroundColor: Colors.grey.shade100,
+                    backgroundColor: context.isDarkMode
+                        ? Colors.white.withValues(alpha: 0.1)
+                        : Colors.grey.shade100,
                   ),
                 );
               },
@@ -199,7 +217,9 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
                       'Ahorrado',
                       style: TextStyle(
                         fontSize: 11,
-                        color: Colors.grey.shade500,
+                        color: context.isDarkMode
+                            ? context.colors.onSurfaceVariant
+                            : Colors.grey.shade500,
                         fontWeight: FontWeight.w500,
                       ),
                     ),
@@ -211,7 +231,9 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 22,
                           fontWeight: FontWeight.bold,
-                          color: Colors.green.shade700,
+                          color: context.isDarkMode
+                              ? const Color(0xFF34D399)
+                              : Colors.green.shade700,
                           letterSpacing: -0.5,
                         ),
                       ),
@@ -226,7 +248,9 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
                       'Objetivo: ${UIHelpers.formatCurrency(meta.montoObjetivo)}',
                       style: TextStyle(
                         fontSize: 12,
-                        color: Colors.grey.shade600,
+                        color: context.isDarkMode
+                            ? context.colors.onSurface.withValues(alpha: 0.8)
+                            : Colors.grey.shade600,
                         fontWeight: FontWeight.bold,
                       ),
                     ),
@@ -238,7 +262,13 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
                       style: TextStyle(
                         fontSize: 11,
                         fontWeight: FontWeight.bold,
-                        color: meta.montoRestante > 0 ? Colors.grey.shade500 : Colors.green,
+                        color: meta.montoRestante > 0
+                            ? (context.isDarkMode
+                                ? context.colors.onSurfaceVariant
+                                : Colors.grey.shade500)
+                            : (context.isDarkMode
+                                ? const Color(0xFF34D399)
+                                : Colors.green),
                       ),
                     ),
                   ],
@@ -287,66 +317,131 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
             if (mostrarDesglose && meta.montoRestante > 0)
               const SizedBox(height: 20),
 
-            // Fila de Botones M3
-            Row(
-              mainAxisAlignment: MainAxisAlignment.end,
-              children: [
-                // Detalles / Historial
-                _botonAccion(
-                  icon: Icons.history,
-                  tooltip: 'Historial',
-                  color: Themes.primary,
-                  onPressed: onVerDetalles,
-                ),
-                const SizedBox(width: 8),
-                
-                // Eliminar
-                _botonAccion(
-                  icon: Icons.delete_outline,
-                  tooltip: 'Eliminar',
-                  color: Colors.red.shade400,
-                  onPressed: onEliminar,
-                ),
-                
-                const Spacer(),
+            // Fila de Botones Adaptables y Responsivos
+            LayoutBuilder(
+              builder: (context, constraints) {
+                final tieneBotonesTransaccion = !estaVencida && meta.montoRestante > 0;
+                // Si el ancho es >= 370px, cabe todo en 1 fila; si no, se divide en 2 filas limpias
+                final esAncho = constraints.maxWidth >= 370;
 
-                // Transacciones si no está vencida y no completada
-                if (!estaVencida && meta.montoRestante > 0) ...[
-                  // Retirar
-                  OutlinedButton.icon(
-                    onPressed: meta.montoActual > 0 ? () => onTransaccion('retiro') : null,
-                    icon: const Icon(Icons.remove, size: 16),
-                    label: const Text(
+                final widgetRetirar = OutlinedButton.icon(
+                  onPressed: meta.montoActual > 0
+                      ? () {
+                          HapticFeedback.lightImpact();
+                          onTransaccion('retiro');
+                        }
+                      : null,
+                  icon: const Icon(Icons.remove, size: 16),
+                  label: const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
                       'Retirar',
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                     ),
-                    style: OutlinedButton.styleFrom(
-                      foregroundColor: Colors.red.shade700,
-                      side: BorderSide(color: Colors.red.shade200),
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
                   ),
-                  const SizedBox(width: 8),
+                  style: OutlinedButton.styleFrom(
+                    foregroundColor: context.isDarkMode ? const Color(0xFFFF6B6B) : Colors.red.shade700,
+                    side: BorderSide(
+                      color: context.isDarkMode
+                          ? const Color(0xFFFF6B6B).withValues(alpha: 0.6)
+                          : Colors.red.shade200,
+                    ),
+                    backgroundColor: context.isDarkMode
+                        ? const Color(0xFFFF6B6B).withValues(alpha: 0.1)
+                        : Colors.transparent,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                );
 
-                  // Depositar
-                  ElevatedButton.icon(
-                    onPressed: () => onTransaccion('deposito'),
-                    icon: const Icon(Icons.add, size: 16),
-                    label: const Text(
+                final widgetAhorrar = ElevatedButton.icon(
+                  onPressed: () {
+                    HapticFeedback.lightImpact();
+                    onTransaccion('deposito');
+                  },
+                  icon: const Icon(Icons.add, size: 16),
+                  label: const FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
                       'Ahorrar',
                       style: TextStyle(fontSize: 12, fontWeight: FontWeight.bold),
                     ),
-                    style: ElevatedButton.styleFrom(
-                      backgroundColor: Colors.green.shade600,
-                      foregroundColor: Colors.white,
-                      elevation: 0,
-                      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 10),
-                      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-                    ),
                   ),
-                ],
-              ],
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: context.isDarkMode
+                        ? const Color(0xFF10B981)
+                        : Colors.green.shade600,
+                    foregroundColor: Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+                    shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+                  ),
+                );
+
+                final widgetsGestion = [
+                  // Detalles / Historial
+                  _botonAccion(
+                    icon: Icons.history,
+                    tooltip: 'Historial',
+                    color: context.isDarkMode ? context.colors.primary : Themes.primary,
+                    onPressed: onVerDetalles,
+                  ),
+                  const SizedBox(width: 8),
+
+                  // Editar meta: solo disponible mientras NO esté al 100% cumplida (disponible si está vencida para reactivarla)
+                  if (onEditar != null && meta.montoRestante > 0) ...[
+                    _botonAccion(
+                      icon: Icons.edit_outlined,
+                      tooltip: estaVencida ? 'Reactivar / Editar fecha y meta' : 'Editar meta',
+                      color: context.isDarkMode ? const Color(0xFF60A5FA) : Colors.blue.shade700,
+                      onPressed: onEditar!,
+                    ),
+                    const SizedBox(width: 8),
+                  ],
+
+                  // Eliminar
+                  _botonAccion(
+                    icon: Icons.delete_outline,
+                    tooltip: 'Eliminar',
+                    color: context.isDarkMode ? const Color(0xFFEF5350) : Colors.red.shade400,
+                    onPressed: onEliminar,
+                  ),
+                ];
+
+                if (esAncho || !tieneBotonesTransaccion) {
+                  return Row(
+                    children: [
+                      ...widgetsGestion,
+                      if (tieneBotonesTransaccion) ...[
+                        const Spacer(),
+                        widgetRetirar,
+                        const SizedBox(width: 8),
+                        widgetAhorrar,
+                      ],
+                    ],
+                  );
+                } else {
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.stretch,
+                    children: [
+                      // En pantallas angostas, acciones de gestión a la derecha
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.end,
+                        children: widgetsGestion,
+                      ),
+                      const SizedBox(height: 10),
+                      // Y botones de transacción ocupando todo el ancho cómodamente
+                      Row(
+                        children: [
+                          Expanded(child: widgetRetirar),
+                          const SizedBox(width: 8),
+                          Expanded(child: widgetAhorrar),
+                        ],
+                      ),
+                    ],
+                  );
+                }
+              },
             ),
           ],
         ),
@@ -383,13 +478,18 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
               Container(
                 padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                 decoration: BoxDecoration(
-                  color: Themes.primary.withOpacity(0.08),
+                  color: context.isDarkMode
+                      ? context.colors.primary.withValues(alpha: 0.18)
+                      : Themes.primary.withOpacity(0.08),
                   borderRadius: BorderRadius.circular(12),
+                  border: context.isDarkMode
+                      ? Border.all(color: context.colors.primary.withValues(alpha: 0.3), width: 1)
+                      : null,
                 ),
                 child: Text(
                   desglose.mensajeTiempoRestante,
-                  style: const TextStyle(
-                    color: Themes.primary,
+                  style: TextStyle(
+                    color: context.isDarkMode ? context.colors.primary : Themes.primary,
                     fontSize: 10,
                     fontWeight: FontWeight.bold,
                   ),
@@ -446,17 +546,27 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
                     : [Colors.green.shade50, Colors.teal.shade50.withOpacity(0.4)],
               ),
               borderRadius: BorderRadius.circular(12),
-              border: Border.all(color: context.isDarkMode ? Colors.green.shade700 : Colors.green.shade100),
+              border: Border.all(
+                color: context.isDarkMode
+                    ? const Color(0xFF10B981).withValues(alpha: 0.4)
+                    : Colors.green.shade100,
+              ),
             ),
             child: Row(
               children: [
                 Container(
                   padding: const EdgeInsets.all(6),
                   decoration: BoxDecoration(
-                    color: context.isDarkMode ? Colors.green.shade900 : Colors.white,
+                    color: context.isDarkMode
+                        ? const Color(0xFF065F46)
+                        : Colors.white,
                     shape: BoxShape.circle,
                   ),
-                  child: Icon(Icons.star, color: context.isDarkMode ? Colors.green.shade300 : Colors.green.shade700, size: 16),
+                  child: Icon(
+                    Icons.star,
+                    color: context.isDarkMode ? const Color(0xFF6EE7B7) : Colors.green.shade700,
+                    size: 16,
+                  ),
                 ),
                 const SizedBox(width: 10),
                 Expanded(
@@ -468,7 +578,7 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
                         style: TextStyle(
                           fontSize: 9,
                           fontWeight: FontWeight.bold,
-                          color: context.isDarkMode ? Colors.green.shade200 : Colors.green.shade900,
+                          color: context.isDarkMode ? const Color(0xFF6EE7B7) : Colors.green.shade900,
                           letterSpacing: 0.5,
                         ),
                       ),
@@ -561,12 +671,15 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
     return Tooltip(
       message: tooltip,
       child: InkWell(
-        onTap: onPressed,
+        onTap: () {
+          HapticFeedback.lightImpact();
+          onPressed();
+        },
         borderRadius: BorderRadius.circular(10),
         child: Ink(
           padding: const EdgeInsets.all(10),
           decoration: BoxDecoration(
-            color: color.withOpacity(0.08),
+            color: color.withValues(alpha: 0.12),
             borderRadius: BorderRadius.circular(10),
           ),
           child: Icon(
@@ -592,15 +705,23 @@ class ElementoObjetivoAhorroMejorado extends StatelessWidget {
       margin: const EdgeInsets.symmetric(vertical: 10),
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: context.isDarkMode ? context.colors.surfaceContainerHigh : Colors.white,
         borderRadius: BorderRadius.circular(16),
-        border: Border.all(color: Colors.red.shade100),
+        border: Border.all(
+          color: context.isDarkMode
+              ? Colors.red.withValues(alpha: 0.4)
+              : Colors.red.shade100,
+        ),
       ),
       child: Column(
         children: [
           Text(
             meta.nombre,
-            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16),
+            style: TextStyle(
+              fontWeight: FontWeight.bold,
+              fontSize: 16,
+              color: context.isDarkMode ? context.colors.onSurface : Colors.black87,
+            ),
           ),
           const SizedBox(height: 12),
           Row(
