@@ -28,25 +28,35 @@ final portafoliosProvider =
       .obtenerPortafoliosEnTiempoReal(userId);
 });
 
-/// Proveedor para las tasas de conversión de divisas en tiempo real (COP, USD, EUR)
-final exchangeRatesProvider = FutureProvider<Map<String, double>>((ref) async {
-  final service = ref.watch(currencyServiceProvider);
-  try {
-    final usdToCop = await service.getExchangeRate('USD', 'COP');
-    final eurToCop = await service.getExchangeRate('EUR', 'COP');
-    return {
-      'USD': usdToCop,
-      'EUR': eurToCop,
-      'COP': 1.0,
-    };
-  } catch (e) {
-    // Si falla la petición, retornamos tasas estables de respaldo
-    return {
-      'USD': 4000.0,
-      'EUR': 4300.0,
-      'COP': 1.0,
-    };
+/// Notificador para gestionar el estado de las tasas de cambio y permitir actualización manual/forzada
+class ExchangeRatesNotifier extends StateNotifier<AsyncValue<CurrencyRates>> {
+  final CurrencyService _service;
+
+  ExchangeRatesNotifier(this._service) : super(const AsyncValue.loading()) {
+    loadRates();
   }
+
+  Future<void> loadRates({bool forceRefresh = false}) async {
+    try {
+      final rates = await _service.getRates(forceRefresh: forceRefresh);
+      state = AsyncValue.data(rates);
+    } catch (e, st) {
+      state = AsyncValue.error(e, st);
+    }
+  }
+}
+
+/// Proveedor del estado reactivo de las tasas de cambio con timestamp y control de caché
+final exchangeRatesStateProvider =
+    StateNotifierProvider<ExchangeRatesNotifier, AsyncValue<CurrencyRates>>((ref) {
+  final service = ref.watch(currencyServiceProvider);
+  return ExchangeRatesNotifier(service);
+});
+
+/// Proveedor para las tasas de conversión de divisas consumido por el dashboard y detalle
+final exchangeRatesProvider = Provider<AsyncValue<Map<String, double>>>((ref) {
+  final ratesAsync = ref.watch(exchangeRatesStateProvider);
+  return ratesAsync.whenData((rates) => rates.toMap());
 });
 
 /// Representación del estado consolidado del portafolio en la capa de negocio

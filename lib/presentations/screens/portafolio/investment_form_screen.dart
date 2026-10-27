@@ -35,7 +35,11 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
   final _formKey = GlobalKey<FormState>();
   final _montoController = TextEditingController();
   final _descripcionController = TextEditingController();
+  final _rendimientoController = TextEditingController();
+  final _plazoMesesController = TextEditingController();
   final _validator = FormValidator();
+
+  bool _esAporteRecurrente = false;
 
   // === VALORES SELECCIONADOS ===
   late String _selectedMoneda;
@@ -108,13 +112,30 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
     // === MONTO ===
     if (widget.investment != null) {
       final monto = widget.investment!.invMensual;
-      _montoController.text = NumberFormat.decimalPattern('es_CO').format(monto.round());
+      _montoController.text = UIHelpers.formatDecimal(monto.round());
     } else {
       _montoController.text = '';
     }
 
     // === DESCRIPCIÓN ===
     _descripcionController.text = widget.investment?.descripcion ?? '';
+
+    // === CAMPOS DE PROYECCIÓN ===
+    if (widget.investment?.rendimientoEstimadoEA != null) {
+      _rendimientoController.text =
+          widget.investment!.rendimientoEstimadoEA!.toString();
+    } else {
+      _rendimientoController.text = '';
+    }
+
+    if (widget.investment?.plazoMeses != null) {
+      _plazoMesesController.text =
+          widget.investment!.plazoMeses!.toString();
+    } else {
+      _plazoMesesController.text = '';
+    }
+
+    _esAporteRecurrente = widget.investment?.esAporteRecurrente ?? false;
   }
 
   /// Normaliza cualquier variante del mes a su forma capitalizada estándar
@@ -201,6 +222,12 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
         rawText.replaceAll(RegExp(r'[^\d,]'), '').replaceAll('.', '');
     final monto = double.tryParse(cleanText.replaceAll(',', '.')) ?? 0.0;
 
+    final rendimientoText =
+        _rendimientoController.text.trim().replaceAll(',', '.');
+    final rendimiento = double.tryParse(rendimientoText);
+    final plazoText = _plazoMesesController.text.trim();
+    final plazo = int.tryParse(plazoText);
+
     final investment = Investment(
       id: widget.investment?.id ?? const Uuid().v4(),
       userId: widget.userId,
@@ -214,6 +241,9 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
       fechaInversion: _selectedFechaInversion,
       origen: _selectedOrigen,
       activo: _selectedActivo,
+      rendimientoEstimadoEA: rendimiento,
+      esAporteRecurrente: _esAporteRecurrente,
+      plazoMeses: plazo,
     );
 
     try {
@@ -228,7 +258,7 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
 
       if (mounted) {
         UIHelpers.showSuccessSnackBar(
-            context: context, message: 'Inversión guardada con éxito');
+            context: context, message: PortafolioStrings.inversionGuardadaExito);
         Navigator.pop(context);
       }
     } catch (e) {
@@ -245,6 +275,8 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
     _montoController.removeListener(_updateConversion);
     _montoController.dispose();
     _descripcionController.dispose();
+    _rendimientoController.dispose();
+    _plazoMesesController.dispose();
     super.dispose();
   }
 
@@ -262,13 +294,16 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: CustomFormContainer(
-          formKey: _formKey,
-          onCancel: () => Navigator.pop(context),
-          onSave: _guardarInversion,
-          saveButtonText: 'Guardar',
-          cancelButtonText: 'Cancelar',
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 600),
+            child: CustomFormContainer(
+              formKey: _formKey,
+              onCancel: () => Navigator.pop(context),
+              onSave: _guardarInversion,
+              saveButtonText: 'Guardar',
+              cancelButtonText: 'Cancelar',
           children: [
             Text(
               widget.investment == null
@@ -312,7 +347,7 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
                 final number = double.tryParse(cleanDigits) ?? 0.0;
 
                 if (number > 0) {
-                  final formatted = NumberFormat.decimalPattern('es_CO').format(number.round());
+                  final formatted = UIHelpers.formatDecimal(number.round());
                   if (formatted != _montoController.text) {
                     _montoController.value = TextEditingValue(
                       text: formatted,
@@ -481,10 +516,69 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
               maxLength: 100,
               validator: _validator.validateDescription,
             ),
+            const SizedBox(height: 12),
+
+            // === CAMPOS OPCIONALES DE PROYECCIÓN FINANCIERA ===
+            Theme(
+              data: Theme.of(context).copyWith(dividerColor: Colors.transparent),
+              child: ExpansionTile(
+                tilePadding: EdgeInsets.zero,
+                initiallyExpanded: widget.investment?.rendimientoEstimadoEA != null,
+                leading: Icon(Icons.trending_up_rounded, color: context.colors.primary),
+                title: Text(
+                  'Proyección y Rendimiento (Opcional)',
+                  style: TextStyle(
+                    fontSize: 14,
+                    fontWeight: FontWeight.bold,
+                    color: context.colors.onSurface,
+                  ),
+                ),
+                subtitle: Text(
+                  'Configura tasa E.A. y plazo para simulación',
+                  style: TextStyle(fontSize: 12, color: context.colors.onSurfaceVariant),
+                ),
+                children: [
+                  const SizedBox(height: 8),
+                  TextFormField(
+                    controller: _rendimientoController,
+                    keyboardType: const TextInputType.numberWithOptions(decimal: true),
+                    decoration: AppInputStyle.textField(
+                      label: 'Rendimiento Estimado (% E.A.)',
+                      suffixIcon: const Padding(
+                        padding: EdgeInsets.all(12.0),
+                        child: Text('% E.A.', style: TextStyle(fontWeight: FontWeight.bold)),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 12),
+                  TextFormField(
+                    controller: _plazoMesesController,
+                    keyboardType: TextInputType.number,
+                    decoration: AppInputStyle.textField(
+                      label: 'Plazo Estimado (Meses)',
+                      suffixIcon: const Icon(Icons.timer_outlined),
+                    ),
+                  ),
+                  const SizedBox(height: 8),
+                  SwitchListTile(
+                    contentPadding: EdgeInsets.zero,
+                    title: const Text('¿Es aporte recurrente?', style: TextStyle(fontSize: 14)),
+                    subtitle: const Text(
+                      'Indica si planeas aportar este monto periódicamente',
+                      style: TextStyle(fontSize: 12),
+                    ),
+                    value: _esAporteRecurrente,
+                    onChanged: (val) => setState(() => _esAporteRecurrente = val),
+                  ),
+                ],
+              ),
+            ),
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }
 

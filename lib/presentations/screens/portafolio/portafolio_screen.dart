@@ -1,17 +1,21 @@
-import 'package:finances/presentations/screens/portafolio/portafolio_detail_screen.dart';
-import 'package:finances/presentations/widgets/app_bar_finances.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:shimmer/shimmer.dart';
-
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:finances/core/data/providers/portafolio_provider.dart';
-import 'package:finances/presentations/screens/portafolio/portafolio_form_screen.dart';
-import 'package:finances/presentations/screens/portafolio/widgets/portafolio_chart.dart';
-import 'package:finances/presentations/theme/theme.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
 import 'package:finances/core/errors/error_strings.dart';
 import 'package:finances/core/errors/handlers/db_error_handler.dart';
+import 'package:finances/presentations/screens/portafolio/investment_simulator_screen.dart';
+import 'package:finances/presentations/screens/portafolio/portafolio_form_screen.dart';
+import 'package:finances/presentations/screens/portafolio/widgets/currency_trm_indicator.dart';
+import 'package:finances/presentations/screens/portafolio/widgets/delete_confirmation_dialog.dart';
+import 'package:finances/presentations/screens/portafolio/widgets/portafolio_chart.dart';
+import 'package:finances/presentations/screens/portafolio/widgets/portafolio_shimmer_loading.dart';
+import 'package:finances/presentations/screens/portafolio/widgets/portfolio_empty_state.dart';
+import 'package:finances/presentations/screens/portafolio/widgets/portfolio_item_card.dart';
+import 'package:finances/presentations/screens/portafolio/widgets/portfolio_kpi_header.dart';
+import 'package:finances/presentations/theme/theme.dart';
+import 'package:finances/presentations/widgets/app_bar_finances.dart';
 
 class PortafolioScreen extends ConsumerWidget {
   const PortafolioScreen({super.key});
@@ -21,8 +25,14 @@ class PortafolioScreen extends ConsumerWidget {
     final user = FirebaseAuth.instance.currentUser;
 
     if (user == null) {
-      return const Scaffold(
-        body: Center(child: Text("Debe iniciar sesión primero")),
+      return Scaffold(
+        backgroundColor: context.scaffoldBgColor,
+        body: const Center(
+          child: Text(
+            PortafolioStrings.iniciarSesionRequerido,
+            style: TextStyle(fontSize: 16),
+          ),
+        ),
       );
     }
 
@@ -30,21 +40,45 @@ class PortafolioScreen extends ConsumerWidget {
 
     return Scaffold(
       backgroundColor: context.scaffoldBgColor,
-      appBar: const AppBarFinances(
-        title: 'Mis Portafolios',
+      appBar: AppBarFinances(
+        title: PortafolioStrings.misPortafoliosTitle,
         showProfileIcon: false,
+        actions: [
+          Semantics(
+            label: PortafolioStrings.simuladorTooltip,
+            button: true,
+            child: IconButton(
+              icon: const Icon(Icons.calculate_outlined, color: Colors.white),
+              tooltip: PortafolioStrings.simuladorTooltip,
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => const InvestmentSimulatorScreen(),
+                  ),
+                );
+              },
+            ),
+          ),
+        ],
       ),
       floatingActionButtonLocation: FloatingActionButtonLocation.endFloat,
-      floatingActionButton: Padding(
-        padding: const EdgeInsets.only(bottom: 8.0),
-        child: FloatingActionButton(
+      floatingActionButton: Semantics(
+        label: PortafolioStrings.nuevoPortafolioBtn,
+        button: true,
+        child: FloatingActionButton.extended(
+          elevation: 4,
           onPressed: () => Navigator.push(
             context,
             MaterialPageRoute(
               builder: (_) => PortafolioFormScreen(userId: user.uid),
             ),
           ),
-          child: const Icon(Icons.add),
+          icon: const Icon(Icons.add_rounded),
+          label: const Text(
+            PortafolioStrings.nuevoPortafolioBtn,
+            style: TextStyle(fontWeight: FontWeight.bold),
+          ),
         ),
       ),
       body: dashboardAsync.when(
@@ -52,202 +86,57 @@ class PortafolioScreen extends ConsumerWidget {
           final items = dashboardState.portfolioItems;
 
           if (items.isEmpty) {
-            return const Center(
-              child: Text(
-                'No tienes portafolios registrados.',
-                style: TextStyle(color: Colors.grey),
-              ),
-            );
-          }
-
-          Widget buildPortfolioList(bool isTablet) {
-            return ListView.separated(
-              shrinkWrap: isTablet,
-              physics: isTablet ? const ClampingScrollPhysics() : const AlwaysScrollableScrollPhysics(),
-              padding: const EdgeInsets.only(
-                top: 8,
-                bottom: 80,
-              ),
-              itemCount: items.length,
-              separatorBuilder: (_, __) => const Divider(
-                height: 1,
-                thickness: 0.5,
-                color: Colors.grey,
-                indent: 16,
-                endIndent: 16,
-              ),
-              itemBuilder: (context, index) {
-                final item = items[index];
-                final portafolio = item.portafolio;
-
-                return Material(
-                  color: Colors.transparent,
-                  child: InkWell(
-                    onTap: () => Navigator.push(
+            return Column(
+              children: [
+                const CurrencyTrmIndicator(),
+                Expanded(
+                  child: PortfolioEmptyState(
+                    icon: Icons.pie_chart_outline_rounded,
+                    title: PortafolioStrings.emptyPortafolioTitle,
+                    description: PortafolioStrings.emptyPortafolioDesc,
+                    buttonLabel: PortafolioStrings.emptyPortafolioBtn,
+                    onButtonPressed: () => Navigator.push(
                       context,
                       MaterialPageRoute(
-                        builder: (_) => PortafolioDetailScreen(
-                          portafolio: portafolio,
-                        ),
-                      ),
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 16.0, vertical: 12.0),
-                      child: Row(
-                        children: [
-                          const Icon(Icons.folder,
-                              color: Colors.blueGrey),
-                          const SizedBox(width: 16),
-                          Expanded(
-                            child: Column(
-                              crossAxisAlignment:
-                                  CrossAxisAlignment.start,
-                              children: [
-                                Text(
-                                  portafolio.nombre,
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                    fontWeight: FontWeight.w600,
-                                    color: context.isDarkMode ? context.colors.onSurface : Colors.black87,
-                                  ),
-                                ),
-                                const SizedBox(height: 2),
-                                Text(
-                                  'Total: ${UIHelpers.formatCurrency(item.totalValueCOP)}',
-                                  style: TextStyle(
-                                    fontSize: 13,
-                                    color: context.isDarkMode ? context.colors.onSurfaceVariant : Colors.grey,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ),
-                          IconButton(
-                            icon: const Icon(
-                              Icons.delete_outline,
-                              color: Colors.redAccent,
-                            ),
-                            onPressed: () async {
-                              final confirm =
-                                  await showDialog<bool>(
-                                context: context,
-                                builder: (context) =>
-                                    AlertDialog(
-                                  title: const Text(
-                                      "Eliminar Portafolio"),
-                                  content: const Text(
-                                      "¿Deseas eliminar este portafolio y todas sus inversiones asociadas?"),
-                                  actions: [
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(
-                                              context, false),
-                                      child: const Text(
-                                          "Cancelar"),
-                                    ),
-                                    TextButton(
-                                      onPressed: () =>
-                                          Navigator.pop(
-                                              context, true),
-                                      child: const Text(
-                                          "Eliminar"),
-                                    ),
-                                  ],
-                                ),
-                              );
-
-                              if (confirm == true && context.mounted) {
-                                try {
-                                  await ref
-                                      .read(portafolioServiceProvider)
-                                      .eliminarPortafolio(
-                                          user.uid,
-                                          portafolio.id);
-                                  if (context.mounted) {
-                                    UIHelpers.showSuccessSnackBar(
-                                      context: context,
-                                      message: 'Portafolio eliminado con éxito',
-                                    );
-                                  }
-                                } catch (error) {
-                                  if (context.mounted) {
-                                    final friendlyError = DbErrorHandler.handle(error);
-                                    UIHelpers.showErrorSnackBar(
-                                      context: context,
-                                      message: friendlyError,
-                                    );
-                                  }
-                                }
-                              }
-                            },
-                          ),
-                        ],
+                        builder: (_) => PortafolioFormScreen(userId: user.uid),
                       ),
                     ),
                   ),
-                );
-              },
+                ),
+              ],
             );
           }
 
-          return LayoutBuilder(
-            builder: (context, constraints) {
-              if (constraints.maxWidth >= 600) {
-                // Split horizontal layout para tablets y landscape
-                return Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Expanded(
-                      flex: 4,
-                      child: SingleChildScrollView(
-                        padding: const EdgeInsets.only(bottom: 80),
-                        child: PortafolioChart(
-                          totalValueCOP: dashboardState.totalPortfolioValueCOP,
-                          portfolioItems: items,
-                        ),
+          return Column(
+            children: [
+              const CurrencyTrmIndicator(),
+              Expanded(
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    final isDesktop = constraints.maxWidth >= 1050;
+                    final isTablet =
+                        constraints.maxWidth >= 650 && constraints.maxWidth < 1050;
+
+                    return Center(
+                      child: ConstrainedBox(
+                        constraints: const BoxConstraints(maxWidth: 1240),
+                        child: isDesktop
+                            ? _buildDesktopLayout(context, ref, dashboardState, user.uid)
+                            : isTablet
+                                ? _buildTabletLayout(context, ref, dashboardState, user.uid)
+                                : _buildMobileLayout(
+                                    context,
+                                    ref,
+                                    dashboardState,
+                                    user.uid,
+                                    constraints.maxWidth,
+                                  ),
                       ),
-                    ),
-                    const VerticalDivider(width: 0.5, thickness: 0.5, color: Colors.grey),
-                    Expanded(
-                      flex: 6,
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: context.cardBgColor,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: buildPortfolioList(true),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              } else {
-                // Layout vertical móvil estándar
-                return Column(
-                  children: [
-                    PortafolioChart(
-                      totalValueCOP: dashboardState.totalPortfolioValueCOP,
-                      portfolioItems: items,
-                    ),
-                    Expanded(
-                      child: Padding(
-                        padding: const EdgeInsets.all(16.0),
-                        child: Container(
-                          decoration: BoxDecoration(
-                            color: context.cardBgColor,
-                            borderRadius: BorderRadius.circular(16),
-                          ),
-                          child: buildPortfolioList(false),
-                        ),
-                      ),
-                    ),
-                  ],
-                );
-              }
-            },
+                    );
+                  },
+                ),
+              ),
+            ],
           );
         },
         loading: () => const PortafolioShimmerLoading(),
@@ -256,10 +145,17 @@ class PortafolioScreen extends ConsumerWidget {
           return Center(
             child: Padding(
               padding: const EdgeInsets.all(24.0),
-              child: Text(
-                '${ErrorStrings.loadFailed}\n($friendlyError)',
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.red, fontSize: 14),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  Icon(Icons.error_outline_rounded, color: context.colors.error, size: 48),
+                  const SizedBox(height: 12),
+                  Text(
+                    '${ErrorStrings.loadFailed}\n($friendlyError)',
+                    textAlign: TextAlign.center,
+                    style: TextStyle(color: context.colors.error, fontSize: 14),
+                  ),
+                ],
               ),
             ),
           );
@@ -267,45 +163,265 @@ class PortafolioScreen extends ConsumerWidget {
       ),
     );
   }
-}
 
-class PortafolioShimmerLoading extends StatelessWidget {
-  const PortafolioShimmerLoading({super.key});
+  // ===========================================================================
+  // 📱 MOBILE LAYOUT (<650px)
+  // ===========================================================================
+  Widget _buildMobileLayout(
+    BuildContext context,
+    WidgetRef ref,
+    PortfolioDashboardState dashboardState,
+    String userId,
+    double screenWidth,
+  ) {
+    final items = dashboardState.portfolioItems;
 
-  @override
-  Widget build(BuildContext context) {
-    // Importación implícita de shimmer.dart
-    return Shimmer.fromColors(
-      baseColor: Colors.grey[300]!,
-      highlightColor: Colors.grey[100]!,
-      child: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          children: [
-            Card(
-              elevation: 0,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-              child: const SizedBox(height: 220, width: double.infinity),
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 96),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PortfolioKpiHeader(
+            dashboardState: dashboardState,
+            isSmallScreen: screenWidth < 360,
+          ),
+          const SizedBox(height: 16),
+          if (dashboardState.totalPortfolioValueCOP > 0) ...[
+            PortafolioChart(
+              totalValueCOP: dashboardState.totalPortfolioValueCOP,
+              portfolioItems: items,
             ),
-            const SizedBox(height: 24),
-            ...List.generate(
-              4,
-              (index) => Padding(
-                padding: const EdgeInsets.symmetric(vertical: 8),
-                child: Container(
-                  height: 64,
-                  decoration: BoxDecoration(
-                    color: Colors.white,
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
+            const SizedBox(height: 16),
+          ],
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            child: Text(
+              PortafolioStrings.tusPortafoliosCount(items.length),
+              style: TextStyle(
+                fontSize: 18,
+                fontWeight: FontWeight.bold,
+                color: context.titleColor,
               ),
             ),
-          ],
-        ),
+          ),
+          const SizedBox(height: 8),
+          ListView.separated(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: items.length,
+            separatorBuilder: (_, __) => const SizedBox(height: 12),
+            itemBuilder: (context, index) {
+              return PortfolioItemCard(
+                item: items[index],
+                totalPortfolioValueCOP: dashboardState.totalPortfolioValueCOP,
+                onDelete: () => _confirmarEliminacion(
+                  context,
+                  ref,
+                  userId,
+                  items[index].portafolio.id,
+                  items[index].portafolio.nombre,
+                ),
+              );
+            },
+          ),
+        ],
       ),
     );
   }
+
+  // ===========================================================================
+  // 💻 TABLET LAYOUT (650px - 1050px)
+  // ===========================================================================
+  Widget _buildTabletLayout(
+    BuildContext context,
+    WidgetRef ref,
+    PortfolioDashboardState dashboardState,
+    String userId,
+  ) {
+    final items = dashboardState.portfolioItems;
+
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.only(left: 20, right: 20, top: 20, bottom: 96),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PortfolioKpiHeader(dashboardState: dashboardState),
+          const SizedBox(height: 20),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (dashboardState.totalPortfolioValueCOP > 0)
+                Expanded(
+                  flex: 5,
+                  child: PortafolioChart(
+                    totalValueCOP: dashboardState.totalPortfolioValueCOP,
+                    portfolioItems: items,
+                  ),
+                ),
+              if (dashboardState.totalPortfolioValueCOP > 0) const SizedBox(width: 16),
+              Expanded(
+                flex: dashboardState.totalPortfolioValueCOP > 0 ? 5 : 10,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      child: Text(
+                        PortafolioStrings.portafoliosRegistradosCount(items.length),
+                        style: TextStyle(
+                          fontSize: 18,
+                          fontWeight: FontWeight.bold,
+                          color: context.titleColor,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    ListView.separated(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      itemCount: items.length,
+                      separatorBuilder: (_, __) => const SizedBox(height: 12),
+                      itemBuilder: (context, index) {
+                        return PortfolioItemCard(
+                          item: items[index],
+                          totalPortfolioValueCOP: dashboardState.totalPortfolioValueCOP,
+                          onDelete: () => _confirmarEliminacion(
+                            context,
+                            ref,
+                            userId,
+                            items[index].portafolio.id,
+                            items[index].portafolio.nombre,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ===========================================================================
+  // 🖥️ DESKTOP LAYOUT (>= 1050px)
+  // ===========================================================================
+  Widget _buildDesktopLayout(
+    BuildContext context,
+    WidgetRef ref,
+    PortfolioDashboardState dashboardState,
+    String userId,
+  ) {
+    final items = dashboardState.portfolioItems;
+
+    return SingleChildScrollView(
+      physics: const AlwaysScrollableScrollPhysics(),
+      padding: const EdgeInsets.only(left: 28, right: 28, top: 24, bottom: 96),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          PortfolioKpiHeader(dashboardState: dashboardState),
+          const SizedBox(height: 24),
+          Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              if (dashboardState.totalPortfolioValueCOP > 0)
+                Expanded(
+                  flex: 4,
+                  child: PortafolioChart(
+                    totalValueCOP: dashboardState.totalPortfolioValueCOP,
+                    portfolioItems: items,
+                  ),
+                ),
+              if (dashboardState.totalPortfolioValueCOP > 0) const SizedBox(width: 24),
+              Expanded(
+                flex: dashboardState.totalPortfolioValueCOP > 0 ? 6 : 10,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+                      child: Text(
+                        PortafolioStrings.portafoliosRegistradosCount(items.length),
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.bold,
+                          color: context.titleColor,
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                    GridView.builder(
+                      shrinkWrap: true,
+                      physics: const NeverScrollableScrollPhysics(),
+                      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
+                        crossAxisCount: 2,
+                        crossAxisSpacing: 16,
+                        mainAxisSpacing: 16,
+                        mainAxisExtent: 160,
+                      ),
+                      itemCount: items.length,
+                      itemBuilder: (context, index) {
+                        return PortfolioItemCard(
+                          item: items[index],
+                          totalPortfolioValueCOP: dashboardState.totalPortfolioValueCOP,
+                          onDelete: () => _confirmarEliminacion(
+                            context,
+                            ref,
+                            userId,
+                            items[index].portafolio.id,
+                            items[index].portafolio.nombre,
+                          ),
+                        );
+                      },
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  Future<void> _confirmarEliminacion(
+    BuildContext context,
+    WidgetRef ref,
+    String userId,
+    String portafolioId,
+    String nombre,
+  ) async {
+    final confirmed = await DeleteConfirmationDialog.show(
+      context,
+      title: PortafolioStrings.eliminarPortafolioDialogTitle,
+      message: PortafolioStrings.eliminarPortafolioDialogMsg(nombre),
+    );
+
+    if (confirmed && context.mounted) {
+      try {
+        await ref
+            .read(portafolioServiceProvider)
+            .eliminarPortafolio(userId, portafolioId);
+        if (context.mounted) {
+          UIHelpers.showSuccessSnackBar(
+            context: context,
+            message: PortafolioStrings.portafolioEliminadoExito,
+          );
+        }
+      } catch (error) {
+        if (context.mounted) {
+          final friendlyError = DbErrorHandler.handle(error);
+          UIHelpers.showErrorSnackBar(
+            context: context,
+            message: friendlyError,
+          );
+        }
+      }
+    }
+  }
 }
-
-

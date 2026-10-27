@@ -174,9 +174,9 @@ class _PortafolioChartState extends State<PortafolioChart> {
                                 ),
                                 Text(
                                   '${(selectedItem.totalValueCOP / widget.totalValueCOP * 100).toStringAsFixed(1)}%',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.w900,
-                                    color: Colors.blueGrey,
+                                    color: context.isDarkMode ? context.colors.primary : const Color(0xFF003366),
                                     fontSize: 14,
                                   ),
                                 ),
@@ -185,19 +185,19 @@ class _PortafolioChartState extends State<PortafolioChart> {
                             const SizedBox(height: 4),
                             Text(
                               'Valor: ${UIHelpers.formatCurrency(selectedItem.totalValueCOP)}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.w600,
-                                color: Colors.black87,
+                                color: context.isDarkMode ? context.colors.onSurface : const Color(0xFF1F2937),
                               ),
                             ),
                             if (selectedItem.portafolio.nota.isNotEmpty) ...[
                               const SizedBox(height: 4),
                               Text(
                                 'Nota: ${selectedItem.portafolio.nota}',
-                                style: const TextStyle(
+                                style: TextStyle(
                                   fontSize: 11,
-                                  color: Colors.black54,
+                                  color: context.isDarkMode ? context.colors.onSurfaceVariant : const Color(0xFF4B5563),
                                   fontStyle: FontStyle.italic,
                                 ),
                               ),
@@ -244,9 +244,9 @@ class _PortafolioChartState extends State<PortafolioChart> {
                                     ),
                                     Text(
                                       '${(otrosValue / widget.totalValueCOP * 100).toStringAsFixed(1)}%',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.w900,
-                                        color: Colors.blueGrey,
+                                        color: context.isDarkMode ? context.colors.primary : const Color(0xFF003366),
                                         fontSize: 14,
                                       ),
                                     ),
@@ -255,29 +255,29 @@ class _PortafolioChartState extends State<PortafolioChart> {
                                 const SizedBox(height: 4),
                                 Text(
                                   'Valor Consolidado: ${UIHelpers.formatCurrency(otrosValue)}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
+                                    color: context.isDarkMode ? context.colors.onSurface : const Color(0xFF1F2937),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                const Text(
+                                Text(
                                   'Agrupa portafolios individuales con participación menor al 1% del total.',
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: Colors.black54,
+                                    color: context.isDarkMode ? context.colors.onSurfaceVariant : const Color(0xFF4B5563),
                                   ),
                                 ),
                               ],
                             ),
                           )
-                        : const Text(
+                        : Text(
                             'Toca un sector del gráfico para ver detalles',
-                            key: ValueKey('prompt'),
+                            key: const ValueKey('prompt'),
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey,
+                              color: context.isDarkMode ? context.colors.onSurfaceVariant : Colors.grey,
                               fontStyle: FontStyle.italic,
                             ),
                           ),

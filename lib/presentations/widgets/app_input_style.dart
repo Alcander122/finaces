@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 class AppInputStyle {
   static InputDecoration textField({
     required String label,
+    Widget? prefixIcon,
     Widget? suffixIcon,
   }) {
     return InputDecoration(
@@ -10,6 +11,7 @@ class AppInputStyle {
       border: OutlineInputBorder(
         borderRadius: BorderRadius.circular(12),
       ),
+      prefixIcon: prefixIcon,
       suffixIcon: suffixIcon,
     );
   }

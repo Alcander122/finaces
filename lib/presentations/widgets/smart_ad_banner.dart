@@ -24,6 +24,7 @@ class _SmartAdBannerState extends ConsumerState<SmartAdBanner> {
   }
 
   void _loadAdIfNeeded() {
+    if (kIsWeb) return;
     final isPremium = ref.read(premiumProvider);
     if (isPremium) {
       _bannerAd?.dispose();

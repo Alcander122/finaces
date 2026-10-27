@@ -1,3 +1,4 @@
+import 'package:finances/Firebase/firebase_options.dart';
 import 'package:finances/core/controller/my_app.dart';
 import 'package:finances/presentations/screens/Pagos/services/notification_service.dart';
 import 'package:finances/presentations/screens/Pagos/services/timezone_service.dart';
@@ -21,45 +22,55 @@ void main() async {
 
   // 1. Inicializar Firebase y App Check
   try {
-    await Firebase.initializeApp();
+    await Firebase.initializeApp(
+      options: DefaultFirebaseOptions.currentPlatform,
+    );
     FirebaseAuth.instance.setLanguageCode("es");
     debugPrint('Firebase inicializado correctamente');
 
-    // 🛡️ Activar Firebase App Check (Play Integrity en Producción / Debug Provider en Desarrollo)
-    await FirebaseAppCheck.instance.activate(
-      androidProvider:
-          kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
-      appleProvider:
-          kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
-    );
-    debugPrint('Firebase App Check activado correctamente');
+    if (!kIsWeb) {
+      // 🛡️ Activar Firebase App Check (Play Integrity en Producción / Debug Provider en Desarrollo)
+      await FirebaseAppCheck.instance.activate(
+        androidProvider:
+            kDebugMode ? AndroidProvider.debug : AndroidProvider.playIntegrity,
+        appleProvider:
+            kDebugMode ? AppleProvider.debug : AppleProvider.deviceCheck,
+      );
+      debugPrint('Firebase App Check activado correctamente');
+    }
   } catch (e) {
     debugPrint('Error inicializando Firebase / App Check: $e');
   }
 
-  // 2. 📢 INICIALIZAR ADMOB
-  try {
-    await MobileAds.instance.initialize();
-    debugPrint('SDK de Google Mobile Ads inicializado');
-  } catch (e) {
-    debugPrint('Error inicializando Google Mobile Ads: $e');
+  // 2. 📢 INICIALIZAR ADMOB (solo móvil nativo)
+  if (!kIsWeb) {
+    try {
+      await MobileAds.instance.initialize();
+      debugPrint('SDK de Google Mobile Ads inicializado');
+    } catch (e) {
+      debugPrint('Error inicializando Google Mobile Ads: $e');
+    }
   }
 
-  // 3. Inicializar Timezone
-  try {
-    await TimezoneService().init();
-    debugPrint('TimezoneService inicializado correctamente');
-  } catch (e) {
-    debugPrint('Error inicializando TimezoneService: $e');
+  // 3. Inicializar Timezone (solo móvil nativo)
+  if (!kIsWeb) {
+    try {
+      await TimezoneService().init();
+      debugPrint('TimezoneService inicializado correctamente');
+    } catch (e) {
+      debugPrint('Error inicializando TimezoneService: $e');
+    }
   }
 
-  // 4. Inicializar notificaciones locales
-  try {
-    final notificationService = NotificationService();
-    await notificationService.init();
-    debugPrint('NotificationService inicializado correctamente');
-  } catch (e) {
-    debugPrint('Error inicializando NotificationService: $e');
+  // 4. Inicializar notificaciones locales (solo móvil nativo)
+  if (!kIsWeb) {
+    try {
+      final notificationService = NotificationService();
+      await notificationService.init();
+      debugPrint('NotificationService inicializado correctamente');
+    } catch (e) {
+      debugPrint('Error inicializando NotificationService: $e');
+    }
   }
 
   // Ejecutar la aplicación envuelta en ProviderScope para el manejo de estados con Riverpod

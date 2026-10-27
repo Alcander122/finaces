@@ -18,40 +18,11 @@ class PortafolioService {
         );
   }
 
-  /// OBTIENE PORTAFOLIOS EN TIEMPO REAL SIN REQUERIR `allow list`
-  /// Usa: .get() inicial + .snapshots() en cada documento
-  Stream<List<Portafolio>> obtenerPortafoliosEnTiempoReal(
-      String userId) async* {
-    final collection = _portafolioCollection(userId);
-
-    // 1. Carga inicial: obtener todos los documentos (permitido por 'read')
-    final initialSnapshot = await collection.get();
-    final currentList = initialSnapshot.docs.map((doc) => doc.data()).toList();
-
-    // Emitir lista inicial
-    yield currentList;
-
-    // 2. Escuchar cambios en CADA documento individualmente
-    // → .snapshots() en documento = permitido por 'read'
-    for (final doc in initialSnapshot.docs) {
-      yield* doc.reference.snapshots().map((docSnap) {
-        final updatedList = currentList.toList(); // Copia para no mutar
-        final index = updatedList.indexWhere((p) => p.id == doc.id);
-
-        if (docSnap.exists) {
-          final updatedPortafolio = docSnap.data()!;
-          if (index >= 0) {
-            updatedList[index] = updatedPortafolio; // Actualizar
-          } else {
-            updatedList.add(updatedPortafolio); // Nuevo
-          }
-        } else if (index >= 0) {
-          updatedList.removeAt(index); // Eliminado
-        }
-
-        return updatedList;
-      });
-    }
+  /// Obtiene los portafolios en tiempo real escuchando los cambios en la colección
+  Stream<List<Portafolio>> obtenerPortafoliosEnTiempoReal(String userId) {
+    return _portafolioCollection(userId)
+        .snapshots()
+        .map((snapshot) => snapshot.docs.map((doc) => doc.data()).toList());
   }
 
   /// Agregar portafolio

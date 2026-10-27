@@ -78,8 +78,8 @@ class PortafolioFormScreenState extends ConsumerState<PortafolioFormScreen> {
         UIHelpers.showSuccessSnackBar(
           context: context,
           message: widget.portafolio == null
-              ? 'Portafolio creado correctamente'
-              : 'Portafolio actualizado correctamente',
+              ? PortafolioStrings.portafolioCreadoExito
+              : PortafolioStrings.portafolioActualizadoExito,
         );
       }
     }).catchError((error) {
@@ -101,24 +101,29 @@ class PortafolioFormScreenState extends ConsumerState<PortafolioFormScreen> {
         backgroundColor: context.isDarkMode ? context.colors.surface : Themes.primary,
         foregroundColor: Colors.white,
         title: Text(
-          widget.portafolio == null ? "Nuevo Portafolio" : "Editar Portafolio",
+          widget.portafolio == null
+              ? PortafolioStrings.nuevoPortafolioBtn
+              : PortafolioStrings.editarPortafolioTitle,
         ),
         centerTitle: true,
       ),
       body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: CustomFormContainer(
-          formKey: _formKey,
-          onCancel: () => Navigator.pop(context),
-          onSave: _guardarPortafolio,
-          saveButtonText: 'Guardar',
-          cancelButtonText: 'Cancelar',
+        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+        child: Center(
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 580),
+            child: CustomFormContainer(
+              formKey: _formKey,
+              onCancel: () => Navigator.pop(context),
+              onSave: _guardarPortafolio,
+              saveButtonText: PortafolioStrings.guardarBtn,
+              cancelButtonText: PortafolioStrings.cancelarBtn,
           children: [
             // Título
             Text(
               widget.portafolio == null
-                  ? "Crear Portafolio"
-                  : "Editar Portafolio",
+                  ? PortafolioStrings.crearPortafolioTitle
+                  : PortafolioStrings.editarPortafolioTitle,
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
@@ -198,7 +203,9 @@ class PortafolioFormScreenState extends ConsumerState<PortafolioFormScreen> {
           ],
         ),
       ),
-    );
+    ),
+  ),
+);
   }
 }
 

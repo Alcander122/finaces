@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:finances/core/data/providers/investment_provider.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'package:finances/presentations/theme/theme.dart';
-import 'package:finances/presentations/theme/themes.dart';
 import 'package:finances/core/data/utils/ui_helpers.dart';
 
 class InvestmentChart extends StatefulWidget {
@@ -162,9 +161,9 @@ class _InvestmentChartState extends State<InvestmentChart> {
                                 ),
                                 Text(
                                   '${(selectedItem.convertedValueCOP / total * 100).toStringAsFixed(1)}%',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontWeight: FontWeight.w900,
-                                    color: Colors.blueGrey,
+                                    color: context.isDarkMode ? context.colors.primary : const Color(0xFF003366),
                                     fontSize: 14,
                                   ),
                                 ),
@@ -173,21 +172,18 @@ class _InvestmentChartState extends State<InvestmentChart> {
                             const SizedBox(height: 4),
                             Text(
                               'Origen: ${selectedItem.investment.origen} | Tipo: ${selectedItem.investment.activo}',
-                              style: const TextStyle(
+                              style: TextStyle(
                                 fontSize: 12,
-                                color: Colors.blueGrey,
+                                color: context.isDarkMode ? context.colors.onSurfaceVariant : const Color(0xFF4B5563),
                               ),
                             ),
                             const SizedBox(height: 4),
                             Text(
-                              'Monto: ${UIHelpers.formatCurrency(selectedItem.investment.invMensual)} ${selectedItem.investment.moneda}' +
-                                  (selectedItem.investment.moneda.toUpperCase() != 'COP'
-                                      ? ' (≈ ${UIHelpers.formatCurrency(selectedItem.convertedValueCOP)} COP)'
-                                      : ''),
-                              style: const TextStyle(
+                              'Monto: ${UIHelpers.formatCurrency(selectedItem.investment.invMensual)} ${selectedItem.investment.moneda}${selectedItem.investment.moneda.toUpperCase() != 'COP' ? ' (≈ ${UIHelpers.formatCurrency(selectedItem.convertedValueCOP)} COP)' : ''}',
+                              style: TextStyle(
                                 fontSize: 13,
                                 fontWeight: FontWeight.bold,
-                                color: Colors.black87,
+                                color: context.isDarkMode ? context.colors.onSurface : const Color(0xFF1F2937),
                               ),
                             ),
                           ],
@@ -232,9 +228,9 @@ class _InvestmentChartState extends State<InvestmentChart> {
                                     ),
                                     Text(
                                       '${(otrosValue / total * 100).toStringAsFixed(1)}%',
-                                      style: const TextStyle(
+                                      style: TextStyle(
                                         fontWeight: FontWeight.w900,
-                                        color: Colors.blueGrey,
+                                        color: context.isDarkMode ? context.colors.primary : const Color(0xFF003366),
                                         fontSize: 14,
                                       ),
                                     ),
@@ -243,29 +239,29 @@ class _InvestmentChartState extends State<InvestmentChart> {
                                 const SizedBox(height: 4),
                                 Text(
                                   'Valor Consolidado: ${UIHelpers.formatCurrency(otrosValue)}',
-                                  style: const TextStyle(
+                                  style: TextStyle(
                                     fontSize: 13,
                                     fontWeight: FontWeight.w600,
-                                    color: Colors.black87,
+                                    color: context.isDarkMode ? context.colors.onSurface : const Color(0xFF1F2937),
                                   ),
                                 ),
                                 const SizedBox(height: 4),
-                                const Text(
+                                Text(
                                   'Agrupa inversiones individuales con participación menor al 1% del total del portafolio.',
                                   style: TextStyle(
                                     fontSize: 11,
-                                    color: Colors.black54,
+                                    color: context.isDarkMode ? context.colors.onSurfaceVariant : const Color(0xFF4B5563),
                                   ),
                                 ),
                               ],
                             ),
                           )
-                        : const Text(
+                        : Text(
                             'Toca un sector del gráfico para ver detalles',
-                            key: ValueKey('prompt'),
+                            key: const ValueKey('prompt'),
                             style: TextStyle(
                               fontSize: 12,
-                              color: Colors.grey,
+                              color: context.isDarkMode ? context.colors.onSurfaceVariant : Colors.grey,
                               fontStyle: FontStyle.italic,
                             ),
                           ),
