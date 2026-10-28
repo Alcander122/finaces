@@ -232,8 +232,9 @@ class _InvestmentSimulatorScreenState
           ),
         ],
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+      body: SafeArea(
+        child: SingleChildScrollView(
+          padding: const EdgeInsets.only(left: 16, right: 16, top: 16, bottom: 48),
         child: Center(
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 800),
@@ -355,6 +356,7 @@ class _InvestmentSimulatorScreenState
           ),
         ),
       ),
-    );
-  }
+    ),
+  );
+}
 }

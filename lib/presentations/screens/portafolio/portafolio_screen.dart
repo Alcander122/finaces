@@ -44,20 +44,47 @@ class PortafolioScreen extends ConsumerWidget {
         title: PortafolioStrings.misPortafoliosTitle,
         showProfileIcon: false,
         actions: [
-          Semantics(
-            label: PortafolioStrings.simuladorTooltip,
-            button: true,
-            child: IconButton(
-              icon: const Icon(Icons.calculate_outlined, color: Colors.white),
-              tooltip: PortafolioStrings.simuladorTooltip,
-              onPressed: () {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => const InvestmentSimulatorScreen(),
+          Padding(
+            padding: const EdgeInsets.only(right: 12),
+            child: Center(
+              child: Semantics(
+                label: PortafolioStrings.simuladorTooltip,
+                button: true,
+                child: Material(
+                  color: Colors.white.withValues(alpha: 0.16),
+                  borderRadius: BorderRadius.circular(20),
+                  child: InkWell(
+                    borderRadius: BorderRadius.circular(20),
+                    onTap: () {
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (_) => const InvestmentSimulatorScreen(),
+                        ),
+                      );
+                    },
+                    child: const Padding(
+                      padding: EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                      child: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          Icon(Icons.auto_graph_rounded, color: Colors.white, size: 16),
+                          SizedBox(width: 5),
+                          Text(
+                            'Simulador',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 12.5,
+                              fontWeight: FontWeight.w600,
+                              letterSpacing: 0.2,
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
                   ),
-                );
-              },
+                ),
+              ),
             ),
           ),
         ],

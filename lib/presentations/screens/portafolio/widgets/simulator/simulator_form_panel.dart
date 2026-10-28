@@ -61,14 +61,17 @@ class SimulatorFormPanel extends StatelessWidget {
           Row(
             mainAxisAlignment: MainAxisAlignment.spaceBetween,
             children: [
-              Text(
-                PortafolioStrings.configuracionSimulacionTitle,
-                style: TextStyle(
-                  fontSize: 17,
-                  fontWeight: FontWeight.bold,
-                  color: context.colors.onSurface,
+              Expanded(
+                child: Text(
+                  PortafolioStrings.configuracionSimulacionTitle,
+                  style: TextStyle(
+                    fontSize: 16,
+                    fontWeight: FontWeight.bold,
+                    color: context.colors.onSurface,
+                  ),
                 ),
               ),
+              const SizedBox(width: 8),
               Container(
                 decoration: BoxDecoration(
                   color: context.isDarkMode

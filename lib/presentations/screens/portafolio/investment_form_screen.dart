@@ -53,6 +53,7 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
   double _tasaConversion = 1.0;
   double _montoConvertido = 0.0;
   bool _isLoadingConversion = false;
+  bool _isSaving = false;
 
   // === LISTAS DE OPCIONES ===
   late final List<String> _meses;
@@ -215,7 +216,10 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
 
   /// Guarda o actualiza la inversión
   Future<void> _guardarInversion() async {
+    if (_isSaving) return;
     if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSaving = true);
 
     final rawText = _montoController.text;
     final cleanText =
@@ -267,6 +271,10 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
         UIHelpers.showErrorSnackBar(
             context: context, message: friendlyError);
       }
+    } finally {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     }
   }
 
@@ -300,9 +308,9 @@ class _InvestmentFormScreenState extends ConsumerState<InvestmentFormScreen> {
             constraints: const BoxConstraints(maxWidth: 600),
             child: CustomFormContainer(
               formKey: _formKey,
-              onCancel: () => Navigator.pop(context),
-              onSave: _guardarInversion,
-              saveButtonText: 'Guardar',
+              onCancel: _isSaving ? null : () => Navigator.pop(context),
+              onSave: _isSaving ? null : _guardarInversion,
+              saveButtonText: _isSaving ? 'Guardando...' : 'Guardar',
               cancelButtonText: 'Cancelar',
           children: [
             Text(

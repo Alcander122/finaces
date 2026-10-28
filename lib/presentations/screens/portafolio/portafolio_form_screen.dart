@@ -32,6 +32,7 @@ class PortafolioFormScreenState extends ConsumerState<PortafolioFormScreen> {
   final _descripcionController = TextEditingController();
   final _notaController = TextEditingController();
   late DateTime _fechaCreacion;
+  bool _isSaving = false;
 
   @override
   void initState() {
@@ -54,7 +55,10 @@ class PortafolioFormScreenState extends ConsumerState<PortafolioFormScreen> {
   }
 
   void _guardarPortafolio() {
+    if (_isSaving) return;
     if (!_formKey.currentState!.validate()) return;
+
+    setState(() => _isSaving = true);
 
     final portafolio = Portafolio(
       id: widget.portafolio?.id ?? const Uuid().v4(),
@@ -90,6 +94,10 @@ class PortafolioFormScreenState extends ConsumerState<PortafolioFormScreen> {
           message: friendlyError,
         );
       }
+    }).whenComplete(() {
+      if (mounted) {
+        setState(() => _isSaving = false);
+      }
     });
   }
 
@@ -114,9 +122,9 @@ class PortafolioFormScreenState extends ConsumerState<PortafolioFormScreen> {
             constraints: const BoxConstraints(maxWidth: 580),
             child: CustomFormContainer(
               formKey: _formKey,
-              onCancel: () => Navigator.pop(context),
-              onSave: _guardarPortafolio,
-              saveButtonText: PortafolioStrings.guardarBtn,
+              onCancel: _isSaving ? null : () => Navigator.pop(context),
+              onSave: _isSaving ? null : _guardarPortafolio,
+              saveButtonText: _isSaving ? 'Guardando...' : PortafolioStrings.guardarBtn,
               cancelButtonText: PortafolioStrings.cancelarBtn,
           children: [
             // Título

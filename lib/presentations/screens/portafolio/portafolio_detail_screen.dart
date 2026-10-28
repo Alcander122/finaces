@@ -40,7 +40,7 @@ class PortafolioDetailScreen extends ConsumerWidget {
             label: PortafolioStrings.simuladorTooltip,
             button: true,
             child: IconButton(
-              icon: const Icon(Icons.calculate_outlined),
+              icon: const Icon(Icons.auto_graph_rounded),
               color: Colors.white,
               tooltip: PortafolioStrings.simuladorTooltip,
               onPressed: () {

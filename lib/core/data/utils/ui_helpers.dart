@@ -233,9 +233,9 @@ class PortafolioStrings {
   static const String emptyInversionBtn = 'Agregar Inversión';
 
   // --- KPIS Y ENCABEZADOS ---
-  static const String kpiPatrimonioTotal = 'Patrimonio Total';
+  static const String kpiPatrimonioTotal = 'Patrimonio';
   static const String kpiPortafolios = 'Portafolios';
-  static const String kpiActivosCartera = 'Activos en Cartera';
+  static const String kpiActivosCartera = 'Activos';
   static String tusPortafoliosCount(int count) => 'Tus Portafolios ($count)';
   static String portafoliosRegistradosCount(int count) =>
       'Portafolios Registrados ($count)';
@@ -243,7 +243,7 @@ class PortafolioStrings {
   static String inversionesPortafolioCount(int count) =>
       'Inversiones del Portafolio ($count)';
   static const String valorTotalLabel = 'Valor Total';
-  static const String valorConsolidadoLabel = 'Valor Consolidado';
+  static const String valorConsolidadoLabel = 'Total en Pesos (COP)';
   static String inversionesBadge(int count) =>
       '$count ${count == 1 ? "inversión" : "inversiones"}';
 

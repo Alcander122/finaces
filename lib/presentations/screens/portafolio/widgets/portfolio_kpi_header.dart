@@ -79,7 +79,7 @@ class PortfolioKpiHeader extends StatelessWidget {
 
   Widget _buildKpiCard(BuildContext context, _KpiData kpi) {
     return Container(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 12),
       decoration: BoxDecoration(
         color: context.cardBgColor,
         borderRadius: BorderRadius.circular(16),
@@ -95,46 +95,44 @@ class PortfolioKpiHeader extends StatelessWidget {
           ),
         ],
       ),
-      child: Row(
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        mainAxisSize: MainAxisSize.min,
         children: [
           Container(
-            padding: const EdgeInsets.all(10),
+            padding: const EdgeInsets.all(7),
             decoration: BoxDecoration(
               color: kpi.accentColor.withOpacity(0.12),
               shape: BoxShape.circle,
             ),
-            child: Icon(kpi.icon, color: kpi.accentColor, size: 22),
+            child: Icon(kpi.icon, color: kpi.accentColor, size: 18),
           ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  kpi.title,
-                  style: TextStyle(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: context.isDarkMode
-                        ? context.colors.onSurfaceVariant
-                        : const Color(0xFF6B7280),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  kpi.value,
-                  style: TextStyle(
-                    fontSize: 15,
-                    fontWeight: FontWeight.bold,
-                    color: context.isDarkMode
-                        ? context.colors.onSurface
-                        : const Color(0xFF111827),
-                  ),
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+          const SizedBox(height: 8),
+          Text(
+            kpi.title,
+            style: TextStyle(
+              fontSize: 11,
+              fontWeight: FontWeight.w600,
+              color: context.isDarkMode
+                  ? context.colors.onSurfaceVariant
+                  : const Color(0xFF6B7280),
+            ),
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+          ),
+          const SizedBox(height: 2),
+          FittedBox(
+            fit: BoxFit.scaleDown,
+            alignment: Alignment.centerLeft,
+            child: Text(
+              kpi.value,
+              style: TextStyle(
+                fontSize: 15,
+                fontWeight: FontWeight.bold,
+                color: context.isDarkMode
+                    ? context.colors.onSurface
+                    : const Color(0xFF111827),
+              ),
             ),
           ),
         ],
